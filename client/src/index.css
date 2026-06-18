@@ -206,3 +206,113 @@
   20% { left: 200%; }
   100% { left: 200%; }
 }
+
+/* Login Page Specific Styling */
+.glass-panel-elevated {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(3, 105, 161, 0.15);
+  box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.08);
+}
+
+.dark .glass-panel-elevated {
+  background: rgba(15, 21, 36, 0.7);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(125, 211, 252, 0.15);
+  box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Specific Glow button styles to override card shadow presets */
+.btn-login-glow {
+  box-shadow: 0 0 15px rgba(3, 105, 161, 0.18) !important;
+}
+.btn-login-glow:hover {
+  box-shadow: 0 0 25px rgba(3, 105, 161, 0.35) !important;
+}
+
+.dark .btn-login-glow {
+  box-shadow: 0 0 15px rgba(125, 211, 252, 0.25) !important;
+}
+.dark .btn-login-glow:hover {
+  box-shadow: 0 0 25px rgba(125, 211, 252, 0.45) !important;
+}
+
+
+.input-container {
+  background: rgba(240, 244, 255, 0.8);
+  border: 1px solid rgba(3, 105, 161, 0.1);
+}
+
+.dark .input-container {
+  background: rgba(20, 28, 46, 0.8);
+  border: 1px solid rgba(125, 211, 252, 0.1);
+}
+
+.input-glow:focus-within {
+  box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.2);
+  border-color: rgba(3, 105, 161, 0.4);
+  background: rgba(248, 250, 255, 0.95);
+}
+
+.dark .input-glow:focus-within {
+  box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.3);
+  border-color: rgba(125, 211, 252, 0.6);
+  background: rgba(26, 36, 56, 0.9);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--on-primary);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px 0 rgba(3, 105, 161, 0.2);
+}
+
+.dark .btn-primary {
+  background-color: var(--primary);
+  color: var(--on-primary);
+  box-shadow: 0 4px 14px 0 rgba(125, 211, 252, 0.2);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-fixed);
+  color: var(--on-primary-fixed);
+  box-shadow: 0 6px 20px rgba(3, 105, 161, 0.35);
+  transform: translateY(-1px);
+}
+
+.dark .btn-primary:hover {
+  background-color: var(--primary-fixed-dim);
+  color: var(--on-primary-fixed-variant);
+  box-shadow: 0 6px 20px rgba(125, 211, 252, 0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.success-overlay {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.success-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@keyframes shimmer-login {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer-bg {
+  animation: shimmer-login 3s infinite linear;
+  background: linear-gradient(to right, rgba(125, 211, 252, 0) 4%, rgba(125, 211, 252, 0.1) 25%, rgba(125, 211, 252, 0) 36%);
+  background-size: 1000px 100%;
+}
+

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Login from './Login';
 
 interface Testimonial {
   initials: string;
@@ -33,6 +34,8 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [formSubmitted, setFormSubmitted] = useState<boolean>(false);
+  const [currentView, setCurrentView] = useState<'landing' | 'login'>('landing');
+
 
   // Initialize theme
   useEffect(() => {
@@ -59,6 +62,16 @@ export default function App() {
     setFormSubmitted(true);
     setTimeout(() => setFormSubmitted(false), 5000);
   };
+
+  if (currentView === 'login') {
+    return (
+      <Login
+        onBackToLanding={() => setCurrentView('landing')}
+        isDark={isDark}
+        onToggleTheme={() => setIsDark(!isDark)}
+      />
+    );
+  }
 
   return (
     <div className="bg-background text-on-surface font-body min-h-screen flex flex-col antialiased selection:bg-primary/30 selection:text-primary transition-colors duration-300">
@@ -96,7 +109,12 @@ export default function App() {
               </span>
             </button>
 
-            <a className="hidden md:block text-on-surface-variant hover:text-primary transition-colors font-semibold active:scale-95" href="#">Login</a>
+            <button 
+              onClick={() => setCurrentView('login')}
+              className="hidden md:block text-on-surface-variant hover:text-primary transition-colors font-semibold active:scale-95 cursor-pointer"
+            >
+              Login
+            </button>
             <a className="hidden md:block bg-primary hover:bg-primary/90 text-on-primary px-5 py-2 rounded-lg font-semibold transition-all duration-300 active:scale-95 shadow-md shadow-primary/20" href="#">Get Started</a>
 
             {/* Mobile Menu Button */}
@@ -120,7 +138,12 @@ export default function App() {
             <a href="#availability" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium text-on-surface hover:text-primary">Availability</a>
             <a href="#testimonials" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium text-on-surface hover:text-primary">Reviews</a>
             <hr className="border-primary/10 my-2" />
-            <a className="text-center text-on-surface font-semibold py-2 rounded-lg hover:bg-primary/5" href="#">Login</a>
+            <button 
+              onClick={() => { setMobileMenuOpen(false); setCurrentView('login'); }}
+              className="text-center text-on-surface font-semibold py-2 rounded-lg hover:bg-primary/5 cursor-pointer w-full"
+            >
+              Login
+            </button>
             <a className="text-center bg-primary text-on-primary font-semibold py-3 rounded-lg shadow-md" href="#">Get Started</a>
           </div>
         )}

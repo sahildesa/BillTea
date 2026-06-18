@@ -316,3 +316,58 @@
   background-size: 1000px 100%;
 }
 
+/* Dashboard specific classes from Page Templates */
+.glass-input {
+  background: rgba(15, 21, 36, 0.4);
+  border: 1px solid rgba(125, 211, 252, 0.1);
+  color: var(--on-surface);
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: rgba(125, 211, 252, 0.4);
+  box-shadow: 0 0 15px rgba(125, 211, 252, 0.1);
+  background: rgba(15, 21, 36, 0.6);
+}
+
+.glass-button {
+  background: rgba(125, 211, 252, 0.1);
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  color: var(--primary);
+  transition: all 0.3s ease;
+}
+
+.glass-button:hover {
+  background: rgba(125, 211, 252, 0.2);
+  box-shadow: 0 0 20px rgba(125, 211, 252, 0.15);
+}
+
+/* Graph Animations */
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.path-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: dash 2s ease-out forwards;
+}
+
+.bar-grow {
+  transform-origin: bottom;
+  animation: scaleY 1.5s ease-out forwards;
+}
+
+@keyframes scaleY {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+

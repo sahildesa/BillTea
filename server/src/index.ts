@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import authRoutes from './routes/auth';
+import { seedDefaultUser } from './seed';
 
 dotenv.config();
 
@@ -18,10 +20,16 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', message: 'Billaro Server is running smoothly' });
 });
 
+app.use('/api/auth', authRoutes);
+
 // Start server and connect DB
 mongoose.connect(MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     console.log('MongoDB connected successfully');
+
+    // Seed the default admin user
+    await seedDefaultUser();
+
     app.listen(PORT, () => {
       console.log(`Server listening on port ${PORT}`);
     });

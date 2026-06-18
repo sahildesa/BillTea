@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 
 interface LoginProps {
   onBackToLanding: () => void;
+  onSwitchToRegister: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
 }
 
-export default function Login({ onBackToLanding, isDark, onToggleTheme }: LoginProps) {
+export default function Login({ onBackToLanding, onSwitchToRegister, isDark, onToggleTheme }: LoginProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [mobileNumber, setMobileNumber] = useState<string>('');
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
@@ -298,6 +299,15 @@ export default function Login({ onBackToLanding, isDark, onToggleTheme }: LoginP
                       {!isLoading && <span className="material-symbols-outlined text-xl">arrow_forward</span>}
                     </button>
                   </form>
+                  <div className="mt-8 text-center">
+                    <button
+                      onClick={onSwitchToRegister}
+                      disabled={isLoading}
+                      className="text-sm text-on-surface-variant hover:text-primary transition-colors duration-300 font-body cursor-pointer disabled:opacity-50"
+                    >
+                      Don't have an account? <span className="text-primary border-b border-transparent hover:border-primary pb-0.5 transition-all font-semibold">Sign Up</span>
+                    </button>
+                  </div>
                 </div>
               )}
 

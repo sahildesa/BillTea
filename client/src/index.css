@@ -318,17 +318,28 @@
 
 /* Dashboard specific classes from Page Templates */
 .glass-input {
-  background: rgba(15, 21, 36, 0.4);
-  border: 1px solid rgba(125, 211, 252, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(3, 105, 161, 0.15);
   color: var(--on-surface);
   transition: all 0.3s ease;
 }
 
 .glass-input:focus {
   outline: none;
+  border-color: rgba(3, 105, 161, 0.3);
+  box-shadow: 0 0 15px rgba(3, 105, 161, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dark .glass-input {
+  background: rgba(15, 21, 36, 0.4);
+  border: 1px solid rgba(125, 211, 252, 0.1);
+}
+
+.dark .glass-input:focus {
+  background: rgba(15, 21, 36, 0.6);
   border-color: rgba(125, 211, 252, 0.4);
   box-shadow: 0 0 15px rgba(125, 211, 252, 0.1);
-  background: rgba(15, 21, 36, 0.6);
 }
 
 .glass-button {

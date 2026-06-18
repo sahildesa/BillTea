@@ -32,6 +32,7 @@ const testimonials: Testimonial[] = [
 export default function App() {
   const [isDark, setIsDark] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [formSubmitted, setFormSubmitted] = useState<boolean>(false);
   const [currentView, setCurrentView] = useState<'landing' | 'login' | 'signup' | 'dashboard'>(() => {
@@ -90,12 +91,61 @@ export default function App() {
 
     return (
       <div className="bg-background text-on-surface font-body min-h-screen flex overflow-hidden antialiased transition-colors duration-300">
+        {/* Sidebar */}
+        <aside className={`flex-shrink-0 border-outline-variant/30 glass-panel flex flex-col h-screen z-20 transition-all duration-500 overflow-hidden ${
+          sidebarOpen 
+            ? 'w-64 border-r' 
+            : 'w-0 border-none pointer-events-none'
+        }`}>
+          <div className="p-6 flex items-center gap-4 min-w-[256px]">
+            <div className="size-10 rounded-full bg-cover bg-center border border-primary/20 shadow-[0_0_15px_rgba(125,211,252,0.1)]" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCI8ty8MAnAr1bn8UEJoIwEheG777PYbA1Uc8oXcBgYBgYh8ZCs78ymYZiczpAXUSefGXKLoUQlsDVrEudkAoSQKxOVyepnw8hqL4i9izowU--3kjANbkFVO_wJzWvAzb-jcOfvwJ2XwYUDvoSzGPvk5DiPumzqb5JpU7ClXKnbXOGC78MH_VzzGmwinxA-2vLQkUOO_MmXS1o334qBdhugPz0Q0jcH9Oz0nsbyGgoJg2ByrCDuMQG2Cxpq8DoEaBexXjky5sYbfFs')" }}></div>
+            <div>
+              <h1 className="text-on-surface font-semibold text-lg tracking-wide">Indux Tech</h1>
+              <p className="text-on-surface-variant text-xs uppercase tracking-wider">Admin Space</p>
+            </div>
+          </div>
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto min-w-[256px]">
+            <a className="nav-item active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium" href="#">
+              <span className="material-symbols-outlined text-[20px]">grid_view</span>
+              Overview
+            </a>
+            <a className="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
+              <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+              Invoices
+            </a>
+            <a className="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
+              <span className="material-symbols-outlined text-[20px]">request_quote</span>
+              Quotations
+            </a>
+            <a className="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
+              <span className="material-symbols-outlined text-[20px]">bar_chart</span>
+              Reports
+            </a>
+            <a className="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant text-sm font-medium mt-8" href="#">
+              <span className="material-symbols-outlined text-[20px]">settings</span>
+              Settings
+            </a>
+          </nav>
+          <div className="p-4 border-t border-outline-variant/30 min-w-[256px]">
+            <div 
+              onClick={handleLogout}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg glass-button cursor-pointer active:scale-98 transition-all"
+            >
+              <span className="material-symbols-outlined text-[20px]">logout</span>
+              <span className="text-sm font-medium">Sign Out</span>
+            </div>
+          </div>
+        </aside>
+
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
           {/* Top Navigation */}
           <header className="h-20 flex-shrink-0 border-b border-outline-variant/30 glass-panel flex items-center justify-between px-8 z-10">
             <div className="flex items-center gap-4">
-              <button className="p-2 group">
+              <button 
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 group cursor-pointer active:scale-95 transition-all"
+              >
                 <span className="material-symbols-outlined text-on-surface">menu</span>
               </button>
               <h2 className="text-2xl font-semibold text-on-surface tracking-tight drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]">
@@ -105,20 +155,12 @@ export default function App() {
             <div className="flex items-center gap-6">
               <button 
                 onClick={() => setIsDark(!isDark)} 
-                className="p-2 rounded-full glass-button group cursor-pointer" 
+                className="h-10 w-10 rounded-full glass-button flex items-center justify-center group cursor-pointer" 
                 title="Toggle Theme"
               >
-                <span className="material-symbols-outlined select-none">
+                <span className="material-symbols-outlined select-none text-xl">
                   {isDark ? 'light_mode' : 'dark_mode'}
                 </span>
-              </button>
-              <button 
-                onClick={handleLogout} 
-                className="p-2 glass-button rounded-xl px-4 py-2 hover:bg-error/20 hover:text-error hover:border-error/30 transition-all cursor-pointer flex items-center gap-2"
-                title="Logout"
-              >
-                <span className="material-symbols-outlined text-sm">logout</span>
-                <span className="text-sm font-semibold">Logout</span>
               </button>
               <div className="p-2 glass-panel rounded-xl px-3 border border-outline-variant/30">
                 <div className="flex items-center gap-2 px-2">

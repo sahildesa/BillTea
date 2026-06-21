@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Auth from './Auth';
+import Quotations from './Quotations';
 
 interface Testimonial {
   initials: string;
@@ -29,16 +30,51 @@ const testimonials: Testimonial[] = [
   }
 ];
 
+interface SalesDataPoint {
+  date: string;
+  sales: string;
+  x: number;
+  y: number;
+}
+
+const invoiceSalesData: SalesDataPoint[] = [
+  { date: "Oct 01, 2023 10:00 AM", sales: "$25,000", x: 0, y: 60 },
+  { date: "Oct 04, 2023 02:30 PM", sales: "$38,000", x: 50, y: 55.2 },
+  { date: "Oct 08, 2023 11:15 AM", sales: "$30,000", x: 100, y: 61.5 },
+  { date: "Oct 12, 2023 04:45 PM", sales: "$45,000", x: 150, y: 50 },
+  { date: "Oct 16, 2023 09:00 AM", sales: "$68,000", x: 200, y: 40.7 },
+  { date: "Oct 20, 2023 01:15 PM", sales: "$40,000", x: 250, y: 49.3 },
+  { date: "Oct 24, 2023 03:00 PM", sales: "$58,000", x: 300, y: 40 },
+  { date: "Oct 27, 2023 12:00 PM", sales: "$85,000", x: 350, y: 23.7 },
+  { date: "Oct 31, 2023 05:30 PM", sales: "$78,000", x: 400, y: 30 }
+];
+
+const quotationSalesData: SalesDataPoint[] = [
+  { date: "Oct 01, 2023 11:00 AM", sales: "$20,000", x: 0, y: 70 },
+  { date: "Oct 04, 2023 03:45 PM", sales: "$22,000", x: 50, y: 65.5 },
+  { date: "Oct 08, 2023 10:30 AM", sales: "$38,000", x: 100, y: 51.3 },
+  { date: "Oct 12, 2023 01:00 PM", sales: "$45,000", x: 150, y: 39.5 },
+  { date: "Oct 16, 2023 02:15 PM", sales: "$48,000", x: 200, y: 40 },
+  { date: "Oct 20, 2023 09:30 AM", sales: "$42,000", x: 250, y: 42.5 },
+  { date: "Oct 24, 2023 04:00 PM", sales: "$55,000", x: 300, y: 35 },
+  { date: "Oct 27, 2023 11:45 AM", sales: "$65,000", x: 350, y: 27.5 },
+  { date: "Oct 31, 2023 06:00 PM", sales: "$62,000", x: 400, y: 30 }
+];
+
 export default function App() {
   const [isDark, setIsDark] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const [hoveredInvoicePoint, setHoveredInvoicePoint] = useState<SalesDataPoint | null>(null);
+  const [hoveredQuotationPoint, setHoveredQuotationPoint] = useState<SalesDataPoint | null>(null);
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [formSubmitted, setFormSubmitted] = useState<boolean>(false);
   const [currentView, setCurrentView] = useState<'landing' | 'login' | 'signup' | 'dashboard'>(() => {
     // Check if token exists on load to keep user logged in for testing
     return localStorage.getItem('token') ? 'dashboard' : 'landing';
   });
+  const [dashboardView, setDashboardView] = useState<'home' | 'quotations'>('home');
+
 
 
   // Initialize theme
@@ -105,23 +141,45 @@ export default function App() {
             </div>
           </div>
           <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto min-w-[256px]">
-            <a className="nav-item active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium" href="#">
+            <a 
+              className={`nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 ${dashboardView === 'home' ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]' : 'text-on-surface-variant border border-transparent hover:bg-surface-container-highest hover:text-on-surface'}`}
+              onClick={() => setDashboardView('home')}
+            >
               <span className="material-symbols-outlined text-[20px]">grid_view</span>
-              Overview
+              Dashboard
             </a>
-            <a className="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
-              <span className="material-symbols-outlined text-[20px]">receipt_long</span>
-              Invoices
-            </a>
-            <a className="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
+            <a 
+              className={`nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 ${dashboardView === 'quotations' ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]' : 'text-on-surface-variant border border-transparent hover:bg-surface-container-highest hover:text-on-surface'}`}
+              onClick={() => setDashboardView('quotations')}
+            >
               <span className="material-symbols-outlined text-[20px]">request_quote</span>
               Quotations
             </a>
-            <a className="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
+            <a className="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
+              <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+              Invoices
+            </a>
+            <a className="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
+              <span className="material-symbols-outlined text-[20px]">group</span>
+              Customers
+            </a>
+            <a className="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
+              <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+              Products
+            </a>
+            <a className="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
               <span className="material-symbols-outlined text-[20px]">bar_chart</span>
               Reports
             </a>
-            <a className="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant text-sm font-medium mt-8" href="#">
+            <a className="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
+              <span className="material-symbols-outlined text-[20px]">trending_up</span>
+              Profit Report
+            </a>
+            <a className="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant text-sm font-medium" href="#">
+              <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+              Expenses
+            </a>
+            <a className="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant text-sm font-medium mt-4" href="#">
               <span className="material-symbols-outlined text-[20px]">settings</span>
               Settings
             </a>
@@ -162,20 +220,24 @@ export default function App() {
                   {isDark ? 'light_mode' : 'dark_mode'}
                 </span>
               </button>
-              <div className="p-2 glass-panel rounded-xl px-3 border border-outline-variant/30">
-                <div className="flex items-center gap-2 px-2">
-                  <span className="material-symbols-outlined text-primary">account_circle</span>
-                  <span className="text-sm font-medium text-on-surface">{user.fullName}</span>
+              <div className="p-1.5 glass-panel rounded-xl pl-2 pr-4 border border-outline-variant/30 hover:border-primary/45 transition-colors cursor-pointer flex items-center gap-3">
+                <div className="size-11 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0 overflow-hidden shadow-[0_0_10px_rgba(125,211,252,0.1)]">
+                  <span className="material-symbols-outlined text-primary text-[28px] select-none">account_circle</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-on-surface leading-tight">{user.fullName}</span>
+                  <span className="text-[10px] text-on-surface-variant/80 tracking-wide uppercase leading-none mt-0.5">Admin</span>
                 </div>
               </div>
             </div>
           </header>
 
           {/* Scrollable Dashboard Content */}
-          <div className="flex-1 overflow-y-auto p-8 z-0 relative">
-            {/* Background Ambient Effects */}
-            <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
+          {dashboardView === 'home' ? (
+            <div className="flex-1 overflow-y-auto p-8 z-0 relative">
+              {/* Background Ambient Effects */}
+              <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
+              <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
 
             {/* Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
@@ -296,7 +358,20 @@ export default function App() {
                   </div>
                 </div>
                 <div className="h-48 w-full relative">
-                  <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 400 100">
+                  <svg 
+                    className="w-full h-full overflow-visible cursor-crosshair" 
+                    preserveAspectRatio="none" 
+                    viewBox="0 0 400 100"
+                    onMouseMove={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const relativeX = ((e.clientX - rect.left) / rect.width) * 400;
+                      const closestPoint = invoiceSalesData.reduce((prev, curr) => 
+                        Math.abs(curr.x - relativeX) < Math.abs(prev.x - relativeX) ? curr : prev
+                      );
+                      setHoveredInvoicePoint(closestPoint);
+                    }}
+                    onMouseLeave={() => setHoveredInvoicePoint(null)}
+                  >
                     <defs>
                       <linearGradient id="gradient1" x1="0%" x2="0%" y1="0%" y2="100%">
                         <stop offset="0%" stopColor="#7dd3fc" stopOpacity="0.3"></stop>
@@ -305,7 +380,55 @@ export default function App() {
                     </defs>
                     <path d="M0,100 L0,60 C50,40 100,80 150,50 C200,20 250,70 300,40 C350,10 400,30 400,30 L400,100 Z" fill="url(#gradient1)"></path>
                     <path className="path-line" d="M0,60 C50,40 100,80 150,50 C200,20 250,70 300,40 C350,10 400,30 400,30" fill="none" stroke="#7dd3fc" strokeLinecap="round" strokeWidth="2"></path>
+                    
+                    {hoveredInvoicePoint && (
+                      <>
+                        <line 
+                          x1={hoveredInvoicePoint.x} 
+                          y1={0} 
+                          x2={hoveredInvoicePoint.x} 
+                          y2={100} 
+                          stroke="#7dd3fc" 
+                          strokeWidth="1.5" 
+                          strokeDasharray="4 4" 
+                          opacity="0.6"
+                        />
+                        <circle 
+                          cx={hoveredInvoicePoint.x} 
+                          cy={hoveredInvoicePoint.y} 
+                          r="8" 
+                          fill="#7dd3fc" 
+                          opacity="0.3"
+                        />
+                        <circle 
+                          cx={hoveredInvoicePoint.x} 
+                          cy={hoveredInvoicePoint.y} 
+                          r="4" 
+                          fill="#7dd3fc" 
+                          stroke="#ffffff" 
+                          strokeWidth="1.5"
+                        />
+                      </>
+                    )}
                   </svg>
+                  
+                  {hoveredInvoicePoint && (
+                    <div 
+                      className="absolute pointer-events-none z-30 transition-all duration-150 ease-out glass-panel p-2.5 rounded-xl shadow-lg border border-primary/20 flex flex-col gap-1 text-xs min-w-[140px]"
+                      style={{
+                        left: `${(hoveredInvoicePoint.x / 400) * 100}%`,
+                        top: `${(hoveredInvoicePoint.y / 100) * 100}%`,
+                        transform: 'translate(-50%, calc(-100% - 15px))',
+                      }}
+                    >
+                      <div className="text-on-surface-variant font-medium text-[9px] uppercase tracking-wider">{hoveredInvoicePoint.date}</div>
+                      <div className="flex items-center gap-1.5 font-bold text-primary text-xs">
+                        <span className="size-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(125,211,252,0.8)]"></span>
+                        Invoice Sales: {hoveredInvoicePoint.sales}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="absolute bottom-0 w-full flex justify-between text-xs text-on-surface-variant/60 pt-2 border-t border-outline-variant/30">
                     <span>W1</span><span>W2</span><span>W3</span><span>W4</span>
                   </div>
@@ -325,7 +448,20 @@ export default function App() {
                   </div>
                 </div>
                 <div className="h-48 w-full relative">
-                  <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 400 100">
+                  <svg 
+                    className="w-full h-full overflow-visible cursor-crosshair" 
+                    preserveAspectRatio="none" 
+                    viewBox="0 0 400 100"
+                    onMouseMove={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const relativeX = ((e.clientX - rect.left) / rect.width) * 400;
+                      const closestPoint = quotationSalesData.reduce((prev, curr) => 
+                        Math.abs(curr.x - relativeX) < Math.abs(prev.x - relativeX) ? curr : prev
+                      );
+                      setHoveredQuotationPoint(closestPoint);
+                    }}
+                    onMouseLeave={() => setHoveredQuotationPoint(null)}
+                  >
                     <defs>
                       <linearGradient id="gradient2" x1="0%" x2="0%" y1="0%" y2="100%">
                         <stop offset="0%" stopColor="#c8a0f0" stopOpacity="0.3"></stop>
@@ -334,7 +470,55 @@ export default function App() {
                     </defs>
                     <path d="M0,100 L0,70 C80,70 120,30 200,40 C280,50 320,20 400,30 L400,100 Z" fill="url(#gradient2)"></path>
                     <path className="path-line" d="M0,70 C80,70 120,30 200,40 C280,50 320,20 400,30" fill="none" stroke="#c8a0f0" strokeLinecap="round" strokeWidth="2"></path>
+                    
+                    {hoveredQuotationPoint && (
+                      <>
+                        <line 
+                          x1={hoveredQuotationPoint.x} 
+                          y1={0} 
+                          x2={hoveredQuotationPoint.x} 
+                          y2={100} 
+                          stroke="#c8a0f0" 
+                          strokeWidth="1.5" 
+                          strokeDasharray="4 4" 
+                          opacity="0.6"
+                        />
+                        <circle 
+                          cx={hoveredQuotationPoint.x} 
+                          cy={hoveredQuotationPoint.y} 
+                          r="8" 
+                          fill="#c8a0f0" 
+                          opacity="0.3"
+                        />
+                        <circle 
+                          cx={hoveredQuotationPoint.x} 
+                          cy={hoveredQuotationPoint.y} 
+                          r="4" 
+                          fill="#c8a0f0" 
+                          stroke="#ffffff" 
+                          strokeWidth="1.5"
+                        />
+                      </>
+                    )}
                   </svg>
+                  
+                  {hoveredQuotationPoint && (
+                    <div 
+                      className="absolute pointer-events-none z-30 transition-all duration-150 ease-out glass-panel p-2.5 rounded-xl shadow-lg border border-tertiary/20 flex flex-col gap-1 text-xs min-w-[140px]"
+                      style={{
+                        left: `${(hoveredQuotationPoint.x / 400) * 100}%`,
+                        top: `${(hoveredQuotationPoint.y / 100) * 100}%`,
+                        transform: 'translate(-50%, calc(-100% - 15px))',
+                      }}
+                    >
+                      <div className="text-on-surface-variant font-medium text-[9px] uppercase tracking-wider">{hoveredQuotationPoint.date}</div>
+                      <div className="flex items-center gap-1.5 font-bold text-tertiary text-xs">
+                        <span className="size-1.5 rounded-full bg-tertiary shadow-[0_0_8px_rgba(200,160,240,0.8)]"></span>
+                        Quote Sales: {hoveredQuotationPoint.sales}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="absolute bottom-0 w-full flex justify-between text-xs text-on-surface-variant/60 pt-2 border-t border-outline-variant/30">
                     <span>W1</span><span>W2</span><span>W3</span><span>W4</span>
                   </div>
@@ -509,6 +693,9 @@ export default function App() {
               </div>
             </div>
           </div>
+          ) : dashboardView === 'quotations' ? (
+            <Quotations />
+          ) : null}
         </main>
       </div>
     );

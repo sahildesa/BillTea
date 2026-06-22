@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Auth from './Auth';
 import Quotations from './Quotations';
+import Invoices from './Invoices';
+import Customers from './Customers';
+import Products from './Products';
 
 interface Testimonial {
   initials: string;
@@ -73,7 +76,7 @@ export default function App() {
     // Check if token exists on load to keep user logged in for testing
     return localStorage.getItem('token') ? 'dashboard' : 'landing';
   });
-  const [dashboardView, setDashboardView] = useState<'home' | 'quotations'>('home');
+  const [dashboardView, setDashboardView] = useState<'home' | 'quotations' | 'invoices' | 'customers' | 'products'>('home');
 
 
 
@@ -164,15 +167,24 @@ export default function App() {
               <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">request_quote</span>
               Quotations
             </a>
-            <a className="nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant text-sm font-medium hover:bg-surface-container-highest hover:text-on-surface transition-all duration-300 hover:translate-x-1 cursor-pointer" href="#">
+            <a 
+              className={`nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 ${dashboardView === 'invoices' ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]' : 'text-on-surface-variant border border-transparent hover:bg-surface-container-highest hover:text-on-surface hover:translate-x-1'}`}
+              onClick={() => setDashboardView('invoices')}
+            >
               <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">receipt_long</span>
               Invoices
             </a>
-            <a className="nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant text-sm font-medium hover:bg-surface-container-highest hover:text-on-surface transition-all duration-300 hover:translate-x-1 cursor-pointer" href="#">
+            <a 
+              className={`nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 ${dashboardView === 'customers' ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]' : 'text-on-surface-variant border border-transparent hover:bg-surface-container-highest hover:text-on-surface hover:translate-x-1'}`}
+              onClick={() => setDashboardView('customers')}
+            >
               <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">group</span>
               Customers
             </a>
-            <a className="nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant text-sm font-medium hover:bg-surface-container-highest hover:text-on-surface transition-all duration-300 hover:translate-x-1 cursor-pointer" href="#">
+            <a 
+              className={`nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 ${dashboardView === 'products' ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]' : 'text-on-surface-variant border border-transparent hover:bg-surface-container-highest hover:text-on-surface hover:translate-x-1'}`}
+              onClick={() => setDashboardView('products')}
+            >
               <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">inventory_2</span>
               Products
             </a>
@@ -706,6 +718,12 @@ export default function App() {
           </div>
           ) : dashboardView === 'quotations' ? (
             <Quotations />
+          ) : dashboardView === 'invoices' ? (
+            <Invoices />
+          ) : dashboardView === 'customers' ? (
+            <Customers />
+          ) : dashboardView === 'products' ? (
+            <Products />
           ) : null}
         </main>
       </div>

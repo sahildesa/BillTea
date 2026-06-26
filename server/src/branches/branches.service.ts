@@ -33,6 +33,7 @@ export class BranchesService {
           upiId: dto.upiId || '',
           signatureType: dto.signatureType || 'TEXT',
           signatureValue: dto.signatureValue || '',
+          tax: dto.tax !== undefined ? dto.tax : 0,
         },
       });
 
@@ -94,6 +95,7 @@ export class BranchesService {
     if (dto.upiId !== undefined) updateData.upiId = dto.upiId;
     if (dto.signatureType !== undefined) updateData.signatureType = dto.signatureType;
     if (dto.signatureValue !== undefined) updateData.signatureValue = dto.signatureValue;
+    if (dto.tax !== undefined) updateData.tax = dto.tax;
 
     try {
       const updatedBranch = await this.prisma.branch.update({

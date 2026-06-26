@@ -3,13 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from '../../components/ThemeProvider';
+import { BranchProvider, useBranch } from '../../components/BranchProvider';
 import Link from 'next/link';
 import { isLoggedIn } from '../../lib/auth';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const { isDark, toggleTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
+  const { branches, selectedBranchId, setSelectedBranchId, isLoadingBranches } = useBranch();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState<{ fullName: string; email: string; role?: string }>({
@@ -74,12 +76,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <h1 className="text-on-surface font-semibold text-lg tracking-wide leading-tight truncate">Indux Tech</h1>
             
             <div className="relative mt-0.5 group w-auto inline-flex items-center">
-              <select className="appearance-none bg-transparent text-primary text-[10px] uppercase tracking-wider font-semibold cursor-pointer focus:outline-none pr-5 hover:text-primary-fixed transition-colors relative z-10 w-full">
-                <option className="bg-surface-container normal-case tracking-normal text-sm" value="main">Main Branch (HQ)</option>
-                <option className="bg-surface-container normal-case tracking-normal text-sm" value="north">North Branch</option>
-                <option className="bg-surface-container normal-case tracking-normal text-sm" value="south">South Branch</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-0 top-1/2 -translate-y-1/2 text-primary text-[14px] pointer-events-none group-hover:text-primary-fixed transition-colors">expand_more</span>
+              {isLoadingBranches ? (
+                <div className="text-primary text-[10px] uppercase tracking-wider font-semibold">Loading...</div>
+              ) : (
+                <>
+                  <select 
+                    value={selectedBranchId || ''}
+                    onChange={(e) => setSelectedBranchId(e.target.value)}
+                    className="appearance-none bg-transparent text-primary text-[10px] uppercase tracking-wider font-semibold cursor-pointer focus:outline-none pr-5 hover:text-primary-fixed transition-colors relative z-10 w-full"
+                  >
+                    {branches.map(branch => (
+                      <option key={branch.id} className="bg-surface-container normal-case tracking-normal text-sm" value={branch.id}>
+                        {branch.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-0 top-1/2 -translate-y-1/2 text-primary text-[14px] pointer-events-none group-hover:text-primary-fixed transition-colors">expand_more</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -150,5 +164,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {children}
       </main>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <BranchProvider>
+      <DashboardContent>{children}</DashboardContent>
+    </BranchProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, MinLength } from 'class-validator';
+import { IsString, IsOptional, IsEnum, MinLength, IsInt, Min, Max } from 'class-validator';
 
 export class UpdateBranchDto {
   @IsOptional() @IsString() @MinLength(2) name?: string;
@@ -14,4 +14,10 @@ export class UpdateBranchDto {
   @IsOptional() @IsString() upiId?: string;
   @IsOptional() @IsEnum(['TEXT', 'IMAGE']) signatureType?: 'TEXT' | 'IMAGE';
   @IsOptional() @IsString() signatureValue?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0, { message: 'Tax cannot be less than 0' })
+  @Max(100, { message: 'Tax cannot be more than 100' })
+  tax?: number;
 }

@@ -9,6 +9,7 @@ import { BranchesModule } from './branches/branches.module';
 import { UsersModule } from './users/users.module';
 import { ProfileModule } from './profile/profile.module';
 import { HealthController } from './health.controller';
+import { CustomersModule } from './customers/customers.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { HealthController } from './health.controller';
     BranchesModule,
     UsersModule,
     ProfileModule,
+    CustomersModule,
   ],
   controllers: [HealthController],
 })

@@ -27,6 +27,7 @@ model Company {
   createdById String?
   createdBy   User?    @relation("CompanyCreator", fields: [createdById], references: [id])
   branches    Branch[]
+  customers   Customer[]
   users       User[]   @relation("CompanyUsers")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -49,6 +50,7 @@ model User {
   createdBy        User?          @relation("UserCreator", fields: [createdById], references: [id])
   createdUsers     User[]         @relation("UserCreator")
   companiesCreated Company[]      @relation("CompanyCreator")
+  customersCreated Customer[]     @relation("UserCreatedCustomers")
   branches         Branch[]       @relation("UserBranches")
   refreshTokens    RefreshToken[]
   lastLoginAt      DateTime?
@@ -76,7 +78,9 @@ model Branch {
   upiId          String        @default("")
   signatureType  SignatureType @default(TEXT)
   signatureValue String        @default("")
+  tax            Int           @default(0)
   isActive       Boolean       @default(true)
+  customers      Customer[]
   users          User[]        @relation("UserBranches")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -94,4 +98,30 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   @@map("refresh_tokens")
+}
+
+model Customer {
+  id                  String   @id @default(uuid())
+  companyId           String
+  company             Company  @relation(fields: [companyId], references: [id])
+  branchId            String
+  branch              Branch   @relation(fields: [branchId], references: [id])
+  
+  customerName        String
+  companyName         String   @default("")
+  email               String   @default("")
+  mobileNumber        String
+  businessLabel       String   @default("")
+  businessLabelValue  String   @default("")
+  address             String   @default("")
+  otherInfo           String   @default("")
+  
+  isActive            Boolean  @default(true)
+  createdById         String?
+  createdBy           User?    @relation("UserCreatedCustomers", fields: [createdById], references: [id])
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("customers")
 }

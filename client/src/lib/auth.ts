@@ -86,8 +86,9 @@ export async function refreshAccessToken(): Promise<string | null> {
  */
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = getAccessToken();
+  const isFormData = options.body instanceof FormData;
   const headers: any = {
-    'Content-Type': 'application/json',
+    ...(!isFormData && { 'Content-Type': 'application/json' }),
     ...options.headers,
   };
 

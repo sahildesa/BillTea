@@ -28,6 +28,7 @@ model Company {
   createdBy   User?    @relation("CompanyCreator", fields: [createdById], references: [id])
   branches    Branch[]
   customers   Customer[]
+  products    Product[]
   users       User[]   @relation("CompanyUsers")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -51,6 +52,7 @@ model User {
   createdUsers     User[]         @relation("UserCreator")
   companiesCreated Company[]      @relation("CompanyCreator")
   customersCreated Customer[]     @relation("UserCreatedCustomers")
+  productsCreated  Product[]      @relation("UserCreatedProducts")
   branches         Branch[]       @relation("UserBranches")
   refreshTokens    RefreshToken[]
   lastLoginAt      DateTime?
@@ -81,6 +83,7 @@ model Branch {
   tax            Int           @default(0)
   isActive       Boolean       @default(true)
   customers      Customer[]
+  products       Product[]
   users          User[]        @relation("UserBranches")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -124,4 +127,28 @@ model Customer {
   updatedAt           DateTime @updatedAt
 
   @@map("customers")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id])
+  
+  name        String
+  description String   @default("")
+  image       String   @default("")
+  price       Float
+  hsnNumber   String   @default("")
+  skuNumber   String   @default("")
+  
+  isActive    Boolean  @default(true)
+  createdById String?
+  createdBy   User?    @relation("UserCreatedProducts", fields: [createdById], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("products")
 }

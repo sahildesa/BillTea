@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { ProfileModule } from './profile/profile.module';
 import { HealthController } from './health.controller';
 import { CustomersModule } from './customers/customers.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { CustomersModule } from './customers/customers.module';
 
     // Serve uploaded files statically at /uploads/...
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'uploads'),
+      rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
     }),
 
@@ -30,6 +31,7 @@ import { CustomersModule } from './customers/customers.module';
     UsersModule,
     ProfileModule,
     CustomersModule,
+    ProductsModule,
   ],
   controllers: [HealthController],
 })

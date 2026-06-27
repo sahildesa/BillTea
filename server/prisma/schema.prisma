@@ -28,8 +28,10 @@ model Company {
   createdBy   User?    @relation("CompanyCreator", fields: [createdById], references: [id])
   branches    Branch[]
   customers   Customer[]
-  products    Product[]
-  users       User[]   @relation("CompanyUsers")
+  products            Product[]
+  expenses            Expense[]
+  expenseCategories   ExpenseCategory[]
+  users               User[]   @relation("CompanyUsers")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -52,8 +54,10 @@ model User {
   createdUsers     User[]         @relation("UserCreator")
   companiesCreated Company[]      @relation("CompanyCreator")
   customersCreated Customer[]     @relation("UserCreatedCustomers")
-  productsCreated  Product[]      @relation("UserCreatedProducts")
-  branches         Branch[]       @relation("UserBranches")
+  productsCreated          Product[]         @relation("UserCreatedProducts")
+  expensesCreated          Expense[]         @relation("UserCreatedExpenses")
+  expenseCategoriesCreated ExpenseCategory[] @relation("UserCreatedExpenseCategories")
+  branches                 Branch[]          @relation("UserBranches")
   refreshTokens    RefreshToken[]
   lastLoginAt      DateTime?
   createdAt        DateTime       @default(now())
@@ -84,6 +88,7 @@ model Branch {
   isActive       Boolean       @default(true)
   customers      Customer[]
   products       Product[]
+  expenses       Expense[]
   users          User[]        @relation("UserBranches")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -151,4 +156,47 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   @@map("products")
+}
+
+model Expense {
+  id            String   @id @default(uuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  branchId      String
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  
+  amount        Float
+  categoryId    String?
+  category      ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  paymentMethod String
+  note          String   @default("")
+  date          DateTime
+  attachment    String   @default("")
+  
+  createdById   String?
+  createdBy     User?    @relation("UserCreatedExpenses", fields: [createdById], references: [id])
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("expenses")
+}
+
+model ExpenseCategory {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  name        String
+  
+  createdById String?
+  createdBy   User?    @relation("UserCreatedExpenseCategories", fields: [createdById], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  expenses    Expense[]
+
+  @@unique([companyId, name])
+  @@map("expense_categories")
 }

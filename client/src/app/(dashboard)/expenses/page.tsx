@@ -1,604 +1,680 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { apiFetch, API_BASE } from '@/lib/auth';
+import { useBranch } from '@/components/BranchProvider';
+
+interface ExpenseCategory {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: { fullName: string } | null;
+}
 
 interface Expense {
   id: string;
-  date: string;
   amount: number;
-  method: string;
+  category: ExpenseCategory | null;
+  paymentMethod: string;
   note: string;
-  attachment: boolean;
-  status: 'Approved' | 'Pending';
+  date: string;
+  attachment: string;
+  createdBy: { fullName: string } | null;
+  createdAt: string;
 }
 
-const initialExpenses: Expense[] = [
-  {
-    id: 'EX-9042',
-    date: '22 Jun 2026',
-    amount: 2500.00,
-    method: 'Cash',
-    note: 'Office stationery and supplies',
-    attachment: true,
-    status: 'Approved'
-  },
-  {
-    id: 'EX-9041',
-    date: '21 Jun 2026',
-    amount: 12450.00,
-    method: 'Bank Transfer',
-    note: 'Cloud Infrastructure Monthly',
-    attachment: true,
-    status: 'Approved'
-  },
-  {
-    id: 'EX-9040',
-    date: '19 Jun 2026',
-    amount: 850.00,
-    method: 'Credit Card',
-    note: 'Team Lunch - Client Onboarding',
-    attachment: false,
-    status: 'Pending'
-  },
-  {
-    id: 'EX-9039',
-    date: '18 Jun 2026',
-    amount: 1200.00,
-    method: 'Cash',
-    note: 'Travel allowance for logistics team',
-    attachment: true,
-    status: 'Approved'
-  }
-];
-
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved'>('all');
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
+  const { selectedBranchId, isLoadingBranches } = useBranch();
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  
+  const [loading, setLoading] = useState(true);
+  
+  // Expense Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editExpenseId, setEditExpenseId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  // Form state
+  // Category Management Modal
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categoryError, setCategoryError] = useState('');
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
+
+  // Attachment Viewer Modal
+  const [viewerAttachment, setViewerAttachment] = useState<string | null>(null);
+
+  // Form State
   const [formData, setFormData] = useState({
-    date: '',
     amount: '',
-    method: 'Cash',
+    category: '',
+    paymentMethod: 'Cash',
     note: '',
-    attachment: false,
-    status: 'Pending' as 'Pending' | 'Approved'
+    date: new Date().toISOString().split('T')[0],
   });
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  
+  // Combobox State
+  const [categorySearch, setCategorySearch] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
-  // Calculate dynamic stats
-  const totalSpend = useMemo(() => {
-    return expenses.reduce((sum, item) => sum + item.amount, 0);
-  }, [expenses]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const uniqueMethods = useMemo(() => {
-    return new Set(expenses.map(e => e.method)).size;
-  }, [expenses]);
-
-  const topMethod = useMemo(() => {
-    if (expenses.length === 0) return 'None';
-    const counts: Record<string, number> = {};
-    expenses.forEach(e => {
-      counts[e.method] = (counts[e.method] || 0) + 1;
-    });
-    let maxMethod = 'None';
-    let maxCount = 0;
-    Object.entries(counts).forEach(([method, count]) => {
-      if (count > maxCount) {
-        maxCount = count;
-        maxMethod = method;
-      }
-    });
-    return maxMethod;
-  }, [expenses]);
-
-  // Open modal for new expense
-  const handleNewExpense = () => {
-    const today = new Date().toISOString().split('T')[0];
-    setEditingExpense(null);
-    setFormData({
-      date: today,
-      amount: '',
-      method: 'Cash',
-      note: '',
-      attachment: false,
-      status: 'Pending'
-    });
-    setIsModalOpen(true);
-  };
-
-  // Open modal for editing
-  const handleEditExpense = (expense: Expense) => {
-    setEditingExpense(expense);
-    
-    // Parse date from '22 Jun 2026' back to '2026-06-22' for HTML date input
-    let formDate = '';
-    try {
-      const parts = expense.date.split(' ');
-      if (parts.length === 3) {
-        const day = parts[0].padStart(2, '0');
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthIndex = months.indexOf(parts[1]);
-        const month = String(monthIndex + 1).padStart(2, '0');
-        const year = parts[2];
-        if (monthIndex !== -1) {
-          formDate = `${year}-${month}-${day}`;
-        }
-      }
-    } catch (e) {
-      formDate = '';
-    }
-
-    setFormData({
-      date: formDate || new Date().toISOString().split('T')[0],
-      amount: String(expense.amount),
-      method: expense.method,
-      note: expense.note,
-      attachment: expense.attachment,
-      status: expense.status
-    });
-    setIsModalOpen(true);
-  };
-
-  // Helper to format date back to UI: '22 Jun 2026'
-  const formatDateToUI = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return dateString;
-      const day = date.getDate();
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const month = months[date.getMonth()];
-      const year = date.getFullYear();
-      return `${day} ${month} ${year}`;
-    } catch (e) {
-      return dateString;
-    }
-  };
-
-  // Save expense
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    const parsedAmount = parseFloat(formData.amount) || 0;
-    const formattedDate = formatDateToUI(formData.date);
-
-    if (editingExpense) {
-      // Edit
-      setExpenses(prev => prev.map(item => 
-        item.id === editingExpense.id 
-          ? { ...item, ...formData, amount: parsedAmount, date: formattedDate }
-          : item
-      ));
+  useEffect(() => {
+    if (selectedBranchId) {
+      fetchExpenses();
+      fetchCategories();
     } else {
-      // Create new ID: EX-XXXX
-      const nextIdNum = expenses.length > 0 
-        ? Math.max(...expenses.map(e => parseInt(e.id.replace('EX-', '')) || 0)) + 1 
-        : 9043;
-      const newExpense: Expense = {
-        id: `EX-${nextIdNum}`,
-        date: formattedDate,
-        amount: parsedAmount,
-        method: formData.method,
-        note: formData.note,
-        attachment: formData.attachment,
-        status: formData.status
-      };
-      setExpenses(prev => [newExpense, ...prev]);
+      setExpenses([]);
     }
+  }, [selectedBranchId]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowCategoryDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const fetchExpenses = async () => {
+    if (!selectedBranchId) return;
+    try {
+      setLoading(true);
+      const res = await apiFetch(`/expenses?branchId=${selectedBranchId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setExpenses(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch expenses', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await apiFetch(`/expense-categories`);
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch categories', err);
+    }
+  };
+
+  const openNewModal = () => {
+    setIsEditMode(false);
+    setEditExpenseId(null);
+    setFormData({
+      amount: '',
+      category: '',
+      paymentMethod: 'Cash',
+      note: '',
+      date: new Date().toISOString().split('T')[0],
+    });
+    setCategorySearch('');
+    setAttachmentFile(null);
+    setError('');
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (expense: Expense) => {
+    setIsEditMode(true);
+    setEditExpenseId(expense.id);
+    setFormData({
+      amount: expense.amount.toString(),
+      category: expense.category?.name || '',
+      paymentMethod: expense.paymentMethod,
+      note: expense.note || '',
+      date: new Date(expense.date).toISOString().split('T')[0],
+    });
+    setCategorySearch(expense.category?.name || '');
+    setAttachmentFile(null);
+    setError('');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
     setIsModalOpen(false);
   };
 
-  // Delete expense
-  const handleDeleteExpense = (id: string) => {
-    if (confirm(`Are you sure you want to delete expense ${id}?`)) {
-      setExpenses(prev => prev.filter(item => item.id !== id));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setAttachmentFile(e.target.files[0]);
     }
   };
 
-  // Filtered expenses list
-  const filteredExpenses = useMemo(() => {
-    return expenses.filter(item => {
-      const matchesSearch = 
-        item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.note.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.method.toLowerCase().includes(searchQuery.toLowerCase());
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.amount || !formData.category || !formData.date) {
+      setError('Please fill all required fields');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError('');
+
+      const submitData = new FormData();
+      submitData.append('branchId', selectedBranchId);
+      submitData.append('amount', formData.amount);
+      submitData.append('category', formData.category);
+      submitData.append('paymentMethod', formData.paymentMethod);
+      submitData.append('note', formData.note);
+      submitData.append('date', formData.date);
       
-      const matchesStatus = 
-        statusFilter === 'all' || 
-        item.status.toLowerCase() === statusFilter;
+      if (attachmentFile) {
+        submitData.append('attachment', attachmentFile);
+      }
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [expenses, searchQuery, statusFilter]);
+      const url = isEditMode ? `/expenses/${editExpenseId}` : '/expenses';
+      const method = isEditMode ? 'PUT' : 'POST';
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredExpenses.length / entriesPerPage) || 1;
-  const paginatedExpenses = useMemo(() => {
-    const start = (currentPage - 1) * entriesPerPage;
-    return filteredExpenses.slice(start, start + entriesPerPage);
-  }, [filteredExpenses, currentPage, entriesPerPage]);
+      const res = await apiFetch(url, {
+        method,
+        body: submitData,
+      });
 
-  const startIndex = (currentPage - 1) * entriesPerPage + 1;
-  const endIndex = Math.min(currentPage * entriesPerPage, filteredExpenses.length);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to save expense');
+      }
+
+      await fetchExpenses();
+      await fetchCategories(); // Refresh categories in case a new one was created
+      closeModal();
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this expense?')) return;
+    try {
+      const res = await apiFetch(`/expenses/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchExpenses();
+      }
+    } catch (err) {
+      console.error('Failed to delete expense', err);
+    }
+  };
+
+  const getAttachmentUrl = (filePath: string) => {
+    if (!filePath) return null;
+    const baseUrl = API_BASE.replace('/api/v1', '');
+    const normalizedPath = filePath.replace(/\\/g, '/');
+    const path = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+    return `${baseUrl}${path}`;
+  };
+
+  const isPdf = (filePath: string) => {
+    return filePath.toLowerCase().endsWith('.pdf');
+  };
+
+  // --- Category Management ---
+  const handleSaveCategory = async (id: string) => {
+    try {
+      const res = await apiFetch(`/expense-categories/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editCategoryName })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to update category');
+      }
+      setEditingCategoryId(null);
+      await fetchCategories();
+      await fetchExpenses(); // Refresh expenses to show updated names
+    } catch (err: any) {
+      setCategoryError(err.message);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this category?')) return;
+    try {
+      const res = await apiFetch(`/expense-categories/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to delete category');
+      }
+      await fetchCategories();
+    } catch (err: any) {
+      setCategoryError(err.message);
+    }
+  };
+
+  const filteredCategories = categories.filter(c => c.name.toLowerCase().includes(categorySearch.toLowerCase()));
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
-      {/* Background Ambient Effects */}
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
+    <div className="flex-1 flex flex-col h-[calc(100vh-theme(spacing.16))] bg-background overflow-hidden relative">
+      <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
+        <div className="max-w-[1600px] mx-auto w-full space-y-8 pb-20">
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-[28px] font-bold text-on-surface tracking-tight">Expenses</h1>
+              <p className="text-on-surface-variant/70 text-sm mt-1">Track and manage your branch expenditures</p>
+            </div>
+            <button 
+              onClick={openNewModal}
+              disabled={!selectedBranchId}
+              className="group relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:translate-y-0"
+            >
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+              <span className="material-symbols-outlined text-[20px] relative z-10">add</span>
+              <span className="relative z-10">Add Expense</span>
+            </button>
+          </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-8 pb-12">
-        {/* Header Section */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30">
-                <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+          {/* Table Container */}
+          <div className="bg-surface rounded-3xl shadow-sm border border-outline-variant/30 overflow-hidden flex flex-col">
+            <div className="p-4 md:p-6 border-b border-outline-variant/30 bg-surface-container-lowest/50 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="flex items-center gap-2 bg-surface-container-low px-4 py-2.5 rounded-xl border border-outline-variant/30 flex-1 md:flex-none">
+                  <span className="material-symbols-outlined text-on-surface-variant/50 text-[20px]">storefront</span>
+                  <span className="text-sm font-semibold text-on-surface">Branch Expenses</span>
+                </div>
               </div>
-              <span className="text-primary font-bold tracking-widest text-xs uppercase">Indux Tech Finance</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-on-surface tracking-tight mb-3">Expenses</h1>
-            <p className="text-on-surface-variant max-w-xl text-lg font-light leading-relaxed">
-              Track and manage your business expenditures with our high-precision management engine. Real-time auditing for the modern ecosystem.
-            </p>
-          </div>
-          <div>
-            <button 
-              onClick={handleNewExpense}
-              className="shadow-[0_0_15px_rgba(125,211,252,0.3)] hover:shadow-[0_0_25px_rgba(125,211,252,0.5)] bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 px-8 py-3 rounded-lg font-bold tracking-tight transition-all duration-300 flex items-center gap-2 group active:scale-95 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-sm">add</span>
-              New Expense
-            </button>
-          </div>
-        </header>
 
-        {/* Search and Filter Row */}
-        <div className="glass-panel rounded-xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            {/* Search Input Container */}
-            <div className="relative w-full md:w-80 transition-all duration-300 rounded-lg border border-outline-variant focus-within:shadow-[0_0_15px_rgba(125,211,252,0.2)] focus-within:border-primary/50">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
-              <input 
-                className="w-full bg-surface-container-low rounded-lg pl-10 pr-4 py-2 text-sm text-on-surface transition-all placeholder:text-on-surface-variant/50 border-none outline-none focus:ring-0" 
-                placeholder="Search expenses..." 
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-            {/* Page Entry Selection */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-on-surface-variant font-medium whitespace-nowrap">Show:</span>
-              <select 
-                value={entriesPerPage}
-                onChange={(e) => {
-                  setEntriesPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface focus:ring-0 focus:border-primary/50 outline-none cursor-pointer"
-              >
-                <option value={10}>10 entries</option>
-                <option value={25}>25 entries</option>
-                <option value={50}>50 entries</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Status filter buttons */}
-          <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-            <button 
-              onClick={() => { setStatusFilter('all'); setCurrentPage(1); }}
-              className={`px-4 py-2 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
-                statusFilter === 'all'
-                  ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
-                  : 'text-on-surface-variant border border-outline-variant hover:border-primary/30 hover:text-primary'
-              }`}
-            >
-              All Time
-            </button>
-            <button 
-              onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
-              className={`px-4 py-2 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
-                statusFilter === 'pending'
-                  ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
-                  : 'text-on-surface-variant border border-outline-variant hover:border-primary/30 hover:text-primary'
-              }`}
-            >
-              Pending
-            </button>
-            <button 
-              onClick={() => { setStatusFilter('approved'); setCurrentPage(1); }}
-              className={`px-4 py-2 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
-                statusFilter === 'approved'
-                  ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
-                  : 'text-on-surface-variant border border-outline-variant hover:border-primary/30 hover:text-primary'
-              }`}
-            >
-              Approved
-            </button>
-            <div className="h-6 w-px bg-outline-variant mx-1"></div>
-            <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:text-primary transition-all cursor-pointer">
-              <span className="material-symbols-outlined">filter_list</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Data Table Section */}
-        <div className="glass-panel rounded-xl overflow-hidden border border-primary/10">
-          <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-container-high/40 text-on-surface-variant text-xs font-bold uppercase tracking-widest border-b border-primary/10">
-                  <th className="px-6 py-4">#</th>
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">Amount</th>
-                  <th className="px-6 py-4">Payment Method</th>
-                  <th className="px-6 py-4">Note</th>
-                  <th className="px-6 py-4">Attachment</th>
-                  <th className="px-6 py-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-primary/5 text-sm">
-                {paginatedExpenses.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-on-surface-variant italic">
-                      No expenses found matching the criteria.
-                    </td>
+            {/* High-Fidelity Data Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full table-fixed text-left border-collapse whitespace-nowrap">
+                <thead>
+                  <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
+                    <th className="px-6 py-4 w-1/6">Date</th>
+                    <th className="px-6 py-4 text-left w-1/6">Amount</th>
+                    <th className="px-6 py-4 w-1/6">Payment Method</th>
+                    <th className="px-6 py-4 w-[25%]">Category & Note</th>
+                    <th className="px-6 py-4 text-center w-1/6">Attachment</th>
+                    <th className="px-6 py-4 text-right pr-8 w-1/6">Actions</th>
                   </tr>
-                ) : (
-                  paginatedExpenses.map((item) => (
-                    <tr key={item.id} className="row-hover transition-colors duration-200 group">
-                      <td className="px-6 py-5 font-mono text-xs text-primary/70">{item.id}</td>
-                      <td className="px-6 py-5 text-on-surface font-medium whitespace-nowrap">{item.date}</td>
-                      <td className="px-6 py-5 font-bold text-on-surface">₹{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="px-6 py-5">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border ${
-                          item.method === 'Bank Transfer' || item.method === 'UPI'
-                            ? 'bg-primary/10 border-primary/20 text-primary'
-                            : 'bg-surface-container-highest border-outline-variant text-on-surface-variant'
-                        }`}>
-                          {item.method}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-on-surface-variant italic truncate max-w-[200px]" title={item.note}>{item.note}</td>
-                      <td className="px-6 py-5">
-                        {item.attachment ? (
-                          <button className="flex items-center gap-2 text-primary hover:text-primary-fixed transition-colors font-medium cursor-pointer">
-                            <span className="material-symbols-outlined text-base">attach_file</span>
-                            View
-                          </button>
-                        ) : (
-                          <button className="flex items-center gap-2 text-on-surface-variant opacity-40 cursor-not-allowed font-medium">
-                            <span className="material-symbols-outlined text-base">cloud_off</span>
-                            None
-                          </button>
-                        )}
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button 
-                            onClick={() => handleEditExpense(item)}
-                            className="p-2 rounded-lg hover:bg-primary/10 text-on-surface-variant hover:text-primary transition-all cursor-pointer"
-                            title="Edit"
-                          >
-                            <span className="material-symbols-outlined text-lg">edit_square</span>
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteExpense(item.id)}
-                            className="p-2 rounded-lg hover:bg-error/10 text-on-surface-variant hover:text-error transition-all cursor-pointer"
-                            title="Delete"
-                          >
-                            <span className="material-symbols-outlined text-lg">delete</span>
-                          </button>
+                </thead>
+                <tbody className="divide-y divide-primary/5 text-sm">
+                  {isLoadingBranches || loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-on-surface-variant">
+                        <div className="flex justify-center items-center gap-2">
+                          <span className="material-symbols-outlined animate-spin">refresh</span> Loading expenses...
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : expenses.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
+                          <span className="material-symbols-outlined text-[32px]">receipt_long</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-on-surface">No expenses yet</h3>
+                        <p className="text-sm text-on-surface-variant mt-1">Start tracking your branch expenditures.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    expenses.map((expense) => (
+                      <tr key={expense.id} className="group hover:bg-surface-container-highest/50 transition-all duration-300">
+                        <td className="px-6 py-4">
+                          <div className="text-[14px] font-medium text-on-surface">
+                            {new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-left">
+                          <div className="text-[15px] font-bold text-red-500 tracking-tight">- ₹ {expense.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container text-[12px] font-medium text-on-surface-variant border border-outline-variant/20 w-fit">
+                            {expense.paymentMethod === 'Cash' && <span className="material-symbols-outlined text-[14px] text-green-500">payments</span>}
+                            {expense.paymentMethod === 'UPI' && <span className="material-symbols-outlined text-[14px] text-blue-500">qr_code_scanner</span>}
+                            {expense.paymentMethod === 'Bank Transfer' && <span className="material-symbols-outlined text-[14px] text-purple-500">account_balance</span>}
+                            {expense.paymentMethod === 'Cheque' && <span className="material-symbols-outlined text-[14px] text-orange-500">request_quote</span>}
+                            {expense.paymentMethod}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[14px] font-bold text-on-surface truncate group-hover:text-primary transition-colors">
+                              {expense.category?.name || 'Uncategorized'}
+                            </div>
+                            {expense.note && (
+                              <div className="text-xs text-on-surface-variant/70 truncate mt-0.5" title={expense.note}>
+                                {expense.note}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {expense.attachment ? (
+                            <button 
+                              onClick={() => setViewerAttachment(expense.attachment)}
+                              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-on-primary transition-colors"
+                              title={isPdf(expense.attachment) ? "View PDF" : "View Image"}
+                            >
+                              <span className="material-symbols-outlined text-[18px]">
+                                {isPdf(expense.attachment) ? 'picture_as_pdf' : 'image'}
+                              </span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-on-surface-variant/40 italic">No file</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right pr-8">
+                          {/* Always visible action icons now */}
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => openEditModal(expense)} className="w-8 h-8 rounded-full bg-surface-container hover:bg-primary/10 text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors shadow-sm border border-outline-variant/20">
+                              <span className="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                            <button onClick={() => handleDelete(expense.id)} className="w-8 h-8 rounded-full bg-surface-container hover:bg-error/10 text-on-surface-variant hover:text-error flex items-center justify-center transition-colors shadow-sm border border-outline-variant/20">
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-
-        {/* Pagination Section */}
-        <footer className="glass-panel-elevated rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-xs text-on-surface-variant font-medium">
-            Showing <span className="text-on-surface">{filteredExpenses.length > 0 ? startIndex : 0}</span> to <span className="text-on-surface">{endIndex}</span> of <span className="text-on-surface">{filteredExpenses.length}</span> expenses
-          </div>
-          <div className="flex items-center gap-1">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-            >
-              <span className="material-symbols-outlined">chevron_left</span>
-            </button>
-            
-            {Array.from({ length: totalPages }).map((_, i) => {
-              const pageNum = i + 1;
-              return (
-                <button 
-                  key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`w-10 h-10 flex items-center justify-center rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                    currentPage === pageNum
-                      ? 'bg-primary/20 text-primary border-primary/45 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
-                      : 'border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary/30'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-            >
-              <span className="material-symbols-outlined">chevron_right</span>
-            </button>
-          </div>
-        </footer>
-
-        {/* Bento Grid Stats */}
-        <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="glass-panel rounded-xl p-6 relative overflow-hidden group">
-            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-primary/10 blur-3xl rounded-full transition-all group-hover:scale-150"></div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Total Monthly Spend</h3>
-            <div className="text-3xl font-extrabold text-on-surface">₹{totalSpend.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            <div className="mt-4 flex items-center gap-2 text-xs font-medium text-emerald-400">
-              <span className="material-symbols-outlined text-sm">trending_down</span>
-              12% from last month
-            </div>
-          </div>
-          <div className="glass-panel rounded-xl p-6 relative overflow-hidden group">
-            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-tertiary/10 blur-3xl rounded-full transition-all group-hover:scale-150"></div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-tertiary mb-2">Active Categories</h3>
-            <div className="text-3xl font-extrabold text-on-surface">{uniqueMethods} Method{uniqueMethods !== 1 ? 's' : ''}</div>
-            <div className="mt-4 flex items-center gap-2 text-xs font-medium text-on-surface-variant">
-              Top category: {topMethod}
-            </div>
-          </div>
-          <div className="glass-panel rounded-xl p-0 overflow-hidden relative group md:col-span-1 min-h-[140px]">
-            <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent z-10"></div>
-            <div className="p-6 relative z-20 h-full flex flex-col justify-end">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-white/60 mb-1">Financial Report</h3>
-              <div className="text-xl font-bold text-white">Q3 Projection</div>
-            </div>
-            <img 
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-              alt="System crystal pattern visualization" 
-              src="/images/expenses-visualization.png"
-            />
-          </div>
-        </section>
       </div>
 
-      {/* Glassmorphic Modal */}
+      {/* Main Expense Form Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md px-4">
-          <div className="glass-panel-elevated max-w-lg w-full rounded-2xl p-6 relative overflow-hidden flex flex-col gap-5 border border-primary/20 shadow-2xl">
-            {/* Decorative Glow */}
-            <div className="absolute -right-20 -top-20 w-40 h-40 bg-primary/10 blur-3xl rounded-full"></div>
-            
-            <div className="flex justify-between items-center border-b border-outline-variant/20 pb-3 relative z-10">
-              <h3 className="text-xl font-bold text-on-surface">
-                {editingExpense ? 'Edit Expense' : 'New Expense'}
-              </h3>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-outline-variant/20 text-on-surface-variant hover:text-on-surface transition-all cursor-pointer"
-              >
-                <span className="material-symbols-outlined">close</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={closeModal}></div>
+          <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-lg overflow-visible relative z-10 animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-5 border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-lowest rounded-t-3xl">
+              <h2 className="text-xl font-bold text-on-surface">{isEditMode ? 'Edit Expense' : 'Add New Expense'}</h2>
+              <button onClick={closeModal} className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant transition-colors">
+                <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
-
-            <form onSubmit={handleSave} className="flex flex-col gap-4 relative z-10">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 ml-1">Date</label>
-                  <input 
-                    type="date"
-                    required
-                    value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full bg-surface-container-low border border-outline-variant/50 focus:border-primary/50 focus:ring-0 rounded-lg px-3 py-2 text-sm text-on-surface outline-none"
-                  />
+            
+            <form onSubmit={handleSubmit} className="p-6 overflow-visible">
+              {error && (
+                <div className="mb-6 p-4 rounded-2xl bg-error/10 border border-error/20 flex items-start gap-3">
+                  <span className="material-symbols-outlined text-error mt-0.5">error</span>
+                  <p className="text-sm text-error font-medium">{error}</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 ml-1">Amount (₹)</label>
-                  <input 
-                    type="number"
-                    step="0.01"
-                    required
-                    min="0.01"
-                    placeholder="0.00"
-                    value={formData.amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                    className="w-full bg-surface-container-low border border-outline-variant/50 focus:border-primary/50 focus:ring-0 rounded-lg px-3 py-2 text-sm text-on-surface outline-none"
-                  />
+              )}
+
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Amount (₹) *</label>
+                    <input type="number" step="0.01" name="amount" required value={formData.amount} onChange={handleInputChange} className="w-full px-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-semibold" placeholder="0.00" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Date *</label>
+                    <input type="date" name="date" required value={formData.date} onChange={handleInputChange} className="w-full px-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-semibold" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 relative" ref={dropdownRef}>
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Category *</label>
+                    <input 
+                      type="text" 
+                      name="category" 
+                      required 
+                      value={categorySearch} 
+                      onChange={(e) => {
+                        setCategorySearch(e.target.value);
+                        setFormData({ ...formData, category: e.target.value });
+                        setShowCategoryDropdown(true);
+                      }}
+                      onFocus={() => setShowCategoryDropdown(true)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-semibold" 
+                      placeholder="e.g. Travel, Office" 
+                      autoComplete="off"
+                    />
+                    
+                    {/* Category Combobox Dropdown */}
+                    {showCategoryDropdown && (
+                      <div className="absolute top-[100%] left-0 w-full mt-2 bg-surface rounded-xl shadow-lg border border-outline-variant/30 overflow-hidden z-[100] max-h-60 flex flex-col">
+                        <div className="overflow-y-auto custom-scrollbar flex-1">
+                          {filteredCategories.length > 0 ? (
+                            filteredCategories.map(c => (
+                              <div 
+                                key={c.id} 
+                                onClick={() => {
+                                  setCategorySearch(c.name);
+                                  setFormData({ ...formData, category: c.name });
+                                  setShowCategoryDropdown(false);
+                                }}
+                                className="px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container cursor-pointer transition-colors"
+                              >
+                                {c.name}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-4 py-3 text-sm text-on-surface-variant/70 italic bg-surface-container-lowest/50 border-b border-outline-variant/10">
+                              "{categorySearch}" will be created
+                            </div>
+                          )}
+                        </div>
+                        <div 
+                          onClick={() => {
+                            setShowCategoryDropdown(false);
+                            setIsCategoryModalOpen(true);
+                          }}
+                          className="px-4 py-3 bg-surface-container-low border-t border-outline-variant/20 text-sm font-bold text-primary hover:bg-surface-container cursor-pointer flex items-center gap-2 transition-colors shrink-0"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">settings</span>
+                          Manage Categories...
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Payment Method *</label>
+                    <select name="paymentMethod" required value={formData.paymentMethod} onChange={handleInputChange} className="w-full px-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-semibold appearance-none">
+                      <option value="Cash">Cash</option>
+                      <option value="UPI">UPI</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Cheque">Cheque</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Note (Optional)</label>
+                  <textarea name="note" value={formData.note} onChange={handleInputChange} className="w-full px-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm min-h-[80px] resize-none" placeholder="Details about this expense..." />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px]">attach_file</span> Attachment (Img/PDF)
+                  </label>
+                  {isEditMode && editExpenseId && expenses.find(e => e.id === editExpenseId)?.attachment && (
+                    <div className="flex items-center gap-3 mb-2 p-3 rounded-xl border border-outline-variant/20 bg-surface-container-highest shadow-sm">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                        <span className="material-symbols-outlined text-[20px]">{isPdf(expenses.find(e => e.id === editExpenseId)?.attachment!) ? 'picture_as_pdf' : 'image'}</span>
+                      </div>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="text-[13px] font-bold text-on-surface truncate">Existing attachment</span>
+                        <span className="text-[11px] font-medium text-on-surface-variant/70">Upload new to replace</span>
+                      </div>
+                      <button type="button" onClick={() => setViewerAttachment(expenses.find(e => e.id === editExpenseId)?.attachment!)} className="text-primary hover:underline text-xs font-bold bg-transparent border-none cursor-pointer">View</button>
+                    </div>
+                  )}
+                  <input type="file" accept="image/*,application/pdf" onChange={handleFileChange} className="w-full text-sm text-on-surface-variant file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all file:cursor-pointer cursor-pointer border border-outline-variant/30 rounded-xl bg-surface-container/50" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 ml-1">Payment Method</label>
-                  <select
-                    value={formData.method}
-                    onChange={(e) => setFormData(prev => ({ ...prev, method: e.target.value }))}
-                    className="w-full bg-surface-container-low border border-outline-variant/50 focus:border-primary/50 focus:ring-0 rounded-lg px-3 py-2 text-sm text-on-surface outline-none cursor-pointer"
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Credit Card">Credit Card</option>
-                    <option value="UPI">UPI</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 ml-1">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'Pending' | 'Approved' }))}
-                    className="w-full bg-surface-container-low border border-outline-variant/50 focus:border-primary/50 focus:ring-0 rounded-lg px-3 py-2 text-sm text-on-surface outline-none cursor-pointer"
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Approved">Approved</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 ml-1">Note / Description</label>
-                <textarea 
-                  required
-                  rows={3}
-                  placeholder="Describe the expenditure..."
-                  value={formData.note}
-                  onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
-                  className="w-full bg-surface-container-low border border-outline-variant/50 focus:border-primary/50 focus:ring-0 rounded-lg px-3 py-2 text-sm text-on-surface outline-none resize-none"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 mt-2">
-                <input 
-                  type="checkbox"
-                  id="attachment-checkbox"
-                  checked={formData.attachment}
-                  onChange={(e) => setFormData(prev => ({ ...prev, attachment: e.target.checked }))}
-                  className="rounded border-outline-variant bg-surface-container-low text-primary focus:ring-0 cursor-pointer"
-                />
-                <label htmlFor="attachment-checkbox" className="text-sm text-on-surface-variant font-medium cursor-pointer select-none">
-                  Include invoice/receipt attachment (mocked)
-                </label>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-4 border-t border-outline-variant/20 pt-4">
-                <button 
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-lg text-sm font-semibold text-on-surface-variant hover:bg-outline-variant/10 transition-all cursor-pointer"
-                >
+              <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-outline-variant/20">
+                <button type="button" onClick={closeModal} className="px-5 py-2.5 rounded-xl font-semibold text-on-surface-variant hover:bg-surface-container transition-colors text-sm">
                   Cancel
                 </button>
-                <button 
-                  type="submit"
-                  className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 px-6 py-2.5 rounded-lg font-bold transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.2)] cursor-pointer animate-pulse-subtle"
-                >
-                  Save Changes
+                <button type="submit" disabled={submitting} className="px-6 py-2.5 bg-primary text-on-primary rounded-xl font-semibold hover:shadow-md hover:shadow-primary/20 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  {submitting ? (
+                    <><span className="material-symbols-outlined animate-spin text-[18px]">refresh</span> Saving...</>
+                  ) : (
+                    <><span className="material-symbols-outlined text-[18px]">save</span> {isEditMode ? 'Save Changes' : 'Save Expense'}</>
+                  )}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Category Management Modal */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setIsCategoryModalOpen(false)}></div>
+          <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+            <div className="px-6 py-5 border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-lowest">
+              <h2 className="text-xl font-bold text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">category</span>
+                Manage Expense Categories
+              </h2>
+              <button onClick={() => setIsCategoryModalOpen(false)} className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant transition-colors">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-surface-container-lowest/30">
+              {categoryError && (
+                <div className="mb-4 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3">
+                  <span className="material-symbols-outlined text-error text-[18px] mt-0.5">error</span>
+                  <p className="text-sm text-error font-medium">{categoryError}</p>
+                </div>
+              )}
+
+              <table className="w-full text-left border-collapse bg-surface border border-outline-variant/20 rounded-xl overflow-hidden shadow-sm">
+                <thead>
+                  <tr className="bg-surface-container-low text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-outline-variant/20">
+                    <th className="px-4 py-3">Category Name</th>
+                    <th className="px-4 py-3">Created By</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10 text-sm">
+                  {categories.length === 0 ? (
+                    <tr><td colSpan={3} className="px-4 py-6 text-center text-on-surface-variant">No categories found.</td></tr>
+                  ) : (
+                    categories.map(cat => (
+                      <tr key={cat.id} className="hover:bg-surface-container-highest/30 transition-colors">
+                        <td className="px-4 py-3 font-medium text-on-surface w-1/2">
+                          {editingCategoryId === cat.id ? (
+                            <input 
+                              type="text" 
+                              value={editCategoryName} 
+                              onChange={e => setEditCategoryName(e.target.value)}
+                              className="w-full px-3 py-1.5 rounded-lg border border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                              autoFocus
+                              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveCategory(cat.id); else if (e.key === 'Escape') setEditingCategoryId(null); }}
+                            />
+                          ) : (
+                            cat.name
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-on-surface-variant text-xs">
+                          {cat.createdBy?.fullName || 'System'}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {editingCategoryId === cat.id ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <button onClick={() => handleSaveCategory(cat.id)} className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors" title="Save">
+                                <span className="material-symbols-outlined text-[16px]">check</span>
+                              </button>
+                              <button onClick={() => setEditingCategoryId(null)} className="p-1.5 rounded-lg bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Cancel">
+                                <span className="material-symbols-outlined text-[16px]">close</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-1">
+                              <button onClick={() => { setEditingCategoryId(cat.id); setEditCategoryName(cat.name); setCategoryError(''); }} className="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors" title="Edit">
+                                <span className="material-symbols-outlined text-[16px]">edit</span>
+                              </button>
+                              <button onClick={() => handleDeleteCategory(cat.id)} className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors" title="Delete">
+                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Attachment Viewer Modal */}
+      {viewerAttachment && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={() => setViewerAttachment(null)}></div>
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 flex flex-col h-[85vh] animate-in zoom-in-95 duration-200 border border-outline-variant/10">
+            
+            {/* Toolbar */}
+            <div className="px-4 py-3 bg-surface-container flex items-center justify-between border-b border-outline-variant/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined">{isPdf(viewerAttachment) ? 'picture_as_pdf' : 'image'}</span>
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-bold text-on-surface leading-tight">Attachment Preview</h3>
+                  <p className="text-xs text-on-surface-variant mt-0.5">{viewerAttachment.split('/').pop()}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <a 
+                  href={getAttachmentUrl(viewerAttachment)!} 
+                  download 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-primary text-on-primary rounded-xl font-semibold text-sm flex items-center gap-2 hover:shadow-md hover:-translate-y-0.5 transition-all shadow-sm"
+                >
+                  <span className="material-symbols-outlined text-[18px]">download</span>
+                  Download File
+                </a>
+                <button onClick={() => setViewerAttachment(null)} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-surface-container-high text-on-surface-variant transition-colors">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+            
+            {/* Content Area */}
+            <div className="flex-1 bg-surface-container-lowest p-6 flex items-center justify-center overflow-auto">
+              {isPdf(viewerAttachment) ? (
+                <iframe 
+                  src={getAttachmentUrl(viewerAttachment)!} 
+                  className="w-full h-full rounded-xl border border-outline-variant/20 shadow-inner bg-white"
+                  title="PDF Viewer"
+                />
+              ) : (
+                <img 
+                  src={getAttachmentUrl(viewerAttachment)!} 
+                  alt="Attachment" 
+                  className="max-w-full max-h-full object-contain rounded-xl shadow-lg border border-outline-variant/10"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

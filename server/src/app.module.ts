@@ -11,6 +11,8 @@ import { ProfileModule } from './profile/profile.module';
 import { HealthController } from './health.controller';
 import { CustomersModule } from './customers/customers.module';
 import { ProductsModule } from './products/products.module';
+import { ExpensesModule } from './expenses/expenses.module';
+import { ExpenseCategoriesModule } from './expense-categories/expense-categories.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { ProductsModule } from './products/products.module';
     ProfileModule,
     CustomersModule,
     ProductsModule,
+    ExpensesModule,
+    ExpenseCategoriesModule,
   ],
   controllers: [HealthController],
 })

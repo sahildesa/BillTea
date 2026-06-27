@@ -99,8 +99,9 @@ export default function ExpensesPage() {
   };
 
   const fetchCategories = async () => {
+    if (!selectedBranchId) return;
     try {
-      const res = await apiFetch(`/expense-categories`);
+      const res = await apiFetch(`/expense-categories?branchId=${selectedBranchId}`);
       if (res.ok) {
         const data = await res.json();
         setCategories(data);

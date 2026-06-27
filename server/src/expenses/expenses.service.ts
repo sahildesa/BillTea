@@ -23,7 +23,7 @@ export class ExpensesService {
 
     // Find or create category
     let expenseCategory = await this.prisma.expenseCategory.findUnique({
-      where: { companyId_name: { companyId, name: category } }
+      where: { branchId_name: { branchId: createExpenseDto.branchId, name: category } }
     });
 
     if (!expenseCategory) {
@@ -31,6 +31,7 @@ export class ExpensesService {
         data: {
           name: category,
           companyId,
+          branchId: createExpenseDto.branchId,
           createdById: userId,
         }
       });
@@ -110,7 +111,7 @@ export class ExpensesService {
     // Find or create category if it was updated
     if (category) {
       let expenseCategory = await this.prisma.expenseCategory.findUnique({
-        where: { companyId_name: { companyId, name: category } }
+        where: { branchId_name: { branchId: updateExpenseDto.branchId || expense.branchId, name: category } }
       });
 
       if (!expenseCategory) {
@@ -118,6 +119,7 @@ export class ExpensesService {
           data: {
             name: category,
             companyId,
+            branchId: updateExpenseDto.branchId || expense.branchId,
             // We use the expense's creator as a fallback for the new category's creator if updated by someone else, or just leave it null.
             createdById: expense.createdById,
           }

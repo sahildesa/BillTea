@@ -89,6 +89,7 @@ model Branch {
   customers      Customer[]
   products       Product[]
   expenses       Expense[]
+  expenseCategories ExpenseCategory[]
   users          User[]        @relation("UserBranches")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -186,6 +187,8 @@ model ExpenseCategory {
   id          String   @id @default(uuid())
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id])
   
   name        String
   
@@ -197,6 +200,6 @@ model ExpenseCategory {
   
   expenses    Expense[]
 
-  @@unique([companyId, name])
+  @@unique([branchId, name])
   @@map("expense_categories")
 }

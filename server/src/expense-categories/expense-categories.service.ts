@@ -5,24 +5,25 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ExpenseCategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(name: string, companyId: string, userId: string) {
+  async create(name: string, companyId: string, branchId: string, userId: string) {
     const existing = await this.prisma.expenseCategory.findUnique({
       where: {
-        companyId_name: {
-          companyId,
+        branchId_name: {
+          branchId,
           name,
         }
       }
     });
 
     if (existing) {
-      throw new ConflictException('Category with this name already exists');
+      throw new ConflictException('Category with this name already exists in this branch');
     }
 
     return this.prisma.expenseCategory.create({
       data: {
         name,
         companyId,
+        branchId,
         createdById: userId,
       },
       include: {
@@ -33,9 +34,9 @@ export class ExpenseCategoriesService {
     });
   }
 
-  async findAll(companyId: string) {
+  async findAll(companyId: string, branchId: string) {
     return this.prisma.expenseCategory.findMany({
-      where: { companyId },
+      where: { companyId, branchId },
       include: {
         createdBy: {
           select: { fullName: true }
@@ -54,15 +55,15 @@ export class ExpenseCategoriesService {
       throw new NotFoundException('Category not found');
     }
 
-    // Check name conflict
+    // Check name conflict in the same branch
     const nameConflict = await this.prisma.expenseCategory.findUnique({
       where: {
-        companyId_name: { companyId, name }
+        branchId_name: { branchId: existing.branchId, name }
       }
     });
 
     if (nameConflict && nameConflict.id !== id) {
-      throw new ConflictException('Another category with this name already exists');
+      throw new ConflictException('Another category with this name already exists in this branch');
     }
 
     return this.prisma.expenseCategory.update({

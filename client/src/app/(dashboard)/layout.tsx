@@ -64,15 +64,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-background text-on-surface font-body min-h-screen flex overflow-hidden antialiased transition-colors duration-300">
       {/* Sidebar */}
-      <aside className={`flex-shrink-0 border-outline-variant/30 glass-panel flex flex-col h-screen z-20 transition-all duration-500 overflow-hidden ${
+      <aside className={`flex-shrink-0 border-outline-variant/30 glass-panel flex flex-col h-screen z-20 transition-[width] duration-300 ease-in-out overflow-hidden border-r ${
         sidebarOpen 
-          ? 'w-56 border-r' 
-          : 'w-0 border-none pointer-events-none'
+          ? 'w-56' 
+          : 'w-[72px]'
       }`}>
-        <div className="p-5 flex items-center gap-3 min-w-[224px] relative border-b border-outline-variant/10">
+        <div className="flex items-center gap-3 relative border-b border-outline-variant/10 p-4 h-20 shrink-0 overflow-hidden whitespace-nowrap">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
           <div className="size-10 shrink-0 rounded-full bg-cover bg-center border border-primary/20 shadow-[0_0_15px_rgba(125,211,252,0.1)] z-10" style={{ backgroundImage: "url('/images/logo.png')" }}></div>
-          <div className="z-10 flex-1 flex flex-col min-w-0">
+          <div className={`z-10 flex-1 flex flex-col min-w-0 transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
             <h1 className="text-on-surface font-semibold text-lg tracking-wide leading-tight truncate">Indux Tech</h1>
             
             <div className="relative mt-0.5 group w-auto inline-flex items-center">
@@ -97,29 +97,30 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
-        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto min-w-[224px] custom-scrollbar">
+        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
           {filteredNavItems.map((item) => (
-            <Link key={item.href} href={item.href} className={`nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 ${pathname === item.href ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]' : 'text-on-surface-variant border border-transparent hover:bg-surface-container-highest hover:text-on-surface hover:translate-x-1'}`}>
-              <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">{item.icon}</span>
-              {item.label}
+            <Link key={item.href} href={item.href} title={!sidebarOpen ? item.label : undefined} className={`nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 overflow-hidden whitespace-nowrap ${pathname === item.href ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]' : 'text-on-surface-variant border border-transparent hover:bg-surface-container-highest hover:text-on-surface hover:translate-x-1'}`}>
+              <span className="material-symbols-outlined shrink-0 text-[20px] transition-transform duration-300 group-hover:scale-110">{item.icon}</span>
+              <span className={`transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>{item.label}</span>
             </Link>
           ))}
           {showSettings && (
             <div className="pt-2">
-              <Link href="/settings" className={`nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 ${pathname === '/settings' ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]' : 'text-on-surface-variant border border-transparent hover:bg-surface-container-highest hover:text-on-surface hover:translate-x-1'}`}>
-                <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90">settings</span>
-                Settings
+              <Link href="/settings" title={!sidebarOpen ? 'Settings' : undefined} className={`nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 overflow-hidden whitespace-nowrap ${pathname === '/settings' ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]' : 'text-on-surface-variant border border-transparent hover:bg-surface-container-highest hover:text-on-surface hover:translate-x-1'}`}>
+                <span className="material-symbols-outlined shrink-0 text-[20px] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90">settings</span>
+                <span className={`transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>Settings</span>
               </Link>
             </div>
           )}
         </nav>
-        <div className="p-4 border-t border-outline-variant/30 min-w-[224px]">
+        <div className="p-4 border-t border-outline-variant/30 shrink-0 overflow-hidden whitespace-nowrap">
           <div 
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg glass-button cursor-pointer active:scale-98 transition-all hover:bg-error/10 hover:text-error hover:border-error/30 group"
+            title={!sidebarOpen ? 'Sign Out' : undefined}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg glass-button cursor-pointer active:scale-98 transition-all duration-300 hover:bg-error/10 hover:text-error hover:border-error/30 group"
           >
-            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:-translate-x-0.5">logout</span>
-            <span className="text-sm font-medium">Sign Out</span>
+            <span className="material-symbols-outlined shrink-0 text-[20px] transition-transform duration-300 group-hover:-translate-x-0.5">logout</span>
+            <span className={`text-sm font-medium transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>Sign Out</span>
           </div>
         </div>
       </aside>

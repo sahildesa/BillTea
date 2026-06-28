@@ -1,21 +1,109 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { apiFetch } from '@/lib/auth';
+import { useBranch } from '@/components/BranchProvider';
+
+interface Quotation {
+  id: string;
+  quotationNumber: string;
+  status: string;
+  quotationDate: string;
+  expiryDate: string;
+  customer: {
+    customerName: string;
+    companyName: string;
+  };
+  totals: {
+    grandTotal: number;
+  };
+}
 
 export default function QuotationsPage() {
+  const { selectedBranchId, isLoadingBranches } = useBranch();
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (selectedBranchId) {
+      fetchQuotations();
+    } else {
+      setQuotations([]);
+      setLoading(false);
+    }
+  }, [selectedBranchId]);
+
+  const fetchQuotations = async () => {
+    if (!selectedBranchId) return;
+    try {
+      setLoading(true);
+      setError('');
+      const res = await apiFetch(`/quotations?branchId=${selectedBranchId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setQuotations(data);
+      } else {
+        throw new Error('Failed to fetch quotations');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this quotation? Note: You can only delete the most recent quotation.')) return;
+    try {
+      const res = await apiFetch(`/quotations/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchQuotations();
+      } else {
+        const errData = await res.json();
+        alert(errData.message || 'Failed to delete quotation');
+      }
+    } catch (err: any) {
+      alert('Failed to delete quotation');
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'DRAFT': return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
+      case 'SENT': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      case 'ACCEPTED': return 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20';
+      case 'EXPIRED': return 'bg-red-500/10 text-red-500 border-red-500/20';
+      default: return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
+    }
+  };
+
   return (
-    <div className="flex-1 overflow-y-auto p-8 z-0 relative">
+    <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
         <div>
           <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">Quotations</h1>
           <p className="text-on-surface-variant text-sm mt-1">Manage and track your customer quotes.</p>
         </div>
-        <button className="glass-button-primary rounded-lg py-2.5 px-5 flex items-center gap-2 text-sm font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 cursor-pointer">
-          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-          Create Quotation
-        </button>
+        <Link href="/quotations/new">
+          <button 
+            disabled={!selectedBranchId}
+            className="glass-button-primary rounded-lg py-2.5 px-5 flex items-center gap-2 text-sm font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
+            Create Quotation
+          </button>
+        </Link>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3 relative z-10">
+          <span className="material-symbols-outlined text-error mt-0.5">error</span>
+          <p className="text-sm text-error font-medium">{error}</p>
+        </div>
+      )}
 
       {/* Glassmorphic Data Table Container */}
       <div className="glass-panel rounded-xl overflow-hidden shadow-lg border border-primary/10 relative z-10">
@@ -46,11 +134,6 @@ export default function QuotationsPage() {
               <tr>
                 <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
                   <div className="flex items-center gap-1">
-                    # <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
-                  </div>
-                </th>
-                <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
-                  <div className="flex items-center gap-1">
                     Quotation Number <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
                   </div>
                 </th>
@@ -61,7 +144,7 @@ export default function QuotationsPage() {
                 </th>
                 <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
                   <div className="flex items-center gap-1">
-                    Date <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
+                    Date & Status <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
                   </div>
                 </th>
                 <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
@@ -69,61 +152,78 @@ export default function QuotationsPage() {
                     Total Amount <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-center" scope="col">
+                <th className="px-6 py-4 font-semibold tracking-wider text-right pr-8" scope="col">
                   Action
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-primary/5">
-              {/* Row 1 */}
-              <tr className="hover:bg-primary/5 transition-colors duration-200">
-                <td className="px-6 py-4 font-medium text-on-surface-variant">1</td>
-                <td className="px-6 py-4 font-semibold text-primary">QT-000001</td>
-                <td className="px-6 py-4 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-surface-container-highest border border-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-                    AS
-                  </div>
-                  <span className="text-on-surface">Aditya Shastri</span>
-                </td>
-                <td className="px-6 py-4 text-on-surface-variant">18-06-2026</td>
-                <td className="px-6 py-4 font-semibold text-on-surface">₹106.20</td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-center gap-2">
-                    <button className="glass-button-icon p-1 rounded-md transition-all tooltip cursor-pointer" title="View">
-                      <span className="material-symbols-outlined text-[16px]">visibility</span>
-                    </button>
-                    <button className="glass-button-icon p-1 rounded-md transition-all tooltip cursor-pointer" title="Download">
-                      <span className="material-symbols-outlined text-[16px]">download</span>
-                    </button>
-                    <button className="glass-button-icon p-1 rounded-md transition-all tooltip cursor-pointer" title="Copy">
-                      <span className="material-symbols-outlined text-[16px]">content_copy</span>
-                    </button>
-                    <button className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
-                      <span className="material-symbols-outlined text-[16px]">delete</span>
-                    </button>
-                    <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
-                      <span className="material-symbols-outlined text-[16px]">send</span>
-                    </button>
-                    <button className="glass-button-icon p-1 rounded-md transition-all tooltip cursor-pointer relative" title="Comments">
-                      <span className="material-symbols-outlined text-[16px]">chat_bubble</span>
-                      <span className="absolute -top-1 -right-1.5 bg-primary text-on-primary text-[9px] font-bold px-1 py-0.5 rounded-full shadow-sm leading-none flex items-center justify-center min-w-[14px] h-[14px] pointer-events-none">3</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
+              {isLoadingBranches || loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-on-surface-variant">
+                    <div className="flex justify-center items-center gap-2">
+                      <span className="material-symbols-outlined animate-spin">refresh</span> Loading quotations...
+                    </div>
+                  </td>
+                </tr>
+              ) : quotations.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
+                      <span className="material-symbols-outlined text-[32px]">request_quote</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-on-surface">No quotations yet</h3>
+                    <p className="text-sm text-on-surface-variant mt-1">Create your first quotation for this branch.</p>
+                  </td>
+                </tr>
+              ) : (
+                quotations.map((quotation) => (
+                  <tr key={quotation.id} className="hover:bg-primary/5 transition-colors duration-200">
+                    <td className="px-6 py-4 font-semibold text-primary">{quotation.quotationNumber}</td>
+                    <td className="px-6 py-4 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-surface-container-highest border border-primary/20 flex items-center justify-center text-primary font-bold text-xs">
+                        {quotation.customer?.customerName?.substring(0, 2).toUpperCase() || 'NA'}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-on-surface font-semibold">{quotation.customer?.customerName || 'Unknown'}</span>
+                        <span className="text-[11px] text-on-surface-variant/70">{quotation.customer?.companyName}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-on-surface-variant mb-1">
+                        {new Date(quotation.quotationDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${getStatusColor(quotation.status)}`}>
+                        {quotation.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-bold text-on-surface">
+                      ₹ {quotation.totals?.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button className="glass-button-icon p-1 rounded-md transition-all tooltip cursor-pointer" title="View">
+                          <span className="material-symbols-outlined text-[16px]">visibility</span>
+                        </button>
+                        <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
+                          <span className="material-symbols-outlined text-[16px]">send</span>
+                        </button>
+                        <button onClick={() => handleDelete(quotation.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
         
-        {/* Pagination & Scrollbar Track */}
+        {/* Pagination */}
         <div className="p-6 border-t border-primary/10 bg-surface-container/30 flex flex-col gap-4">
-          <div className="w-full h-2 bg-surface-container-highest rounded-full flex items-center px-1 relative">
-            <span className="material-symbols-outlined text-xs text-on-surface-variant absolute left-0 -ml-3">arrow_left</span>
-            <div className="h-1.5 w-full bg-outline-variant rounded-full opacity-50"></div>
-            <span className="material-symbols-outlined text-xs text-on-surface-variant absolute right-0 -mr-3">arrow_right</span>
-          </div>
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
-            <span className="text-sm text-on-surface-variant">Showing 1 to 1 of 1 entries</span>
+            <span className="text-sm text-on-surface-variant">Showing 1 to {quotations.length} entries</span>
             <div className="flex items-center gap-1">
               <button className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 cursor-pointer" disabled>
                 Previous

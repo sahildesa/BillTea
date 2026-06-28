@@ -18,6 +18,13 @@ enum SignatureType {
   IMAGE
 }
 
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  EXPIRED
+}
+
 model Company {
   id          String   @id @default(uuid())
   name        String
@@ -31,6 +38,7 @@ model Company {
   products            Product[]
   expenses            Expense[]
   expenseCategories   ExpenseCategory[]
+  quotations          Quotation[]
   users               User[]   @relation("CompanyUsers")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -57,6 +65,8 @@ model User {
   productsCreated          Product[]         @relation("UserCreatedProducts")
   expensesCreated          Expense[]         @relation("UserCreatedExpenses")
   expenseCategoriesCreated ExpenseCategory[] @relation("UserCreatedExpenseCategories")
+  quotationsCreated        Quotation[]       @relation("UserCreatedQuotations")
+  quotationsUpdated        Quotation[]       @relation("UserUpdatedQuotations")
   branches                 Branch[]          @relation("UserBranches")
   refreshTokens    RefreshToken[]
   lastLoginAt      DateTime?
@@ -85,11 +95,13 @@ model Branch {
   signatureType  SignatureType @default(TEXT)
   signatureValue String        @default("")
   tax            Int           @default(0)
+  taxLabel       String        @default("")
   isActive       Boolean       @default(true)
   customers      Customer[]
   products       Product[]
   expenses       Expense[]
   expenseCategories ExpenseCategory[]
+  quotations     Quotation[]
   users          User[]        @relation("UserBranches")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -129,6 +141,8 @@ model Customer {
   createdById         String?
   createdBy           User?    @relation("UserCreatedCustomers", fields: [createdById], references: [id])
   
+  quotations          Quotation[]
+
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -153,6 +167,8 @@ model Product {
   createdById String?
   createdBy   User?    @relation("UserCreatedProducts", fields: [createdById], references: [id])
   
+  quotationItems QuotationItem[]
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -202,4 +218,98 @@ model ExpenseCategory {
 
   @@unique([branchId, name])
   @@map("expense_categories")
+}
+
+model Quotation {
+  id                      String          @id @default(uuid())
+  quotationNumber         String
+  sequenceNumber          Int             @default(0)
+  
+  companyId               String
+  company                 Company         @relation(fields: [companyId], references: [id])
+  branchId                String
+  branch                  Branch          @relation(fields: [branchId], references: [id])
+  customerId              String
+  customer                Customer        @relation(fields: [customerId], references: [id])
+  customerSnapshot        Json            @default("{}")
+  
+  status                  QuotationStatus @default(DRAFT)
+  quotationDate           DateTime
+  expiryDate              DateTime
+  
+  billingAddressSnapshot  Json
+  shippingAddressSnapshot Json
+  shippingSameAsBilling   Boolean         @default(true)
+  
+  discountConfiguration   Json
+  taxConfiguration        Json
+  
+  subtotal                Float           @default(0)
+  discountAmount          Float           @default(0)
+  taxAmount               Float           @default(0)
+  grandTotal              Float           @default(0)
+  
+  notes                   String          @default("")
+  termsAndConditions      Json            @default("{}")
+  
+  createdById             String?
+  createdBy               User?           @relation("UserCreatedQuotations", fields: [createdById], references: [id])
+  updatedById             String?
+  updatedBy               User?           @relation("UserUpdatedQuotations", fields: [updatedById], references: [id])
+  
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  
+  items                   QuotationItem[]
+  attachments             QuotationAttachment[]
+
+  @@unique([branchId, sequenceNumber])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id                  String     @id @default(uuid())
+  quotationId         String
+  quotation           Quotation  @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId           String?
+  product             Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+  
+  productSnapshot     Json
+  
+  originalPrice       Float
+  originalDescription String     @default("")
+  originalImage       String     @default("")
+  
+  editedPrice         Float
+  editedDescription   String     @default("")
+  editedImage         String     @default("")
+  
+  quantity            Int        @default(1)
+  discount            Json       @default("{}")
+  tax                 Float      @default(0)
+  
+  subtotal            Float      @default(0)
+  discountAmount      Float      @default(0)
+  taxAmount           Float      @default(0)
+  total               Float      @default(0)
+  
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@map("quotation_items")
+}
+
+model QuotationAttachment {
+  id          String     @id @default(uuid())
+  quotationId String
+  quotation   Quotation  @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  storagePath String
+  
+  uploadedAt  DateTime   @default(now())
+
+  @@map("quotation_attachments")
 }

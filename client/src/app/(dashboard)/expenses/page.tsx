@@ -170,7 +170,7 @@ export default function ExpensesPage() {
       setError('');
 
       const submitData = new FormData();
-      submitData.append('branchId', selectedBranchId);
+      submitData.append('branchId', selectedBranchId!);
       submitData.append('amount', formData.amount);
       submitData.append('category', formData.category);
       submitData.append('paymentMethod', formData.paymentMethod);

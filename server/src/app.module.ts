@@ -13,6 +13,7 @@ import { CustomersModule } from './customers/customers.module';
 import { ProductsModule } from './products/products.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { ExpenseCategoriesModule } from './expense-categories/expense-categories.module';
+import { QuotationModule } from './quotation/quotation.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ExpenseCategoriesModule } from './expense-categories/expense-categories
     ProductsModule,
     ExpensesModule,
     ExpenseCategoriesModule,
+    QuotationModule,
   ],
   controllers: [HealthController],
 })

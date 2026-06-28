@@ -25,6 +25,23 @@ enum QuotationStatus {
   EXPIRED
 }
 
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  UNPAID
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK_TRANSFER
+  CHEQUE
+}
+
 model Company {
   id          String   @id @default(uuid())
   name        String
@@ -39,6 +56,7 @@ model Company {
   expenses            Expense[]
   expenseCategories   ExpenseCategory[]
   quotations          Quotation[]
+  invoices            Invoice[]
   users               User[]   @relation("CompanyUsers")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -67,6 +85,8 @@ model User {
   expenseCategoriesCreated ExpenseCategory[] @relation("UserCreatedExpenseCategories")
   quotationsCreated        Quotation[]       @relation("UserCreatedQuotations")
   quotationsUpdated        Quotation[]       @relation("UserUpdatedQuotations")
+  invoicesCreated          Invoice[]         @relation("UserCreatedInvoices")
+  invoicesUpdated          Invoice[]         @relation("UserUpdatedInvoices")
   branches                 Branch[]          @relation("UserBranches")
   refreshTokens    RefreshToken[]
   lastLoginAt      DateTime?
@@ -102,6 +122,7 @@ model Branch {
   expenses       Expense[]
   expenseCategories ExpenseCategory[]
   quotations     Quotation[]
+  invoices       Invoice[]
   users          User[]        @relation("UserBranches")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -142,6 +163,7 @@ model Customer {
   createdBy           User?    @relation("UserCreatedCustomers", fields: [createdById], references: [id])
   
   quotations          Quotation[]
+  invoices            Invoice[]
 
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -168,6 +190,7 @@ model Product {
   createdBy   User?    @relation("UserCreatedProducts", fields: [createdById], references: [id])
   
   quotationItems QuotationItem[]
+  invoiceItems   InvoiceItem[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -312,4 +335,121 @@ model QuotationAttachment {
   uploadedAt  DateTime   @default(now())
 
   @@map("quotation_attachments")
+}
+
+model Invoice {
+  id                      String          @id @default(uuid())
+  invoiceNumber           String
+  sequenceNumber          Int             @default(0)
+  
+  companyId               String
+  company                 Company         @relation(fields: [companyId], references: [id])
+  branchId                String
+  branch                  Branch          @relation(fields: [branchId], references: [id])
+  customerId              String
+  customer                Customer        @relation(fields: [customerId], references: [id])
+  customerSnapshot        Json            @default("{}")
+  
+  status                  InvoiceStatus   @default(DRAFT)
+  invoiceDate             DateTime
+  dueDate                 DateTime
+  
+  billingAddressSnapshot  Json
+  shippingAddressSnapshot Json
+  shippingSameAsBilling   Boolean         @default(true)
+  
+  discountConfiguration   Json
+  taxConfiguration        Json
+  
+  subtotal                Float           @default(0)
+  discountAmount          Float           @default(0)
+  taxAmount               Float           @default(0)
+  grandTotal              Float           @default(0)
+  
+  amountPaid              Float           @default(0)
+  amountDue               Float           @default(0)
+  
+  notes                   String          @default("")
+  termsAndConditions      Json            @default("{}")
+  
+  linkedQuotationId       String?
+  
+  createdById             String?
+  createdBy               User?           @relation("UserCreatedInvoices", fields: [createdById], references: [id])
+  updatedById             String?
+  updatedBy               User?           @relation("UserUpdatedInvoices", fields: [updatedById], references: [id])
+  
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  
+  items                   InvoiceItem[]
+  attachments             InvoiceAttachment[]
+  payments                InvoicePayment[]
+
+  @@unique([branchId, sequenceNumber])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id                  String     @id @default(uuid())
+  invoiceId           String
+  invoice             Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId           String?
+  product             Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+  
+  productSnapshot     Json
+  
+  originalPrice       Float
+  originalDescription String     @default("")
+  originalImage       String     @default("")
+  
+  editedPrice         Float
+  editedDescription   String     @default("")
+  editedImage         String     @default("")
+  
+  quantity            Int        @default(1)
+  discount            Json       @default("{}")
+  tax                 Float      @default(0)
+  
+  subtotal            Float      @default(0)
+  discountAmount      Float      @default(0)
+  taxAmount           Float      @default(0)
+  total               Float      @default(0)
+  
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@map("invoice_items")
+}
+
+model InvoiceAttachment {
+  id          String     @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  storagePath String
+  
+  uploadedAt  DateTime   @default(now())
+
+  @@map("invoice_attachments")
+}
+
+model InvoicePayment {
+  id            String        @id @default(uuid())
+  invoiceId     String
+  invoice       Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  amount        Float
+  method        PaymentMethod
+  date          DateTime
+  note          String        @default("")
+  attachmentUrl String        @default("")
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("invoice_payments")
 }

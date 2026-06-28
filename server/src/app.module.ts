@@ -14,6 +14,7 @@ import { ProductsModule } from './products/products.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { ExpenseCategoriesModule } from './expense-categories/expense-categories.module';
 import { QuotationModule } from './quotation/quotation.module';
+import { InvoiceModule } from './invoices/invoice.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { QuotationModule } from './quotation/quotation.module';
     ExpensesModule,
     ExpenseCategoriesModule,
     QuotationModule,
+    InvoiceModule,
   ],
   controllers: [HealthController],
 })

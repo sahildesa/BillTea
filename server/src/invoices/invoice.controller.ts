@@ -75,30 +75,6 @@ export class InvoiceController {
     return this.invoiceService.uploadAttachment(id, user.companyId, file);
   }
 
-  @Post(':id/payments/:paymentId/attachment')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          cb(null, `payment-${uniqueSuffix}${ext}`);
-        },
-      }),
-    }),
-  )
-  uploadPaymentAttachment(
-    @Param('id') id: string,
-    @Param('paymentId') paymentId: string,
-    @CurrentUser() user: any,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    if (!file) {
-      throw new BadRequestException('No file provided');
-    }
-    return this.invoiceService.uploadPaymentAttachment(id, paymentId, user.companyId, file);
-  }
 
   @Delete(':id')
   remove(@Param('id') id: string, @CurrentUser() user: any) {

@@ -1,6 +1,6 @@
-# Billaro
+# BillTea
 
-A comprehensive guide on how to set up the Billaro project (both frontend and backend) along with the database on any new system.
+A comprehensive guide on how to set up the BillTea project (both frontend and backend) along with the database on any new system.
 
 ## Table of Contents
 1. [Prerequisites](#1-prerequisites)
@@ -53,7 +53,7 @@ Now we need to create an empty database for the application to use.
 1. Open **pgAdmin** (which was installed in the previous step).
 2. Connect to your local PostgreSQL server in pgAdmin by entering the password you set during installation.
 3. In the left sidebar, right-click on **Databases** -> hover over **Create** -> click **Database...**
-4. In the "Database" name field, type exactly: `billaro`
+4. In the "Database" name field, type exactly: `BillTea`
 5. Click **Save**. You now have an empty database ready.
 
 ---
@@ -66,15 +66,15 @@ The backend needs a file containing configuration secrets (like your database pa
 3. Open this `.env` file in your code editor and copy-paste the following lines:
 
 ```env
-# Billaro Server Environment
+# BillTea Server Environment
 PORT=5000
 
 # PostgreSQL Database Connection
 # Format: postgresql://<USERNAME>:<PASSWORD>@localhost:<PORT>/<DATABASE_NAME>?schema=public
-DATABASE_URL="postgresql://postgres:YOUR_PASSWORD_HERE@localhost:5432/billaro?schema=public"
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD_HERE@localhost:5432/BillTea?schema=public"
 
 # JWT Secrets for Authentication
-JWT_SECRET=indux_billaro_super_secret_key_2024
+JWT_SECRET=indux_BillTea_super_secret_key_2024
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=30d
 
@@ -84,7 +84,7 @@ UPLOAD_DIR=./uploads
 
 4. **Connecting your DB**: Look at the `DATABASE_URL` line. You MUST replace `YOUR_PASSWORD_HERE` with the actual password you created for PostgreSQL in Step 3.
    - *Example:* If your password is `mysecretpassword`, the line should look like this:
-     `DATABASE_URL="postgresql://postgres:mysecretpassword@localhost:5432/billaro?schema=public"`
+     `DATABASE_URL="postgresql://postgres:mysecretpassword@localhost:5432/BillTea?schema=public"`
    - *Note:* If your PostgreSQL installed on port `5433` instead of `5432`, change the `5432` to `5433` in that URL as well.
 5. Save the file.
 
@@ -96,7 +96,7 @@ Now we will install the backend code, connect it to the database, and create the
 1. Open your terminal.
 2. Navigate to the `server` directory using the `cd` command:
    ```bash
-   cd path/to/Billaro/server
+   cd path/to/BillTea/server
    ```
 3. Install all required backend packages:
    ```bash
@@ -106,7 +106,7 @@ Now we will install the backend code, connect it to the database, and create the
    ```bash
    npm run prisma:generate
    ```
-5. Run the Database Migrations. This is a very important step. It will read your `.env` file, connect to the `billaro` database, and automatically create all the necessary tables:
+5. Run the Database Migrations. This is a very important step. It will read your `.env` file, connect to the `BillTea` database, and automatically create all the necessary tables:
    ```bash
    npm run prisma:migrate
    ```
@@ -127,7 +127,7 @@ Now we will install the backend code, connect it to the database, and create the
 1. Open a **new, separate terminal window** (keep the backend one running).
 2. Navigate to the `client` directory:
    ```bash
-   cd path/to/Billaro/client
+   cd path/to/BillTea/client
    ```
 3. Install all required frontend packages:
    ```bash
@@ -145,4 +145,4 @@ Now we will install the backend code, connect it to the database, and create the
 - Go to [http://localhost:3000](http://localhost:3000) to view and interact with the application UI.
 - (The backend API is running silently in the background at `http://localhost:5000`).
 
-You are now successfully running the entire Billaro application locally!
+You are now successfully running the entire BillTea application locally!

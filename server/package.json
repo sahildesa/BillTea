@@ -1,7 +1,7 @@
 {
-  "name": "billaro-server",
+  "name": "BillTea-server",
   "version": "1.0.0",
-  "description": "Billaro backend API — NestJS + Prisma + PostgreSQL",
+  "description": "BillTea backend API — NestJS + Prisma + PostgreSQL",
   "private": true,
   "scripts": {
     "build": "nest build",

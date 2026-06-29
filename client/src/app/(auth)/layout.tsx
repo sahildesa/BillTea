@@ -103,7 +103,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {/* Support Link */}
           <a 
             className="text-on-surface-variant hover:text-primary transition-all duration-300 flex items-center space-x-2 bg-surface-container-low hover:bg-surface-container px-4 py-2 rounded-full border border-primary/10 h-10 shadow-sm"
-            href="mailto:billaroapp@gmail.com"
+            href="mailto:BillTeaapp@gmail.com"
           >
             <span className="material-symbols-outlined text-sm">help</span>
             <span className="text-sm font-medium">Support</span>

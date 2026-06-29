@@ -17,19 +17,19 @@ const testimonials: Testimonial[] = [
     initials: "NM",
     name: "Nilesh Makwana",
     role: "Business Owner",
-    content: "Billaro has made my billing work very simple and smooth. I can create invoices and quotations quickly, and tracking payments is now very easy. It saves my time and keeps everything properly organised."
+    content: "BillTea has made my billing work very simple and smooth. I can create invoices and quotations quickly, and tracking payments is now very easy. It saves my time and keeps everything properly organised."
   },
   {
     initials: "B",
     name: "Brijeshbhai",
     role: "Business Owner",
-    content: "Since I started using Billaro, managing invoices has become much more easy. Everything is clear and straightforward, and I don’t have to worry about missing payments anymore. It really helps me stay organised."
+    content: "Since I started using BillTea, managing invoices has become much more easy. Everything is clear and straightforward, and I don’t have to worry about missing payments anymore. It really helps me stay organised."
   },
   {
     initials: "NS",
     name: "Nilam Shah",
     role: "Business Owner",
-    content: "Billaro is very simple to use and saves a lot of my time. Creating quotations and converting them into invoices takes just a few clicks. Now my billing process feels much more smooth and hassle free."
+    content: "BillTea is very simple to use and saves a lot of my time. Creating quotations and converting them into invoices takes just a few clicks. Now my billing process feels much more smooth and hassle free."
   }
 ];
 
@@ -305,7 +305,7 @@ export default function LandingPage() {
         <section className="py-24 px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden" id="testimonials">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-5xl font-headline font-bold text-on-surface">App Reviews</h2>
-            <p className="text-on-surface-variant max-w-2xl mx-auto">Hear what our customers have to say about their experience with Billaro.</p>
+            <p className="text-on-surface-variant max-w-2xl mx-auto">Hear what our customers have to say about their experience with BillTea.</p>
           </div>
           
           <div className="relative max-w-4xl mx-auto pb-12 testimonial-slider-container">
@@ -496,8 +496,8 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <h4 className="text-xl font-bold text-on-surface mb-1">Email</h4>
-                  <a className="text-on-surface-variant hover:text-primary transition-colors font-medium" href="mailto:billaroapp@gmail.com">
-                    billaroapp@gmail.com
+                  <a className="text-on-surface-variant hover:text-primary transition-colors font-medium" href="mailto:BillTeaapp@gmail.com">
+                    BillTeaapp@gmail.com
                   </a>
                 </div>
               </div>

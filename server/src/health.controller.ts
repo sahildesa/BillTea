@@ -1,13 +1,13 @@
 import { Controller, Get } from '@nestjs/common';
 
-@Controller('health')
+@Controller()
 export class HealthController {
-  @Get()
+  @Get(['', 'health'])
   check() {
     return {
       success: true,
       status: 'OK',
-      message: 'Billaro API server is running smoothly',
+      message: 'BillTea API server is running smoothly',
       timestamp: new Date().toISOString(),
     };
   }

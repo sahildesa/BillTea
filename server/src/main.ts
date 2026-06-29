@@ -33,6 +33,6 @@ async function bootstrap() {
 
   const port = process.env.PORT || 5000;
   await app.listen(port);
-  console.log(`🚀 Billaro API server running on http://localhost:${port}/api/v1`);
+  console.log(`🚀 BillTea API server running on http://localhost:${port}/api/v1`);
 }
 bootstrap();

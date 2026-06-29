@@ -4,7 +4,7 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding Billaro database...\n');
+  console.log('🌱 Seeding BillTea database...\n');
 
   // 1. Create default company
   let company = await prisma.company.findFirst({ where: { name: 'Indux Tech' } });

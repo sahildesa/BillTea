@@ -10,7 +10,6 @@ export class InvoiceMapper {
       invoiceNumber: invoice.invoiceNumber,
       status: invoice.status,
       invoiceDate: invoice.invoiceDate,
-      invoiceDate: invoice.invoiceDate,
       dueDate: invoice.dueDate,
       amountPaid: invoice.amountPaid,
       amountDue: invoice.amountDue,

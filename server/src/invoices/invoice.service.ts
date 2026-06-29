@@ -38,12 +38,12 @@ export class InvoiceService {
     // Generate sequence
     const { invoiceNumber, sequenceNumber } = await this.numberService.generateNextSequence(dto.branchId, companyId);
 
-    // Set Expiry Date
+    // Set Due Date
     const invoiceDate = new Date(dto.invoiceDate);
-    const expiryDate = dto.expiryDate ? new Date(dto.expiryDate) : generateExpiryDate(invoiceDate, QUOTATION_CONSTANTS.DEFAULT_EXPIRY_MONTHS);
+    const dueDate = dto.dueDate ? new Date(dto.dueDate) : generateExpiryDate(invoiceDate, QUOTATION_CONSTANTS.DEFAULT_EXPIRY_MONTHS);
 
-    if (expiryDate < invoiceDate) {
-      throw new BadRequestException('Expiry date cannot be before invoice date');
+    if (dueDate < invoiceDate) {
+      throw new BadRequestException('Due date cannot be before invoice date');
     }
 
     // Build items with original snapshots
@@ -145,7 +145,7 @@ export class InvoiceService {
         address: customer.address,
       },
       invoiceDate,
-      dueDate: expiryDate,
+      dueDate,
       billingAddressSnapshot: dto.billingAddress || {},
       shippingAddressSnapshot: shippingSnapshot || {},
       shippingSameAsBilling: dto.shippingSameAsBilling,

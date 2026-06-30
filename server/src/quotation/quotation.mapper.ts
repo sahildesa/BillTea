@@ -8,6 +8,7 @@ export class QuotationMapper {
     return {
       id: quotation.id,
       quotationNumber: quotation.quotationNumber,
+      branchId: quotation.branchId,
       status: quotation.status,
       quotationDate: quotation.quotationDate,
       expiryDate: quotation.expiryDate,

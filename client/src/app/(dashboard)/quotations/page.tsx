@@ -205,6 +205,11 @@ export default function QuotationsPage() {
                         <button className="glass-button-icon p-1 rounded-md transition-all tooltip cursor-pointer" title="View">
                           <span className="material-symbols-outlined text-[16px]">visibility</span>
                         </button>
+                        <Link href={`/quotations/${quotation.id}/edit`}>
+                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 tooltip cursor-pointer" title="Edit">
+                            <span className="material-symbols-outlined text-[16px]">edit</span>
+                          </button>
+                        </Link>
                         <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
                           <span className="material-symbols-outlined text-[16px]">send</span>
                         </button>

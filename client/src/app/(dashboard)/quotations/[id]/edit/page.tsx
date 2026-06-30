@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { apiFetch, API_BASE } from '@/lib/auth';
 
 const getImageUrl = (url?: string) => {
@@ -18,29 +18,27 @@ const getImageUrl = (url?: string) => {
 };
 import { useBranch } from '@/components/BranchProvider';
 
-export default function CreateInvoicePage() {
+export default function EditQuotationPage() {
   const router = useRouter();
+  const params = useParams();
+  const quotationId = params.id as string;
   const { selectedBranchId, branches } = useBranch();
+
+  // Loading State for fetching existing quotation
+  const [isLoading, setIsLoading] = useState(true);
+  const [quotationNumber, setQuotationNumber] = useState('');
 
   // 1. Core State
   const [formData, setFormData] = useState({
     customerId: '',
-    invoiceDate: new Date().toISOString().split('T')[0],
-    dueDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default +2 months
+    quotationDate: new Date().toISOString().split('T')[0],
+    expiryDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     shippingSameAsBilling: true,
     discountConfiguration: { mode: 'FIXED', type: 'PERCENTAGE', value: 0 },
     taxConfiguration: { mode: 'FIXED', customTaxActive: false, label: '', value: 0 },
-    paymentConfiguration: { addPayment: false, amount: 0, method: 'CASH', date: new Date().toISOString().split('T')[0], note: '' },
     notes: '',
     termsAndConditions: '1. Goods once sold will not be taken back.\n2. Interest @ 18% p.a. will be charged if payment is delayed.',
-    linkedQuotationId: '',
   });
-
-  // Quotation Conversion State
-  const [quotationSearch, setQuotationSearch] = useState('');
-  const [quotationResults, setQuotationResults] = useState<any[]>([]);
-  const [showQuotationDropdown, setShowQuotationDropdown] = useState(false);
-  const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
 
   // Customer State
   const [customerSearch, setCustomerSearch] = useState('');
@@ -60,7 +58,7 @@ export default function CreateInvoicePage() {
 
   // Attachments State
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [paymentAttachment, setPaymentAttachment] = useState<File | null>(null);
+  const [existingAttachments, setExistingAttachments] = useState<any[]>([]);
 
   // Branch Settings
   const [branchTaxConfig, setBranchTaxConfig] = useState({ label: 'GST', tax: 18 });
@@ -72,7 +70,124 @@ export default function CreateInvoicePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Setup branch defaults
+  // Track if initial data has been loaded (to avoid overwriting with branch defaults)
+  const initialLoadDone = useRef(false);
+
+  // Fetch existing quotation data on mount
+  useEffect(() => {
+    if (quotationId) {
+      fetchQuotation();
+    }
+  }, [quotationId]);
+
+  const fetchQuotation = async () => {
+    try {
+      setIsLoading(true);
+      const res = await apiFetch(`/quotations/${quotationId}`);
+      if (!res.ok) throw new Error('Failed to fetch quotation');
+      const data = await res.json();
+
+      // Set quotation number for display
+      setQuotationNumber(data.quotationNumber);
+
+      // Map API response back to form state
+      setFormData({
+        customerId: data.customer?.id || '',
+        quotationDate: data.quotationDate ? new Date(data.quotationDate).toISOString().split('T')[0] : '',
+        expiryDate: data.expiryDate ? new Date(data.expiryDate).toISOString().split('T')[0] : '',
+        shippingSameAsBilling: data.shippingSameAsBilling ?? true,
+        discountConfiguration: {
+          mode: data.discountConfiguration?.mode || 'FIXED',
+          type: data.discountConfiguration?.type || 'PERCENTAGE',
+          value: data.discountConfiguration?.value || 0,
+        },
+        taxConfiguration: {
+          mode: data.taxConfiguration?.mode || 'FIXED',
+          customTaxActive: data.taxConfiguration?.customTaxActive || false,
+          label: data.taxConfiguration?.label || '',
+          value: data.taxConfiguration?.value || 0,
+        },
+        notes: data.notes || '',
+        termsAndConditions: typeof data.termsAndConditions === 'object'
+          ? (data.termsAndConditions?.text || data.termsAndConditions?.editedSnapshot || data.termsAndConditions?.defaultSnapshot || '')
+          : (data.termsAndConditions || ''),
+      });
+
+      // Set customer
+      if (data.customer) {
+        setCustomerSearch(data.customer.customerName || '');
+        setSelectedCustomerDetails(data.customer);
+      }
+
+      // Set addresses
+      if (data.billingAddress) {
+        setBillingAddress({
+          address: data.billingAddress.address || '',
+          city: data.billingAddress.city || '',
+          state: data.billingAddress.state || '',
+          pincode: data.billingAddress.pincode || '',
+        });
+      }
+      if (data.shippingAddress && !data.shippingSameAsBilling) {
+        setShippingAddress({
+          address: data.shippingAddress.address || '',
+          city: data.shippingAddress.city || '',
+          state: data.shippingAddress.state || '',
+          pincode: data.shippingAddress.pincode || '',
+        });
+      }
+
+      // Set items
+      if (data.items && data.items.length > 0) {
+        const mappedItems = data.items.map((item: any) => ({
+          id: item.id || Math.random().toString(),
+          productId: item.productId || '',
+          name: item.productSnapshot?.name || '',
+          description: item.description || '',
+          price: item.price || 0,
+          originalPrice: item.productSnapshot?.price || item.price || 0,
+          originalDescription: item.productSnapshot?.description || item.description || '',
+          quantity: item.quantity || 1,
+          discount: item.discount || { type: 'PERCENTAGE', value: 0 },
+          tax: item.tax || 0,
+          image: item.image || item.productSnapshot?.image || '',
+          sku: item.productSnapshot?.skuNumber || '',
+          hsnCode: item.productSnapshot?.hsnNumber || '',
+        }));
+        setItems(mappedItems);
+
+        // Initialize product search rows with existing names
+        const searchRows: any = {};
+        mappedItems.forEach((item: any) => {
+          searchRows[item.id] = { query: item.name, results: [], show: false };
+        });
+        setProductSearchRows(searchRows);
+      }
+
+      // Set existing attachments
+      if (data.attachments && data.attachments.length > 0) {
+        setExistingAttachments(data.attachments);
+      }
+
+      // Set calculated totals from existing data
+      if (data.totals) {
+        setCalculatedTotals({
+          subtotal: data.totals.subtotal || 0,
+          discountAmount: data.totals.discountAmount || 0,
+          taxAmount: data.totals.taxAmount || 0,
+          grandTotal: data.totals.grandTotal || 0,
+        });
+      }
+
+      initialLoadDone.current = true;
+    } catch (err: any) {
+      setError(err.message || 'Failed to load quotation');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Setup branch defaults (only if not initial load from existing data)
   useEffect(() => {
     if (selectedBranchId) {
       const branch: any = branches.find(b => b.id === selectedBranchId);
@@ -81,6 +196,7 @@ export default function CreateInvoicePage() {
   }, [selectedBranchId, branches]);
 
   useEffect(() => {
+    if (!initialLoadDone.current) return; // Don't override with branch defaults during initial load
     if (selectedBranchId && branchTaxConfig.tax > 0) {
       setFormData(prev => ({
         ...prev,
@@ -91,7 +207,7 @@ export default function CreateInvoicePage() {
 
   // Preview API Trigger
   useEffect(() => {
-    if (!selectedBranchId) return;
+    if (!selectedBranchId || !initialLoadDone.current) return;
     const handler = setTimeout(() => { fetchPreview(); }, 500);
     return () => clearTimeout(handler);
   }, [formData, items, selectedBranchId, branchTaxConfig]);
@@ -100,8 +216,7 @@ export default function CreateInvoicePage() {
     try {
       setIsCalculating(true);
 
-      // Calculate effective tax value if global is used
-      let effectiveTaxConfig = { 
+      let effectiveTaxConfig = {
         mode: formData.taxConfiguration.mode,
         label: formData.taxConfiguration.customTaxActive ? formData.taxConfiguration.label : branchTaxConfig.label,
         value: formData.taxConfiguration.customTaxActive ? formData.taxConfiguration.value : branchTaxConfig.tax
@@ -110,7 +225,7 @@ export default function CreateInvoicePage() {
       const payload = {
         branchId: selectedBranchId,
         customerId: formData.customerId || 'preview-customer-id',
-        invoiceDate: new Date(formData.invoiceDate).toISOString(),
+        quotationDate: new Date(formData.quotationDate).toISOString(),
         billingAddress: billingAddress,
         shippingAddress: formData.shippingSameAsBilling ? billingAddress : shippingAddress,
         shippingSameAsBilling: formData.shippingSameAsBilling,
@@ -121,7 +236,7 @@ export default function CreateInvoicePage() {
         }))
       };
 
-      const res = await apiFetch('/invoices/preview', {
+      const res = await apiFetch('/quotations/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -144,7 +259,7 @@ export default function CreateInvoicePage() {
     if (customerSearch.length > 0 && (!selectedCustomerDetails || customerSearch !== selectedCustomerDetails.customerName)) {
       const delayFn = setTimeout(() => {
         const fetchCust = async () => {
-          const res = await apiFetch(`/invoices/customers/search?q=${customerSearch}&branchId=${selectedBranchId}`);
+          const res = await apiFetch(`/quotations/customers/search?q=${customerSearch}&branchId=${selectedBranchId}`);
           if (res.ok) setCustomerResults(await res.json());
           setShowCustomerDropdown(true);
         };
@@ -155,74 +270,6 @@ export default function CreateInvoicePage() {
       setShowCustomerDropdown(false);
     }
   }, [customerSearch]);
-
-  // 1-Letter Quotation Lookup
-  useEffect(() => {
-    if (quotationSearch.length > 0 && (!selectedQuotation || quotationSearch !== selectedQuotation.quotationNumber)) {
-      const delayFn = setTimeout(() => {
-        const fetchQuot = async () => {
-          // fetch quotations
-          const res = await apiFetch(`/quotations?branchId=${selectedBranchId}`);
-          if (res.ok) {
-            const all = await res.json();
-            const filtered = all.filter((q: any) => q.quotationNumber.toLowerCase().includes(quotationSearch.toLowerCase()) || q.customer.customerName.toLowerCase().includes(quotationSearch.toLowerCase()));
-            setQuotationResults(filtered);
-          }
-          setShowQuotationDropdown(true);
-        };
-        fetchQuot();
-      }, 300);
-      return () => clearTimeout(delayFn);
-    } else {
-      setShowQuotationDropdown(false);
-    }
-  }, [quotationSearch, selectedBranchId]);
-
-  const handleQuotationSelect = async (quotationSummary: any) => {
-    setShowQuotationDropdown(false);
-    setQuotationSearch(quotationSummary.quotationNumber);
-    setSelectedQuotation(quotationSummary);
-    
-    // Fetch full quotation details
-    const res = await apiFetch(`/quotations/${quotationSummary.id}`);
-    if (res.ok) {
-      const fullQuotation = await res.json();
-      
-      // Auto-populate invoice state
-      setFormData(prev => ({
-        ...prev,
-        customerId: fullQuotation.customer.id,
-        shippingSameAsBilling: fullQuotation.shippingSameAsBilling,
-        discountConfiguration: fullQuotation.discountConfiguration,
-        taxConfiguration: fullQuotation.taxConfiguration,
-        notes: fullQuotation.notes,
-        termsAndConditions: fullQuotation.termsAndConditions?.text || fullQuotation.termsAndConditions || '',
-        linkedQuotationId: fullQuotation.id,
-      }));
-      
-      setSelectedCustomerDetails(fullQuotation.customer);
-      setBillingAddress(fullQuotation.billingAddress || { address: fullQuotation.customer.address, city: '', state: '', pincode: '' });
-      setShippingAddress(fullQuotation.shippingAddress || { address: '', city: '', state: '', pincode: '' });
-      
-      if (fullQuotation.items && fullQuotation.items.length > 0) {
-        setItems(fullQuotation.items.map((i: any) => ({
-          id: Math.random().toString(),
-          productId: i.productId || '',
-          name: i.productSnapshot?.name || i.productSnapshot?.productName || '',
-          description: i.description,
-          price: i.price,
-          originalPrice: i.price,
-          originalDescription: i.description,
-          quantity: i.quantity,
-          discount: i.discount || { type: 'PERCENTAGE', value: 0 },
-          tax: i.tax || 0,
-          image: i.image || i.productSnapshot?.image || i.productSnapshot?.productImage || '',
-          sku: i.productSnapshot?.skuNumber || '',
-          hsnCode: i.productSnapshot?.hsnNumber || '',
-        })));
-      }
-    }
-  };
 
   const handleCustomerSelect = (customer: any) => {
     setFormData({ ...formData, customerId: customer.id });
@@ -236,7 +283,7 @@ export default function CreateInvoicePage() {
   const handleProductSearch = async (query: string, rowId: string) => {
     setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], query, show: query.length > 0 } }));
     if (query.length > 0) {
-      const res = await apiFetch(`/invoices/products/search?q=${query}&branchId=${selectedBranchId}`);
+      const res = await apiFetch(`/quotations/products/search?q=${query}&branchId=${selectedBranchId}`);
       if (res.ok) {
         const results = await res.json();
         setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], results } }));
@@ -272,57 +319,54 @@ export default function CreateInvoicePage() {
     try {
       setIsSaving(true); setError('');
 
-      // Resolve tax config same as preview
-      const effectiveTaxConfig = {
-        mode: formData.taxConfiguration.mode,
-        label: formData.taxConfiguration.customTaxActive ? formData.taxConfiguration.label : branchTaxConfig.label,
-        value: formData.taxConfiguration.customTaxActive ? formData.taxConfiguration.value : branchTaxConfig.tax
-      };
-
       const payload = {
         branchId: selectedBranchId,
         customerId: formData.customerId,
-        invoiceDate: new Date(formData.invoiceDate).toISOString(),
-        dueDate: new Date(formData.dueDate).toISOString(),
+        quotationDate: new Date(formData.quotationDate).toISOString(),
+        expiryDate: new Date(formData.expiryDate).toISOString(),
         billingAddress,
         shippingAddress: formData.shippingSameAsBilling ? billingAddress : shippingAddress,
         shippingSameAsBilling: formData.shippingSameAsBilling,
         discountConfiguration: formData.discountConfiguration,
-        taxConfiguration: effectiveTaxConfig,
-        paymentConfiguration: formData.paymentConfiguration,
-        linkedQuotationId: formData.linkedQuotationId || undefined,
+        taxConfiguration: formData.taxConfiguration,
         notes: formData.notes,
         termsAndConditions: { text: formData.termsAndConditions },
         items: items.map(i => ({ productId: i.productId || undefined, price: i.price, description: i.description, quantity: i.quantity, discount: i.discount, tax: i.tax }))
       };
 
-      const res = await apiFetch('/invoices', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      const res = await apiFetch(`/quotations/${quotationId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to save invoice');
+      if (!res.ok) throw new Error(data.message || 'Failed to update quotation');
 
-      // Upload Attachments
+      // Upload any new attachments
       for (const file of attachments) {
-        const fileFormData = new FormData();
-        fileFormData.append('file', file);
-        await apiFetch(`/invoices/${data.id}/attachments`, { method: 'POST', body: fileFormData, headers: {} }); // empty headers allows fetch to set multipart boundary
+        const formData = new FormData();
+        formData.append('file', file);
+        await apiFetch(`/quotations/${quotationId}/attachments`, { method: 'POST', body: formData, headers: {} });
       }
 
-      // Upload Payment Attachment
-      if (paymentAttachment && formData.paymentConfiguration.addPayment && data.payments && data.payments.length > 0) {
-        const paymentFormData = new FormData();
-        paymentFormData.append('file', paymentAttachment);
-        await apiFetch(`/invoices/${data.id}/payments/${data.payments[0].id}/attachment`, { method: 'POST', body: paymentFormData, headers: {} });
-      }
-
-      router.push('/invoices');
+      router.push('/quotations');
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar bg-background">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center gap-4">
+            <span className="material-symbols-outlined animate-spin text-primary text-[40px]">refresh</span>
+            <p className="text-on-surface-variant font-semibold">Loading quotation...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar bg-background">
@@ -332,11 +376,16 @@ export default function CreateInvoicePage() {
           <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-2">
             <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to List
           </button>
-          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">Create Invoice</h1>
+          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">Edit Quotation</h1>
+          {quotationNumber && (
+            <span className="text-sm font-semibold text-primary mt-1 inline-flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[14px]">tag</span> {quotationNumber}
+            </span>
+          )}
         </div>
         <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="glass-button-primary rounded-lg py-2.5 px-6 flex items-center gap-2 text-sm font-semibold transition-all shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
           {isSaving ? <span className="material-symbols-outlined animate-spin text-[18px]">refresh</span> : <span className="material-symbols-outlined text-[18px]">save</span>}
-          Save Invoice
+          Update Quotation
         </button>
       </div>
 
@@ -349,43 +398,6 @@ export default function CreateInvoicePage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 relative z-10">
         <div className="col-span-2 space-y-6">
-          
-          {/* Convert from Quotation Section */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/20 bg-primary/5 overflow-visible relative">
-            <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">receipt_long</span> Convert from Quotation
-            </h2>
-            <div className="relative z-50">
-              <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Search Quotation Number or Customer</label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[20px]">search</span>
-                <input
-                  type="text"
-                  value={quotationSearch}
-                  onChange={(e) => setQuotationSearch(e.target.value)}
-                  onFocus={() => { if (quotationSearch.length > 0) setShowQuotationDropdown(true); }}
-                  onBlur={() => setTimeout(() => setShowQuotationDropdown(false), 200)}
-                  placeholder="Start typing quotation number..."
-                  className="glass-input pl-10 pr-4 py-2.5 rounded-lg text-sm w-full font-semibold focus:border-primary/50 transition-all placeholder:font-normal"
-                />
-              </div>
-
-              {/* Quotation Dropdown */}
-              {showQuotationDropdown && quotationResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-outline-variant/30 rounded-xl shadow-2xl z-[100] max-h-60 overflow-y-auto">
-                  {quotationResults.map((q) => (
-                    <div key={q.id} onClick={() => handleQuotationSelect(q)} className="p-4 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 transition-colors flex justify-between items-center">
-                      <div>
-                        <p className="text-sm font-bold text-on-surface">{q.quotationNumber}</p>
-                        <p className="text-xs font-semibold text-on-surface-variant/70">{q.customer.customerName}</p>
-                      </div>
-                      <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded-md">₹{(q.totals?.grandTotal ?? 0).toLocaleString('en-IN')}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Customer & Address Section */}
           <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10 overflow-visible relative">
@@ -529,7 +541,7 @@ export default function CreateInvoicePage() {
           {/* Items Table */}
           <div className="glass-panel rounded-xl shadow-md border border-primary/10 overflow-hidden relative overflow-visible">
             <h2 className="text-lg font-bold text-on-surface m-6 mb-2 border-b border-primary/10 pb-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">inventory_2</span> Invoice Items
+              <span className="material-symbols-outlined text-primary">inventory_2</span> Quotation Items
             </h2>
             <div className="p-6 pt-2 flex flex-col gap-4">
               {items.map((item, index) => {
@@ -645,7 +657,7 @@ export default function CreateInvoicePage() {
                             <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider block mb-1">Item Total (Preview)</span>
                             <div className="text-xl font-bold text-primary relative inline-block self-end">
                               {isCalculating && <span className="absolute -left-4 top-1/2 -translate-y-1/2 flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span></span>}
-                              ₹ {(calcItem?.total ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              ₹ {calcItem?.total?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
                             </div>
                           </div>
                         </div>
@@ -661,114 +673,12 @@ export default function CreateInvoicePage() {
             </div>
           </div>
 
-          {/* Payments Section */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
-            <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">payments</span> Payments
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-on-surface">
-                <input 
-                  type="checkbox" 
-                  checked={formData.paymentConfiguration.addPayment} 
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    paymentConfiguration: { ...prev.paymentConfiguration, addPayment: e.target.checked } 
-                  }))}
-                  className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary" 
-                />
-                Add payment during invoice creation
-              </label>
-            </h2>
-            
-            {formData.paymentConfiguration.addPayment && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
-                <div>
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Payment Amount</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    max={calculatedTotals.grandTotal}
-                    value={formData.paymentConfiguration.amount} 
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      paymentConfiguration: { ...prev.paymentConfiguration, amount: parseFloat(e.target.value) || 0 } 
-                    }))} 
-                    className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" 
-                  />
-                  <p className="text-[10px] text-on-surface-variant mt-1">Max: ₹{calculatedTotals.grandTotal.toLocaleString('en-IN')}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Payment Method</label>
-                  <select 
-                    value={formData.paymentConfiguration.method} 
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      paymentConfiguration: { ...prev.paymentConfiguration, method: e.target.value as any } 
-                    }))} 
-                    className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold"
-                  >
-                    <option value="CASH">Cash</option>
-                    <option value="UPI">UPI</option>
-                    <option value="BANK_TRANSFER">Bank Transfer</option>
-                    <option value="CHEQUE">Cheque</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Payment Date</label>
-                  <input 
-                    type="date" 
-                    value={formData.paymentConfiguration.date} 
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      paymentConfiguration: { ...prev.paymentConfiguration, date: e.target.value } 
-                    }))} 
-                    className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" 
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Payment Note</label>
-                  <input 
-                    type="text" 
-                    placeholder="Transaction ID / Ref Number"
-                    value={formData.paymentConfiguration.note} 
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      paymentConfiguration: { ...prev.paymentConfiguration, note: e.target.value } 
-                    }))} 
-                    className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" 
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Attachment (Optional)</label>
-                  <div className="relative glass-input px-4 py-2 rounded-lg text-sm text-on-surface w-full font-semibold flex items-center justify-between overflow-hidden group cursor-pointer h-[42px]">
-                    <span className="truncate max-w-[80%] text-on-surface-variant group-hover:text-primary transition-colors">
-                      {paymentAttachment ? paymentAttachment.name : "Select PDF or Image..."}
-                    </span>
-                    <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px]">
-                      {paymentAttachment ? "check_circle" : "attach_file"}
-                    </span>
-                    <input 
-                      type="file" 
-                      accept=".pdf,image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) setPaymentAttachment(file);
-                      }} 
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Terms and Conditions */}
           <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">description</span> Terms & Conditions
             </h2>
-            <textarea value={formData.termsAndConditions} onChange={(e) => setFormData({ ...formData, termsAndConditions: e.target.value })} className="glass-input w-full p-4 rounded-xl text-sm text-on-surface font-medium leading-relaxed" rows={4} placeholder="Enter invoice-specific terms here..."></textarea>
+            <textarea value={formData.termsAndConditions} onChange={(e) => setFormData({ ...formData, termsAndConditions: e.target.value })} className="glass-input w-full p-4 rounded-xl text-sm text-on-surface font-medium leading-relaxed" rows={4} placeholder="Enter quotation-specific terms here..."></textarea>
           </div>
 
         </div>
@@ -777,7 +687,7 @@ export default function CreateInvoicePage() {
         <div className="space-y-6">
           {/* Summary */}
           <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
-            <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Invoice Summary</h3>
+            <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Quotation Summary</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center text-on-surface-variant">
                 <span>Subtotal</span>
@@ -806,19 +716,37 @@ export default function CreateInvoicePage() {
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Timeline</h3>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Invoice Date</label>
-                <input type="date" value={formData.invoiceDate} onChange={(e) => setFormData({ ...formData, invoiceDate: e.target.value })} className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" />
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Quotation Date</label>
+                <input type="date" value={formData.quotationDate} onChange={(e) => setFormData({ ...formData, quotationDate: e.target.value })} className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" />
               </div>
               <div>
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Due Date</label>
-                <input type="date" value={formData.dueDate} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} className="glass-input px-4 py-2.5 rounded-lg text-sm text-error w-full font-semibold" />
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Expiry Date (+2 Months)</label>
+                <input type="date" value={formData.expiryDate} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className="glass-input px-4 py-2.5 rounded-lg text-sm text-error w-full font-semibold" />
               </div>
             </div>
           </div>
 
+          {/* Existing Attachments */}
+          {existingAttachments.length > 0 && (
+            <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+              <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Existing Attachments</h3>
+              <div className="space-y-2">
+                {existingAttachments.map((att: any) => (
+                  <div key={att.id} className="flex justify-between items-center p-3 rounded-lg bg-surface-container/50 border border-outline-variant/10">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary text-[18px]">attach_file</span>
+                      <span className="text-xs text-on-surface font-semibold truncate max-w-[180px]">{att.fileName}</span>
+                    </div>
+                    <span className="text-[10px] text-on-surface-variant">{(att.fileSize / 1024).toFixed(1)} KB</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Attachments Dropzone */}
           <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
-            <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Attachments</h3>
+            <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Add Attachments</h3>
             <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center hover:bg-primary/5 transition-colors relative group cursor-pointer">
               <input type="file" multiple accept=".pdf,.xlsx,.docx,.png,.jpg,.jpeg,.ppt,.pptx" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
               <span className="material-symbols-outlined text-primary text-[32px] mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>

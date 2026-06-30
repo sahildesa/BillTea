@@ -7,7 +7,7 @@ import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceMapper } from './invoice.mapper';
 import { generateExpiryDate } from './invoice.utils';
-import { QUOTATION_CONSTANTS } from './invoice.constants';
+import { INVOICE_CONSTANTS } from './invoice.constants';
 
 @Injectable()
 export class InvoiceService {
@@ -40,7 +40,7 @@ export class InvoiceService {
 
     // Set Due Date
     const invoiceDate = new Date(dto.invoiceDate);
-    const dueDate = dto.dueDate ? new Date(dto.dueDate) : generateExpiryDate(invoiceDate, QUOTATION_CONSTANTS.DEFAULT_EXPIRY_MONTHS);
+    const dueDate = dto.dueDate ? new Date(dto.dueDate) : generateExpiryDate(invoiceDate, INVOICE_CONSTANTS.DEFAULT_EXPIRY_MONTHS);
 
     if (dueDate < invoiceDate) {
       throw new BadRequestException('Due date cannot be before invoice date');
@@ -118,14 +118,11 @@ export class InvoiceService {
     
     const amountDue = Math.max(0, calculation.grandTotal - amountPaid);
     
-    let status = 'DRAFT';
+    let status = 'UNPAID';
     if (amountPaid >= calculation.grandTotal && calculation.grandTotal > 0) {
       status = 'PAID';
     } else if (amountPaid > 0) {
       status = 'PARTIAL';
-    } else if (dto.paymentConfiguration && dto.paymentConfiguration.addPayment) {
-       // if they added a payment of 0?
-       status = 'UNPAID';
     }
 
     // Create invoice
@@ -318,11 +315,11 @@ export class InvoiceService {
       throw new NotFoundException('Invoice not found');
     }
 
-    if (!QUOTATION_CONSTANTS.ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    if (!INVOICE_CONSTANTS.ALLOWED_MIME_TYPES.includes(file.mimetype)) {
       throw new BadRequestException('Invalid file type');
     }
 
-    if (file.size > QUOTATION_CONSTANTS.MAX_FILE_SIZE) {
+    if (file.size > INVOICE_CONSTANTS.MAX_FILE_SIZE) {
       throw new BadRequestException('File is too large');
     }
 

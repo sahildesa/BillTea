@@ -10,6 +10,7 @@ export interface DiscountConfiguration {
 
 export interface TaxConfiguration {
   mode: TaxMode;
+  value?: number;
 }
 
 export interface ProductSnapshot {

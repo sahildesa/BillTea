@@ -223,6 +223,143 @@ export class QuotationService {
     return QuotationMapper.toDto(quotation);
   }
 
+  async update(id: string, companyId: string, userId: string, dto: UpdateQuotationDto) {
+    // Verify quotation exists
+    const existing = await this.repository.findById(id, companyId);
+    if (!existing) throw new NotFoundException('Quotation not found');
+
+    // Validate items if provided
+    if (dto.items && dto.items.length === 0) {
+      throw new BadRequestException('Quotation must have at least one item');
+    }
+
+    // Validate branch if provided
+    const branchId = dto.branchId || existing.branchId;
+    const branch = await this.prisma.branch.findFirst({
+      where: { id: branchId, companyId },
+    });
+    if (!branch) throw new ForbiddenException('Branch not found or access denied');
+
+    // Validate customer if provided
+    const customerId = dto.customerId || existing.customerId;
+    const customer = await this.prisma.customer.findFirst({
+      where: { id: customerId, companyId },
+    });
+    if (!customer) throw new BadRequestException('Invalid customer');
+
+    // Handle dates
+    const quotationDate = dto.quotationDate ? new Date(dto.quotationDate) : existing.quotationDate;
+    const expiryDate = dto.expiryDate ? new Date(dto.expiryDate) : existing.expiryDate;
+
+    if (expiryDate < quotationDate) {
+      throw new BadRequestException('Expiry date cannot be before quotation date');
+    }
+
+    // Build items data (only if items are provided in the update)
+    let finalItems: any[] | undefined = undefined;
+    let calculation: any;
+
+    const itemsToProcess = dto.items || undefined;
+
+    if (itemsToProcess) {
+      const itemsData = [];
+      for (const itemDto of itemsToProcess) {
+        if (itemDto.price < 0 || itemDto.quantity < 1) {
+          throw new BadRequestException('Price and quantity must be positive');
+        }
+
+        let originalProduct = null;
+        if (itemDto.productId) {
+          originalProduct = await this.prisma.product.findUnique({ where: { id: itemDto.productId } });
+        }
+
+        itemsData.push({
+          ...itemDto,
+          productSnapshot: originalProduct || {},
+          originalPrice: originalProduct?.price || itemDto.price,
+          originalDescription: originalProduct?.description || itemDto.description || '',
+          originalImage: originalProduct?.image || itemDto.image || '',
+          editedPrice: itemDto.price,
+          editedDescription: itemDto.description || '',
+          editedImage: itemDto.image || '',
+        });
+      }
+
+      // Calculate totals
+      const discountConfig = dto.discountConfiguration || (existing.discountConfiguration as any);
+      const taxConfig = dto.taxConfiguration || (existing.taxConfiguration as any);
+      const effectiveTax = taxConfig.mode === 'FIXED' ? (taxConfig.value || 0) : 0;
+      calculation = this.calculatorService.calculateTotals(
+        itemsData,
+        discountConfig,
+        taxConfig,
+        effectiveTax
+      );
+
+      // Map calculated items
+      finalItems = itemsData.map((item, index) => {
+        const calcItem = calculation.items[index];
+        return {
+          productId: item.productId,
+          productSnapshot: item.productSnapshot,
+          originalPrice: item.originalPrice,
+          originalDescription: item.originalDescription,
+          originalImage: item.originalImage,
+          editedPrice: item.editedPrice,
+          editedDescription: item.editedDescription,
+          editedImage: item.editedImage,
+          quantity: item.quantity,
+          discount: item.discount || {},
+          tax: item.tax || 0,
+          subtotal: calcItem.subtotal,
+          discountAmount: calcItem.discountAmount,
+          taxAmount: calcItem.taxAmount,
+          total: calcItem.total,
+        };
+      });
+    }
+
+    const shippingSameAsBilling = dto.shippingSameAsBilling ?? existing.shippingSameAsBilling;
+    const shippingSnapshot = shippingSameAsBilling
+      ? (dto.billingAddress || existing.billingAddressSnapshot)
+      : (dto.shippingAddress || existing.shippingAddressSnapshot);
+
+    // Build update data
+    const updateData: any = {
+      customerId,
+      customerSnapshot: {
+        customerName: customer.customerName,
+        companyName: customer.companyName,
+        email: customer.email,
+        mobileNumber: customer.mobileNumber,
+        businessLabel: customer.businessLabel,
+        businessLabelValue: customer.businessLabelValue,
+        address: customer.address,
+      },
+      quotationDate,
+      expiryDate,
+      billingAddressSnapshot: dto.billingAddress || existing.billingAddressSnapshot,
+      shippingAddressSnapshot: shippingSnapshot,
+      shippingSameAsBilling,
+      discountConfiguration: dto.discountConfiguration || existing.discountConfiguration,
+      taxConfiguration: dto.taxConfiguration || existing.taxConfiguration,
+      notes: dto.notes !== undefined ? dto.notes : existing.notes,
+      termsAndConditions: dto.termsAndConditions !== undefined ? dto.termsAndConditions : existing.termsAndConditions,
+      updatedById: userId,
+    };
+
+    // Add calculated totals if items were recalculated
+    if (calculation) {
+      updateData.subtotal = calculation.subtotal;
+      updateData.discountAmount = calculation.discountAmount;
+      updateData.taxAmount = calculation.taxAmount;
+      updateData.grandTotal = calculation.grandTotal;
+    }
+
+    const updated = await this.repository.updateQuotation(id, companyId, updateData, finalItems);
+    return QuotationMapper.toDto(updated);
+  }
+
   async remove(id: string, companyId: string) {
     const quotation = await this.prisma.quotation.findFirst({
       where: { id, companyId },

@@ -7,7 +7,7 @@ export class InvoiceNumberService {
 
   /**
    * Generates a new invoice number for a specific branch.
-   * Format: QT-{YYYYMM}-{SEQ} (e.g., QT-202606-0001)
+   * Format: INV-{YYYYMM}-{SEQ} (e.g., INV-202606-0001)
    */
   async generateNextSequence(branchId: string, companyId: string): Promise<{ sequenceNumber: number; invoiceNumber: string }> {
     // Get the maximum sequence number for this branch
@@ -27,7 +27,7 @@ export class InvoiceNumberService {
     // Pad sequence to 4 digits
     const paddedSequence = String(nextSequence).padStart(4, '0');
     
-    const invoiceNumber = `QT-${year}${month}-${paddedSequence}`;
+    const invoiceNumber = `INV-${year}${month}-${paddedSequence}`;
 
     return {
       sequenceNumber: nextSequence,

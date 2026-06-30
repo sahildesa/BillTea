@@ -10,7 +10,7 @@ interface Invoice {
   invoiceNumber: string;
   status: string;
   invoiceDate: string;
-  expiryDate: string;
+  dueDate: string;
   customer: {
     customerName: string;
     companyName: string;
@@ -73,8 +73,11 @@ export default function InvoicesPage() {
     switch (status) {
       case 'DRAFT': return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
       case 'SENT': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-      case 'ACCEPTED': return 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20';
-      case 'EXPIRED': return 'bg-red-500/10 text-red-500 border-red-500/20';
+      case 'UNPAID': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+      case 'PARTIAL': return 'bg-orange-500/10 text-orange-500 border-orange-500/20';
+      case 'PAID': return 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20';
+      case 'OVERDUE': return 'bg-red-500/10 text-red-500 border-red-500/20';
+      case 'CANCELLED': return 'bg-surface-container text-on-surface-variant/50 border-outline-variant/20';
       default: return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
     }
   };
@@ -85,7 +88,7 @@ export default function InvoicesPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
         <div>
           <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">Invoices</h1>
-          <p className="text-on-surface-variant text-sm mt-1">Manage and track your customer quotes.</p>
+          <p className="text-on-surface-variant text-sm mt-1">Manage and track your invoices.</p>
         </div>
         <Link href="/invoices/new">
           <button 

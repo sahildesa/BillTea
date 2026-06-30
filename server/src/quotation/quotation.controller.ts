@@ -75,6 +75,15 @@ export class QuotationController {
     return this.quotationService.uploadAttachment(id, user.companyId, file);
   }
 
+  @Put(':id')
+  update(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() updateQuotationDto: UpdateQuotationDto,
+  ) {
+    return this.quotationService.update(id, user.companyId, user.sub, updateQuotationDto);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.quotationService.remove(id, user.companyId);

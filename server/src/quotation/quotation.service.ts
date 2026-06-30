@@ -363,6 +363,7 @@ export class QuotationService {
   async remove(id: string, companyId: string) {
     const quotation = await this.prisma.quotation.findFirst({
       where: { id, companyId },
+      include: { attachments: true },
     });
 
     if (!quotation) {
@@ -374,6 +375,20 @@ export class QuotationService {
 
     if (latestQuotation && latestQuotation.id !== id) {
       throw new BadRequestException('You can only delete the most recently created quotation for this branch.');
+    }
+
+    // Delete physical attachment files
+    if (quotation.attachments && quotation.attachments.length > 0) {
+      const fs = require('fs/promises');
+      const path = require('path');
+      for (const attachment of quotation.attachments) {
+        try {
+          const filePath = path.join(process.cwd(), 'uploads', attachment.storagePath);
+          await fs.unlink(filePath);
+        } catch (err) {
+          console.error(`Failed to delete physical file for attachment ${attachment.id}:`, err);
+        }
+      }
     }
 
     await this.repository.deleteQuotation(id, companyId);

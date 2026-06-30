@@ -25,6 +25,8 @@ export default function QuotationsPage() {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [quotationToDelete, setQuotationToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (selectedBranchId) {
@@ -54,18 +56,22 @@ export default function QuotationsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this quotation? Note: You can only delete the most recent quotation.')) return;
+  const handleDelete = async () => {
+    if (!quotationToDelete) return;
     try {
-      const res = await apiFetch(`/quotations/${id}`, { method: 'DELETE' });
+      setIsDeleting(true);
+      const res = await apiFetch(`/quotations/${quotationToDelete}`, { method: 'DELETE' });
       if (res.ok) {
         fetchQuotations();
+        setQuotationToDelete(null);
       } else {
         const errData = await res.json();
         alert(errData.message || 'Failed to delete quotation');
       }
     } catch (err: any) {
       alert('Failed to delete quotation');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -177,7 +183,7 @@ export default function QuotationsPage() {
                   </td>
                 </tr>
               ) : (
-                quotations.map((quotation) => (
+                quotations.map((quotation, index) => (
                   <tr key={quotation.id} className="hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-6 py-4 font-semibold text-primary">{quotation.quotationNumber}</td>
                     <td className="px-6 py-4 flex items-center gap-3">
@@ -218,9 +224,11 @@ export default function QuotationsPage() {
                         <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
                           <span className="material-symbols-outlined text-[16px]">send</span>
                         </button>
-                        <button onClick={() => handleDelete(quotation.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
-                          <span className="material-symbols-outlined text-[16px]">delete</span>
-                        </button>
+                        {index === 0 && (
+                          <button onClick={() => setQuotationToDelete(quotation.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -248,6 +256,50 @@ export default function QuotationsPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {quotationToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="glass-panel rounded-2xl p-6 max-w-md w-full shadow-2xl border border-error/20 relative animate-in fade-in zoom-in duration-200">
+            {/* Glow effect */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-error/50 to-transparent rounded-t-2xl"></div>
+            
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center shrink-0 border border-error/20">
+                <span className="material-symbols-outlined text-error text-[24px]">warning</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-headline font-bold text-on-surface mb-2">Delete Quotation?</h3>
+                <p className="text-sm text-on-surface-variant mb-4 leading-relaxed">
+                  Are you sure you want to delete this quotation? This will permanently remove the quotation, its items, and all attached files. This action cannot be undone.
+                  <br /><br />
+                  <span className="font-semibold text-error/80 text-xs uppercase tracking-wide">Note: You can only delete the most recent quotation for the branch.</span>
+                </p>
+                <div className="flex items-center justify-end gap-3 mt-6">
+                  <button 
+                    onClick={() => setQuotationToDelete(null)}
+                    disabled={isDeleting}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-500 hover:bg-red-600 text-white shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isDeleting ? (
+                      <><span className="material-symbols-outlined animate-spin text-[16px]">refresh</span> Deleting...</>
+                    ) : (
+                      <><span className="material-symbols-outlined text-[16px]">delete</span> Delete Quotation</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

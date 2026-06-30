@@ -273,6 +273,7 @@ model Quotation {
   grandTotal              Float           @default(0)
   
   notes                   String          @default("")
+  followUpDate            DateTime?
   termsAndConditions      Json            @default("{}")
   
   createdById             String?

@@ -36,6 +36,7 @@ export class QuotationMapper {
       },
 
       notes: quotation.notes,
+      followUpDate: quotation.followUpDate,
       termsAndConditions: quotation.termsAndConditions as TermsAndConditionsSnapshot,
 
       items: quotation.items ? quotation.items.map(this.toItemDto) : [],

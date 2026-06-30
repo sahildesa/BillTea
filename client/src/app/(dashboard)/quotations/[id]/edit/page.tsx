@@ -37,6 +37,7 @@ export default function EditQuotationPage() {
     discountConfiguration: { mode: 'FIXED', type: 'PERCENTAGE', value: 0 },
     taxConfiguration: { mode: 'FIXED', customTaxActive: false, label: '', value: 0 },
     notes: '',
+    followUpDate: '',
     termsAndConditions: '1. Goods once sold will not be taken back.\n2. Interest @ 18% p.a. will be charged if payment is delayed.',
   });
 
@@ -108,6 +109,7 @@ export default function EditQuotationPage() {
           value: data.taxConfiguration?.value || 0,
         },
         notes: data.notes || '',
+        followUpDate: data.followUpDate ? data.followUpDate.split('T')[0] : '',
         termsAndConditions: typeof data.termsAndConditions === 'object'
           ? (data.termsAndConditions?.text || data.termsAndConditions?.editedSnapshot || data.termsAndConditions?.defaultSnapshot || '')
           : (data.termsAndConditions || ''),
@@ -330,6 +332,7 @@ export default function EditQuotationPage() {
         discountConfiguration: formData.discountConfiguration,
         taxConfiguration: formData.taxConfiguration,
         notes: formData.notes,
+        followUpDate: formData.followUpDate ? new Date(formData.followUpDate).toISOString() : undefined,
         termsAndConditions: { text: formData.termsAndConditions },
         items: items.map(i => ({ productId: i.productId || undefined, price: i.price, description: i.description, quantity: i.quantity, discount: i.discount, tax: i.tax }))
       };
@@ -766,6 +769,21 @@ export default function EditQuotationPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Notes & Reminder */}
+          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+            <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Notes & Reminder</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Notes</label>
+                <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="glass-input w-full p-3 rounded-lg text-sm text-on-surface" placeholder="Internal notes..." rows={2}></textarea>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Follow Up Date</label>
+                <input type="date" value={formData.followUpDate} onChange={(e) => setFormData({ ...formData, followUpDate: e.target.value })} className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" />
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -96,6 +96,10 @@ export class CreateQuotationDto {
   notes?: string;
 
   @IsOptional()
+  @IsDateString()
+  followUpDate?: string;
+
+  @IsOptional()
   @IsObject()
   termsAndConditions?: any;
 

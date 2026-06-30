@@ -132,6 +132,7 @@ export class QuotationService {
       grandTotal: calculation.grandTotal,
       termsAndConditions: dto.termsAndConditions || '',
       notes: dto.notes || '',
+      followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : null,
       createdById: userId,
     };
 
@@ -344,6 +345,7 @@ export class QuotationService {
       discountConfiguration: dto.discountConfiguration || existing.discountConfiguration,
       taxConfiguration: dto.taxConfiguration || existing.taxConfiguration,
       notes: dto.notes !== undefined ? dto.notes : existing.notes,
+      followUpDate: dto.followUpDate !== undefined ? (dto.followUpDate ? new Date(dto.followUpDate) : null) : existing.followUpDate,
       termsAndConditions: dto.termsAndConditions !== undefined ? dto.termsAndConditions : existing.termsAndConditions,
       updatedById: userId,
     };

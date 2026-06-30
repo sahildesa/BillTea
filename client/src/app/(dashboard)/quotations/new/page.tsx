@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch, API_BASE } from '@/lib/auth';
 
 const getImageUrl = (url?: string) => {
@@ -20,7 +20,12 @@ import { useBranch } from '@/components/BranchProvider';
 
 export default function CreateQuotationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const copyFromId = searchParams.get('copyFrom');
   const { selectedBranchId, branches } = useBranch();
+
+  // Loading State for fetching existing quotation (if copying)
+  const [isLoading, setIsLoading] = useState(false);
 
   // 1. Core State
   const [formData, setFormData] = useState({
@@ -63,6 +68,116 @@ export default function CreateQuotationPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // Track if initial data has been loaded (to avoid overwriting with branch defaults when copying)
+  const initialLoadDone = useRef(false);
+
+  // Fetch existing quotation data if copyFromId is present
+  useEffect(() => {
+    if (copyFromId) {
+      fetchQuotationToCopy(copyFromId);
+    } else {
+      initialLoadDone.current = true; // Not copying, normal flow
+    }
+  }, [copyFromId]);
+
+  const fetchQuotationToCopy = async (id: string) => {
+    try {
+      setIsLoading(true);
+      const res = await apiFetch(`/quotations/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch quotation for copying');
+      const data = await res.json();
+
+      // Map API response back to form state (excluding quotationDate, expiryDate to let them default to today/future)
+      setFormData(prev => ({
+        ...prev,
+        customerId: data.customer?.id || '',
+        shippingSameAsBilling: data.shippingSameAsBilling ?? true,
+        discountConfiguration: {
+          mode: data.discountConfiguration?.mode || 'FIXED',
+          type: data.discountConfiguration?.type || 'PERCENTAGE',
+          value: data.discountConfiguration?.value || 0,
+        },
+        taxConfiguration: {
+          mode: data.taxConfiguration?.mode || 'FIXED',
+          customTaxActive: data.taxConfiguration?.customTaxActive || false,
+          label: data.taxConfiguration?.label || '',
+          value: data.taxConfiguration?.value || 0,
+        },
+        notes: data.notes || '',
+        termsAndConditions: typeof data.termsAndConditions === 'object'
+          ? (data.termsAndConditions?.text || data.termsAndConditions?.editedSnapshot || data.termsAndConditions?.defaultSnapshot || '')
+          : (data.termsAndConditions || ''),
+      }));
+
+      // Set customer
+      if (data.customer) {
+        setCustomerSearch(data.customer.customerName || '');
+        setSelectedCustomerDetails(data.customer);
+      }
+
+      // Set addresses
+      if (data.billingAddress) {
+        setBillingAddress({
+          address: data.billingAddress.address || '',
+          city: data.billingAddress.city || '',
+          state: data.billingAddress.state || '',
+          pincode: data.billingAddress.pincode || '',
+        });
+      }
+      if (data.shippingAddress && !data.shippingSameAsBilling) {
+        setShippingAddress({
+          address: data.shippingAddress.address || '',
+          city: data.shippingAddress.city || '',
+          state: data.shippingAddress.state || '',
+          pincode: data.shippingAddress.pincode || '',
+        });
+      }
+
+      // Set items
+      if (data.items && data.items.length > 0) {
+        const mappedItems = data.items.map((item: any) => ({
+          id: item.id || Math.random().toString(),
+          productId: item.productId || '',
+          name: item.productSnapshot?.name || '',
+          description: item.description || '',
+          price: item.price || 0,
+          originalPrice: item.productSnapshot?.price || item.price || 0,
+          originalDescription: item.productSnapshot?.description || item.description || '',
+          quantity: item.quantity || 1,
+          discount: item.discount || { type: 'PERCENTAGE', value: 0 },
+          tax: item.tax || 0,
+          image: item.image || item.productSnapshot?.image || '',
+          sku: item.productSnapshot?.skuNumber || '',
+          hsnCode: item.productSnapshot?.hsnNumber || '',
+        }));
+        setItems(mappedItems);
+
+        // Initialize product search rows with existing names
+        const searchRows: any = {};
+        mappedItems.forEach((item: any) => {
+          searchRows[item.id] = { query: item.name, results: [], show: false };
+        });
+        setProductSearchRows(searchRows);
+      }
+
+      // Set calculated totals from existing data
+      if (data.totals) {
+        setCalculatedTotals({
+          subtotal: data.totals.subtotal || 0,
+          discountAmount: data.totals.discountAmount || 0,
+          taxAmount: data.totals.taxAmount || 0,
+          grandTotal: data.totals.grandTotal || 0,
+        });
+      }
+
+      initialLoadDone.current = true;
+    } catch (err: any) {
+      setError(err.message || 'Failed to load quotation for copying');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Setup branch defaults
   useEffect(() => {
     if (selectedBranchId) {
@@ -72,6 +187,7 @@ export default function CreateQuotationPage() {
   }, [selectedBranchId, branches]);
 
   useEffect(() => {
+    if (!initialLoadDone.current) return;
     if (selectedBranchId && branchTaxConfig.tax > 0) {
       setFormData(prev => ({
         ...prev,
@@ -82,7 +198,7 @@ export default function CreateQuotationPage() {
 
   // Preview API Trigger
   useEffect(() => {
-    if (!selectedBranchId) return;
+    if (!selectedBranchId || !initialLoadDone.current) return;
     const handler = setTimeout(() => { fetchPreview(); }, 500);
     return () => clearTimeout(handler);
   }, [formData, items, selectedBranchId, branchTaxConfig]);
@@ -230,6 +346,19 @@ export default function CreateQuotationPage() {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar bg-background">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center gap-4">
+            <span className="material-symbols-outlined animate-spin text-primary text-[40px]">refresh</span>
+            <p className="text-on-surface-variant font-semibold">Loading quotation data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar bg-background">

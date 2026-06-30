@@ -210,6 +210,11 @@ export default function QuotationsPage() {
                             <span className="material-symbols-outlined text-[16px]">edit</span>
                           </button>
                         </Link>
+                        <Link href={`/quotations/new?copyFrom=${quotation.id}`}>
+                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:border-blue-400/30 hover:bg-blue-400/10 tooltip cursor-pointer" title="Copy">
+                            <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                          </button>
+                        </Link>
                         <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
                           <span className="material-symbols-outlined text-[16px]">send</span>
                         </button>

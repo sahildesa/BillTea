@@ -35,6 +35,16 @@ export class InvoiceService {
     });
     if (!customer) throw new BadRequestException('Invalid customer');
 
+    // Check if invoice for this quotation already exists
+    if (dto.linkedQuotationId) {
+      const existingInvoice = await this.prisma.invoice.findFirst({
+        where: { linkedQuotationId: dto.linkedQuotationId, companyId },
+      });
+      if (existingInvoice) {
+        throw new BadRequestException('An invoice has already been generated for this quotation. Please delete it before generating a new one.');
+      }
+    }
+
     // Generate sequence
     const { invoiceNumber, sequenceNumber } = await this.numberService.generateNextSequence(dto.branchId, companyId);
 

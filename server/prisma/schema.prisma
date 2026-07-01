@@ -116,6 +116,8 @@ model Branch {
   signatureValue String        @default("")
   tax            Int           @default(0)
   taxLabel       String        @default("")
+  quotationTheme String        @default("INDUX_MODERN")
+  themeColor     String        @default("#0ea5e9")
   isActive       Boolean       @default(true)
   customers      Customer[]
   products       Product[]

@@ -20,4 +20,7 @@ export class UpdateBranchDto {
   @Min(0, { message: 'Tax cannot be less than 0' })
   @Max(100, { message: 'Tax cannot be more than 100' })
   tax?: number;
+
+  @IsOptional() @IsString() quotationTheme?: string;
+  @IsOptional() @IsString() themeColor?: string;
 }

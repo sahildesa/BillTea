@@ -15,6 +15,8 @@ interface Quotation {
     customerName: string;
     companyName: string;
   };
+  notes?: string;
+  followUpDate?: string;
   totals: {
     grandTotal: number;
   };
@@ -27,6 +29,10 @@ export default function QuotationsPage() {
   const [error, setError] = useState('');
   const [quotationToDelete, setQuotationToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [notesModalData, setNotesModalData] = useState<{ id: string, notes: string, followUpDate: string } | null>(null);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [viewerPdfUrl, setViewerPdfUrl] = useState<{url: string, title: string, id: string} | null>(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
   useEffect(() => {
     if (selectedBranchId) {
@@ -75,6 +81,84 @@ export default function QuotationsPage() {
     }
   };
 
+  const handleSaveNotes = async () => {
+    if (!notesModalData) return;
+    try {
+      setIsSavingNotes(true);
+      const res = await apiFetch(`/quotations/${notesModalData.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notes: notesModalData.notes,
+          followUpDate: notesModalData.followUpDate ? new Date(notesModalData.followUpDate).toISOString() : null,
+        }),
+      });
+      if (res.ok) {
+        setNotesModalData(null);
+        fetchQuotations();
+      } else {
+        const errData = await res.json();
+        alert(errData.message || 'Failed to save notes');
+      }
+    } catch (err: any) {
+      alert('Failed to save notes');
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
+  const handleDownloadPdf = async (id: string, quotationNumber: string) => {
+    try {
+      const res = await apiFetch(`/quotations/${id}/pdf`, {
+        method: 'GET',
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to download PDF');
+      }
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Quotation-${quotationNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      alert('Failed to download PDF. Please try again.');
+    }
+  };
+
+  const handleViewPdf = async (id: string, quotationNumber: string) => {
+    try {
+      setIsLoadingPdf(true);
+      const res = await apiFetch(`/quotations/${id}/pdf`, {
+        method: 'GET',
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to load PDF preview');
+      }
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      setViewerPdfUrl({ url, title: `Quotation-${quotationNumber}.pdf`, id });
+    } catch (err) {
+      alert('Failed to load PDF preview. Please try again.');
+    } finally {
+      setIsLoadingPdf(false);
+    }
+  };
+
+  const closePdfViewer = () => {
+    if (viewerPdfUrl?.url) {
+      window.URL.revokeObjectURL(viewerPdfUrl.url);
+    }
+    setViewerPdfUrl(null);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT': return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
@@ -86,7 +170,7 @@ export default function QuotationsPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar">
+    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
         <div>
@@ -208,7 +292,7 @@ export default function QuotationsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="glass-button-icon p-1 rounded-md transition-all tooltip cursor-pointer" title="View">
+                        <button onClick={() => handleViewPdf(quotation.id, quotation.quotationNumber)} disabled={isLoadingPdf} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer disabled:opacity-50" title="View">
                           <span className="material-symbols-outlined text-[16px]">visibility</span>
                         </button>
                         <Link href={`/quotations/${quotation.id}/edit`}>
@@ -223,6 +307,20 @@ export default function QuotationsPage() {
                         </Link>
                         <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
                           <span className="material-symbols-outlined text-[16px]">send</span>
+                        </button>
+                        <button 
+                          onClick={() => handleDownloadPdf(quotation.id, quotation.quotationNumber)}
+                          className="glass-button-icon p-1 rounded-md transition-all hover:text-indigo-400 hover:border-indigo-400/30 hover:bg-indigo-400/10 tooltip cursor-pointer" title="Download PDF">
+                          <span className="material-symbols-outlined text-[16px]">download</span>
+                        </button>
+                        <button 
+                          onClick={() => setNotesModalData({
+                            id: quotation.id,
+                            notes: quotation.notes || '',
+                            followUpDate: quotation.followUpDate ? new Date(quotation.followUpDate).toISOString().split('T')[0] : ''
+                          })}
+                          className="glass-button-icon p-1 rounded-md transition-all hover:text-amber-400 hover:border-amber-400/30 hover:bg-amber-400/10 tooltip cursor-pointer" title="Notes & Reminder">
+                          <span className="material-symbols-outlined text-[16px]">sticky_note_2</span>
                         </button>
                         {index === 0 && (
                           <button onClick={() => setQuotationToDelete(quotation.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
@@ -295,6 +393,115 @@ export default function QuotationsPage() {
                     )}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notes & Reminder Modal */}
+      {notesModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="glass-panel rounded-2xl p-6 max-w-md w-full shadow-2xl border border-primary/20 relative animate-in fade-in zoom-in duration-200">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent rounded-t-2xl"></div>
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-headline font-bold text-on-surface">Notes & Reminder</h3>
+                <button onClick={() => setNotesModalData(null)} className="text-on-surface-variant hover:text-on-surface">
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                </button>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-on-surface-variant mb-1">Follow-up Date</label>
+                <input 
+                  type="date" 
+                  value={notesModalData.followUpDate}
+                  onChange={(e) => setNotesModalData({ ...notesModalData, followUpDate: e.target.value })}
+                  className="glass-input w-full px-3 py-2 rounded-lg text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-on-surface-variant mb-1">Notes</label>
+                <textarea 
+                  rows={4}
+                  value={notesModalData.notes}
+                  onChange={(e) => setNotesModalData({ ...notesModalData, notes: e.target.value })}
+                  className="glass-input w-full px-3 py-2 rounded-lg text-sm resize-none custom-scrollbar"
+                  placeholder="Enter notes here..."
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-4">
+                <button 
+                  onClick={() => setNotesModalData(null)}
+                  disabled={isSavingNotes}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSaveNotes}
+                  disabled={isSavingNotes}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-primary hover:bg-primary/90 text-on-primary shadow-[0_0_15px_rgba(125,211,252,0.3)] transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSavingNotes ? (
+                    <><span className="material-symbols-outlined animate-spin text-[16px]">refresh</span> Saving...</>
+                  ) : (
+                    <><span className="material-symbols-outlined text-[16px]">save</span> Save</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* PDF Viewer Modal */}
+      {viewerPdfUrl && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-8">
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-xl transition-opacity" onClick={closePdfViewer}></div>
+          <div className="bg-surface/80 backdrop-blur-2xl rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] w-full max-w-6xl overflow-hidden relative z-10 flex flex-col h-[90vh] animate-in zoom-in-95 fade-in duration-300 border border-white/10">
+            
+            {/* Premium Toolbar */}
+            <div className="px-6 py-4 bg-gradient-to-r from-surface-container/50 to-surface-container/10 flex items-center justify-between border-b border-white/10 relative">
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
+              
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
+                  <span className="material-symbols-outlined text-[24px]">picture_as_pdf</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-headline font-bold text-on-surface tracking-tight leading-tight">Document Preview</h3>
+                  <p className="text-sm text-on-surface-variant font-medium mt-0.5">{viewerPdfUrl.title}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <a 
+                  href={viewerPdfUrl.url} 
+                  download={viewerPdfUrl.title}
+                  className="group relative inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+                  <span className="material-symbols-outlined text-[18px] relative z-10">download</span>
+                  <span className="relative z-10 text-sm">Download</span>
+                </a>
+                <div className="w-px h-8 bg-white/10 mx-1"></div>
+                <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-error/10 hover:text-error border border-transparent hover:border-error/20 text-on-surface-variant transition-all cursor-pointer">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+            
+            {/* Content Area with sophisticated framing */}
+            <div className="flex-1 bg-black/40 p-2 sm:p-6 flex items-center justify-center overflow-hidden">
+              <div className="w-full h-full max-w-[800px] bg-white rounded-xl shadow-2xl overflow-hidden relative border border-white/20">
+                <iframe 
+                  src={viewerPdfUrl.url} 
+                  className="w-full h-full border-none"
+                  title="PDF Viewer"
+                />
               </div>
             </div>
           </div>

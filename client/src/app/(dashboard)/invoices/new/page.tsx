@@ -179,48 +179,65 @@ export default function CreateInvoicePage() {
   }, [quotationSearch, selectedBranchId]);
 
   const handleQuotationSelect = async (quotationSummary: any) => {
-    setShowQuotationDropdown(false);
-    setQuotationSearch(quotationSummary.quotationNumber);
-    setSelectedQuotation(quotationSummary);
-    
-    // Fetch full quotation details
-    const res = await apiFetch(`/quotations/${quotationSummary.id}`);
-    if (res.ok) {
-      const fullQuotation = await res.json();
+    try {
+      setShowQuotationDropdown(false);
+      setQuotationSearch(quotationSummary.quotationNumber);
+      setSelectedQuotation(quotationSummary);
       
-      // Auto-populate invoice state
-      setFormData(prev => ({
-        ...prev,
-        customerId: fullQuotation.customer.id,
-        shippingSameAsBilling: fullQuotation.shippingSameAsBilling,
-        discountConfiguration: fullQuotation.discountConfiguration,
-        taxConfiguration: fullQuotation.taxConfiguration,
-        notes: fullQuotation.notes,
-        termsAndConditions: fullQuotation.termsAndConditions?.text || fullQuotation.termsAndConditions || '',
-        linkedQuotationId: fullQuotation.id,
-      }));
-      
-      setSelectedCustomerDetails(fullQuotation.customer);
-      setBillingAddress(fullQuotation.billingAddress || { address: fullQuotation.customer.address, city: '', state: '', pincode: '' });
-      setShippingAddress(fullQuotation.shippingAddress || { address: '', city: '', state: '', pincode: '' });
-      
-      if (fullQuotation.items && fullQuotation.items.length > 0) {
-        setItems(fullQuotation.items.map((i: any) => ({
-          id: Math.random().toString(),
-          productId: i.productId || '',
-          name: i.productSnapshot?.name || i.productSnapshot?.productName || '',
-          description: i.description,
-          price: i.price,
-          originalPrice: i.price,
-          originalDescription: i.description,
-          quantity: i.quantity,
-          discount: i.discount || { type: 'PERCENTAGE', value: 0 },
-          tax: i.tax || 0,
-          image: i.image || i.productSnapshot?.image || i.productSnapshot?.productImage || '',
-          sku: i.productSnapshot?.skuNumber || '',
-          hsnCode: i.productSnapshot?.hsnNumber || '',
-        })));
+      // Fetch full quotation details
+      const res = await apiFetch(`/quotations/${quotationSummary.id}`);
+      if (res.ok) {
+        const fullQuotation = await res.json();
+        console.log("Full quotation fetched:", fullQuotation);
+        
+        // Auto-populate invoice state
+        setCustomerSearch(fullQuotation.customer.customerName);
+        setFormData(prev => ({
+          ...prev,
+          customerId: fullQuotation.customer.id,
+          shippingSameAsBilling: fullQuotation.shippingSameAsBilling,
+          discountConfiguration: (fullQuotation.discountConfiguration && Object.keys(fullQuotation.discountConfiguration).length > 0) ? fullQuotation.discountConfiguration : prev.discountConfiguration,
+          taxConfiguration: (fullQuotation.taxConfiguration && Object.keys(fullQuotation.taxConfiguration).length > 0) ? fullQuotation.taxConfiguration : prev.taxConfiguration,
+          notes: fullQuotation.notes || '',
+          termsAndConditions: fullQuotation.termsAndConditions?.text || (typeof fullQuotation.termsAndConditions === 'string' ? fullQuotation.termsAndConditions : ''),
+          linkedQuotationId: fullQuotation.id,
+        }));
+        
+        setSelectedCustomerDetails(fullQuotation.customer);
+        setBillingAddress(fullQuotation.billingAddress?.address ? fullQuotation.billingAddress : { address: fullQuotation.customer?.address || '', city: '', state: '', pincode: '' });
+        setShippingAddress(fullQuotation.shippingAddress?.address ? fullQuotation.shippingAddress : { address: '', city: '', state: '', pincode: '' });
+        
+        if (fullQuotation.items && fullQuotation.items.length > 0) {
+          const newProductSearchRows: any = {};
+          const mappedItems = fullQuotation.items.map((i: any) => {
+            const id = Math.random().toString();
+            const itemName = i.productSnapshot?.name || i.productSnapshot?.productName || i.description || '';
+            newProductSearchRows[id] = { query: itemName, results: [], show: false };
+            return {
+              id,
+              productId: i.productId || '',
+              name: itemName,
+              description: i.description || '',
+              price: i.price ?? 0,
+              originalPrice: i.price ?? 0,
+              originalDescription: i.description || '',
+              quantity: i.quantity || 1,
+              discount: (i.discount && Object.keys(i.discount).length > 0) ? i.discount : { type: 'PERCENTAGE', value: 0 },
+              tax: i.tax ?? 0,
+              image: i.image || i.productSnapshot?.image || i.productSnapshot?.productImage || '',
+              sku: i.productSnapshot?.skuNumber || '',
+              hsnCode: i.productSnapshot?.hsnNumber || '',
+            };
+          });
+          setItems(mappedItems);
+          setProductSearchRows(prev => ({ ...prev, ...newProductSearchRows }));
+        }
+      } else {
+        alert("Failed to fetch quotation details from server.");
       }
+    } catch (e: any) {
+      console.error("Error in handleQuotationSelect:", e);
+      alert("Error selecting quotation: " + e.message);
     }
   };
 
@@ -374,7 +391,7 @@ export default function CreateInvoicePage() {
               {showQuotationDropdown && quotationResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-outline-variant/30 rounded-xl shadow-2xl z-[100] max-h-60 overflow-y-auto">
                   {quotationResults.map((q) => (
-                    <div key={q.id} onClick={() => handleQuotationSelect(q)} className="p-4 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 transition-colors flex justify-between items-center">
+                    <div key={q.id} onMouseDown={(e) => { e.preventDefault(); handleQuotationSelect(q); }} className="p-4 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 transition-colors flex justify-between items-center">
                       <div>
                         <p className="text-sm font-bold text-on-surface">{q.quotationNumber}</p>
                         <p className="text-xs font-semibold text-on-surface-variant/70">{q.customer.customerName}</p>
@@ -401,7 +418,7 @@ export default function CreateInvoicePage() {
                 {showCustomerDropdown && customerResults.length > 0 && (
                   <div className="absolute top-full left-0 w-full mt-1 bg-surface-container-highest shadow-xl rounded-lg border border-primary/10 z-[100] max-h-48 overflow-y-auto">
                     {customerResults.map(c => (
-                      <div key={c.id} onClick={() => handleCustomerSelect(c)} className="p-3 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 last:border-0 transition-colors">
+                      <div key={c.id} onMouseDown={(e) => { e.preventDefault(); handleCustomerSelect(c); }} className="p-3 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 last:border-0 transition-colors">
                         <div className="font-bold text-sm text-on-surface">{c.customerName}</div>
                         <div className="text-xs text-on-surface-variant">{c.companyName} | {c.email} | {c.mobileNumber}</div>
                       </div>
@@ -578,7 +595,7 @@ export default function CreateInvoicePage() {
                             {productSearchRows[item.id]?.show && (productSearchRows[item.id]?.results?.length || 0) > 0 && (
                               <div className="absolute top-full left-0 w-full mt-1 bg-surface-container-highest shadow-xl rounded-lg border border-primary/10 z-[100] max-h-48 overflow-y-auto">
                                 {productSearchRows[item.id].results.map(p => (
-                                  <div key={p.id} onClick={() => handleProductSelect(p, item.id)} className="p-3 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 text-sm font-semibold transition-colors">
+                                  <div key={p.id} onMouseDown={(e) => { e.preventDefault(); handleProductSelect(p, item.id); }} className="p-3 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 text-sm font-semibold transition-colors">
                                     {p.name} <span className="text-xs font-normal text-on-surface-variant float-right">₹{p.price}</span>
                                   </div>
                                 ))}

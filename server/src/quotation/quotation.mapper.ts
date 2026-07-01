@@ -19,6 +19,9 @@ export class QuotationMapper {
         companyName: quotation.customer.companyName,
         email: quotation.customer.email,
         mobileNumber: quotation.customer.mobileNumber,
+        businessLabel: quotation.customer.businessLabel,
+        businessLabelValue: quotation.customer.businessLabelValue,
+        address: quotation.customer.address,
       } : null,
 
       billingAddress: quotation.billingAddressSnapshot,

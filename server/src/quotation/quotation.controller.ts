@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Query, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Query, UseInterceptors, UploadedFile, BadRequestException, Res, StreamableFile } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -49,6 +50,23 @@ export class QuotationController {
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.quotationService.findOne(id, user.companyId);
+  }
+
+  @Get(':id/pdf')
+  async downloadPdf(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const buffer = await this.quotationService.generatePdf(id, user.companyId);
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="quotation-${id}.pdf"`,
+      'Content-Length': buffer.length,
+    });
+    
+    return new StreamableFile(buffer);
   }
 
   @Post(':id/attachments')

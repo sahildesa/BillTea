@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { QuotationMapper } from './quotation.mapper';
 import { generateExpiryDate } from './quotation.utils';
 import { QUOTATION_CONSTANTS } from './quotation.constants';
+import { PdfService } from './pdf.service';
 
 @Injectable()
 export class QuotationService {
@@ -16,6 +17,7 @@ export class QuotationService {
     private readonly numberService: QuotationNumberService,
     private readonly calculatorService: QuotationCalculatorService,
     private readonly prisma: PrismaService,
+    private readonly pdfService: PdfService,
   ) {}
 
   async create(companyId: string, userId: string, dto: CreateQuotationDto) {
@@ -463,5 +465,30 @@ export class QuotationService {
 
     const attachment = await this.repository.createAttachment(attachmentData);
     return QuotationMapper.toAttachmentDto(attachment);
+  }
+
+  async generatePdf(id: string, companyId: string): Promise<Buffer> {
+    const quotation = await this.repository.findById(id, companyId);
+    if (!quotation) {
+      throw new NotFoundException('Quotation not found');
+    }
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
+    
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: quotation.branchId },
+    });
+
+    if (!branch) {
+      throw new NotFoundException('Branch not found');
+    }
+
+    return this.pdfService.generateQuotationPdf(quotation, company, branch, quotation.customer);
   }
 }

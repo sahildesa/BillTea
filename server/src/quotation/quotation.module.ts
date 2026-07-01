@@ -4,6 +4,7 @@ import { QuotationController } from './quotation.controller';
 import { QuotationRepository } from './quotation.repository';
 import { QuotationNumberService } from './quotation-number.service';
 import { QuotationCalculatorService } from './quotation-calculator.service';
+import { PdfService } from './pdf.service';
 
 @Module({
   controllers: [QuotationController],
@@ -11,7 +12,8 @@ import { QuotationCalculatorService } from './quotation-calculator.service';
     QuotationService, 
     QuotationRepository, 
     QuotationNumberService, 
-    QuotationCalculatorService
+    QuotationCalculatorService,
+    PdfService
   ],
   exports: [QuotationService]
 })

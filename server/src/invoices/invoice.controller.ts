@@ -7,13 +7,18 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
 @UseGuards(JwtAuthGuard)
 @Controller('invoices')
+@ApiTags('Invoice')
+@ApiBearerAuth()
 export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
 
   @Get('customers/search')
+    @ApiOperation({ summary: 'Search Customers' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   searchCustomers(
     @CurrentUser() user: any,
     @Query('q') query: string,
@@ -23,6 +28,8 @@ export class InvoiceController {
   }
 
   @Get('products/search')
+    @ApiOperation({ summary: 'Search Products' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   searchProducts(
     @CurrentUser() user: any,
     @Query('q') query: string,
@@ -32,21 +39,29 @@ export class InvoiceController {
   }
 
   @Post('preview')
+    @ApiOperation({ summary: 'Preview' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
   preview(@CurrentUser() user: any, @Body() createInvoiceDto: CreateInvoiceDto) {
     return this.invoiceService.calculatePreview(user.companyId, user.sub, createInvoiceDto);
   }
 
   @Post()
+    @ApiOperation({ summary: 'Create' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
   create(@CurrentUser() user: any, @Body() createInvoiceDto: CreateInvoiceDto) {
     return this.invoiceService.create(user.companyId, user.sub, createInvoiceDto);
   }
 
   @Get()
+    @ApiOperation({ summary: 'Find All' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   findAll(@CurrentUser() user: any, @Query('branchId') branchId?: string) {
     return this.invoiceService.findAll(user.companyId, branchId);
   }
 
   @Get(':id')
+    @ApiOperation({ summary: 'Find One' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.invoiceService.findOne(id, user.companyId);
   }
@@ -64,6 +79,8 @@ export class InvoiceController {
       }),
     }),
   )
+    @ApiOperation({ summary: 'Upload Attachment' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
   uploadAttachment(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -77,6 +94,8 @@ export class InvoiceController {
 
 
   @Delete(':id')
+    @ApiOperation({ summary: 'Remove' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.invoiceService.remove(id, user.companyId);
   }

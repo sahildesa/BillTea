@@ -31,6 +31,8 @@ pnpm-debug.log*
 *.sln
 *.sw?
 .DS_Store
+AGENTS.md
+CLAUDE.md
 
 # Uploaded files (keep directory structure via .gitkeep)
 server/uploads/**

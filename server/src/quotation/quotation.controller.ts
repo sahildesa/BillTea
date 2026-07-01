@@ -8,13 +8,18 @@ import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { UpdateQuotationDto } from './dto/update-quotation.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
 @UseGuards(JwtAuthGuard)
 @Controller('quotations')
+@ApiTags('Quotation')
+@ApiBearerAuth()
 export class QuotationController {
   constructor(private readonly quotationService: QuotationService) {}
 
   @Get('customers/search')
+    @ApiOperation({ summary: 'Search Customers' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   searchCustomers(
     @CurrentUser() user: any,
     @Query('q') query: string,
@@ -24,6 +29,8 @@ export class QuotationController {
   }
 
   @Get('products/search')
+    @ApiOperation({ summary: 'Search Products' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   searchProducts(
     @CurrentUser() user: any,
     @Query('q') query: string,
@@ -33,26 +40,36 @@ export class QuotationController {
   }
 
   @Post('preview')
+    @ApiOperation({ summary: 'Preview' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
   preview(@CurrentUser() user: any, @Body() createQuotationDto: CreateQuotationDto) {
     return this.quotationService.calculatePreview(user.companyId, user.sub, createQuotationDto);
   }
 
   @Post()
+    @ApiOperation({ summary: 'Create' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
   create(@CurrentUser() user: any, @Body() createQuotationDto: CreateQuotationDto) {
     return this.quotationService.create(user.companyId, user.sub, createQuotationDto);
   }
 
   @Get()
+    @ApiOperation({ summary: 'Find All' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   findAll(@CurrentUser() user: any, @Query('branchId') branchId?: string) {
     return this.quotationService.findAll(user.companyId, branchId);
   }
 
   @Get(':id')
+    @ApiOperation({ summary: 'Find One' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.quotationService.findOne(id, user.companyId);
   }
 
   @Get(':id/pdf')
+    @ApiOperation({ summary: 'Download Pdf' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   async downloadPdf(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -82,6 +99,8 @@ export class QuotationController {
       }),
     }),
   )
+    @ApiOperation({ summary: 'Upload Attachment' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
   uploadAttachment(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -94,6 +113,8 @@ export class QuotationController {
   }
 
   @Put(':id')
+    @ApiOperation({ summary: 'Update' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   update(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -103,6 +124,8 @@ export class QuotationController {
   }
 
   @Delete(':id')
+    @ApiOperation({ summary: 'Remove' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.quotationService.remove(id, user.companyId);
   }

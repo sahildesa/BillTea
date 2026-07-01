@@ -6,14 +6,19 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Express } from 'express';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
 @UseGuards(JwtAuthGuard)
 @Controller('products')
+@ApiTags('Products')
+@ApiBearerAuth()
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
   @UseInterceptors(FileInterceptor('image'))
+    @ApiOperation({ summary: 'Create' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
   create(
     @CurrentUser() user: any,
     @Body() createProductDto: CreateProductDto,
@@ -24,17 +29,23 @@ export class ProductsController {
   }
 
   @Get()
+    @ApiOperation({ summary: 'Find All' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   findAll(@CurrentUser() user: any, @Query('branchId') branchId?: string) {
     return this.productsService.findAll(user.companyId, branchId);
   }
 
   @Get(':id')
+    @ApiOperation({ summary: 'Find One' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.productsService.findOne(id, user.companyId);
   }
 
   @Put(':id')
   @UseInterceptors(FileInterceptor('image'))
+    @ApiOperation({ summary: 'Update' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   update(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -46,6 +57,8 @@ export class ProductsController {
   }
 
   @Delete(':id')
+    @ApiOperation({ summary: 'Remove' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.productsService.remove(id, user.companyId);
   }

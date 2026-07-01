@@ -6,15 +6,20 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
 @Controller('branches')
 @UseGuards(JwtAuthGuard)
+@ApiTags('Branches')
+@ApiBearerAuth()
 export class BranchesController {
   constructor(private branchesService: BranchesService) {}
 
   @Post()
   @UseGuards(RolesGuard)
   @Roles('OWNER')
+    @ApiOperation({ summary: 'Create' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
   async create(
     @CurrentUser('companyId') companyId: string | null,
     @Body() dto: CreateBranchDto,
@@ -23,6 +28,8 @@ export class BranchesController {
   }
 
   @Get()
+    @ApiOperation({ summary: 'Find All' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   async findAll(@CurrentUser('companyId') companyId: string | null) {
     return this.branchesService.findAll(companyId);
   }
@@ -30,6 +37,8 @@ export class BranchesController {
   @Put(':id')
   @UseGuards(RolesGuard)
   @Roles('OWNER')
+    @ApiOperation({ summary: 'Update' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   async update(
     @Param('id') id: string,
     @CurrentUser('companyId') companyId: string | null,
@@ -41,6 +50,8 @@ export class BranchesController {
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('OWNER')
+    @ApiOperation({ summary: 'Remove' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   async remove(
     @Param('id') id: string,
     @CurrentUser('companyId') companyId: string | null,

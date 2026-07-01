@@ -21,6 +21,7 @@ import { diskStorage } from 'multer';
 import * as path from 'path';
 import * as fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
 // Ensure the directory exists for file uploads
 const uploadDir = path.join(process.cwd(), 'uploads', 'expenses');
@@ -30,6 +31,8 @@ if (!fs.existsSync(uploadDir)) {
 
 @UseGuards(JwtAuthGuard)
 @Controller('expenses')
+@ApiTags('Expenses')
+@ApiBearerAuth()
 export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}
 
@@ -53,6 +56,8 @@ export class ExpensesController {
       },
     }),
   )
+    @ApiOperation({ summary: 'Create' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
   create(
     @Body() createExpenseDto: CreateExpenseDto,
     @Req() req: any,
@@ -63,11 +68,15 @@ export class ExpensesController {
   }
 
   @Get()
+    @ApiOperation({ summary: 'Find All' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   findAll(@Req() req: any, @Query('branchId') branchId?: string) {
     return this.expensesService.findAll(req.user.companyId, branchId);
   }
 
   @Get(':id')
+    @ApiOperation({ summary: 'Find One' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   findOne(@Param('id') id: string, @Req() req: any) {
     return this.expensesService.findOne(id, req.user.companyId);
   }
@@ -91,6 +100,8 @@ export class ExpensesController {
       },
     }),
   )
+    @ApiOperation({ summary: 'Update' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   update(
     @Param('id') id: string,
     @Body() updateExpenseDto: UpdateExpenseDto,
@@ -102,6 +113,8 @@ export class ExpensesController {
   }
 
   @Delete(':id')
+    @ApiOperation({ summary: 'Remove' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
   remove(@Param('id') id: string, @Req() req: any) {
     return this.expensesService.remove(id, req.user.companyId);
   }

@@ -4,10 +4,14 @@ import { ENV } from '../config/env';
 
 export const apiClient = axios.create({
   baseURL: ENV.API_URL,
+  timeout: 10000, // 10 seconds timeout
   headers: {
     'Content-Type': 'application/json',
+    'Bypass-Tunnel-Reminder': 'true'
   },
 });
+
+console.log('API_URL is:', ENV.API_URL);
 
 // Keys for secure store
 export const TOKEN_KEYS = {

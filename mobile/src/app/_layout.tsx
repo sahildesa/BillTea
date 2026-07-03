@@ -24,11 +24,12 @@ export default function RootLayout() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inAppGroup = segments[0] === '(app)';
 
     if (!isAuthenticated && !inAuthGroup) {
       // Redirect to login
       router.replace('/(auth)/login');
-    } else if (isAuthenticated && inAuthGroup) {
+    } else if (isAuthenticated && !inAppGroup) {
       // Redirect to dashboard
       router.replace('/(app)/dashboard');
     }

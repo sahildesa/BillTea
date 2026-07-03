@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(15, 21, 36, 0.6)',
   },
   content: {

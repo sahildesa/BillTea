@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo/ui": "~57.0.1",
+    "@react-navigation/bottom-tabs": "^7.18.5",
     "axios": "^1.18.1",
     "date-fns": "^4.4.0",
     "expo": "~57.0.1",

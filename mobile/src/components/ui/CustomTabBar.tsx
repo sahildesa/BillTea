@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+
 import { BlurView } from 'expo-blur';
 import { FileText, Package, Plus, BarChart3, Settings } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 
-export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function CustomTabBar({ state, descriptors, navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.tabBackgroundWrapper}>
@@ -24,7 +24,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
       </View>
 
       <View style={styles.tabContent}>
-        {state.routes.map((route, index) => {
+        {state.routes.map((route: any, index: number) => {
           if (route.name === '_sitemap' || route.name === '+not-found' || route.name === 'dashboard') return null;
 
           const isFocused = state.index === index;
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   tabBackgroundWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 30,
     overflow: 'hidden',
   },

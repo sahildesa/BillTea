@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(15, 21, 36, 0.75)',
   },
   content: {

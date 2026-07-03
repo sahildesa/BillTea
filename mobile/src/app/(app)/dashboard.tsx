@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0e1a',
   },
   bgEffectsWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: 'hidden',
   },
   bgEffectTop: {

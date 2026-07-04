@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { storage } from '../services/storage';
 import { ENV } from '../config/env';
 
 export const apiClient = axios.create({
@@ -23,7 +23,7 @@ export const TOKEN_KEYS = {
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      const token = await SecureStore.getItemAsync(TOKEN_KEYS.ACCESS);
+      const token = await storage.getItemAsync(TOKEN_KEYS.ACCESS);
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -45,7 +45,7 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = await SecureStore.getItemAsync(TOKEN_KEYS.REFRESH);
+        const refreshToken = await storage.getItemAsync(TOKEN_KEYS.REFRESH);
         if (!refreshToken) {
           throw new Error('No refresh token available');
         }
@@ -56,9 +56,9 @@ apiClient.interceptors.response.use(
         });
 
         if (res.data?.accessToken) {
-          await SecureStore.setItemAsync(TOKEN_KEYS.ACCESS, res.data.accessToken);
+          await storage.setItemAsync(TOKEN_KEYS.ACCESS, res.data.accessToken);
           if (res.data.refreshToken) {
-            await SecureStore.setItemAsync(TOKEN_KEYS.REFRESH, res.data.refreshToken);
+            await storage.setItemAsync(TOKEN_KEYS.REFRESH, res.data.refreshToken);
           }
 
           // Retry the original request
@@ -67,8 +67,8 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshError) {
         // If refresh fails, we should logout the user (clear tokens)
-        await SecureStore.deleteItemAsync(TOKEN_KEYS.ACCESS);
-        await SecureStore.deleteItemAsync(TOKEN_KEYS.REFRESH);
+        await storage.deleteItemAsync(TOKEN_KEYS.ACCESS);
+        await storage.deleteItemAsync(TOKEN_KEYS.REFRESH);
         
         // You might want to trigger a global event here so the UI can redirect to login
         console.error('Refresh token expired or invalid', refreshError);

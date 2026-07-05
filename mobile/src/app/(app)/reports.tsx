@@ -1,24 +1,45 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React from "react";
+import {
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+} from "react-native";
+
+import Header from "../../components/reports/Header";
+import SummaryCard from "../../components/reports/SummaryCard";
+import RecentReport from "../../components/reports/RecentReport";
 
 export default function ReportsScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Reports</Text>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#0A0E1A"
+      />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+      >
+        <Header />
+        <SummaryCard />
+        <RecentReport />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#0a0e1a',
+    backgroundColor: "#0A0E1A",
   },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#e0e8f0',
+
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 40,
   },
 });

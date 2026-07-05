@@ -45,7 +45,7 @@ export function TrendChart() {
 
 const styles = StyleSheet.create({
   container: {
-    height: 150,
+    height: 192,
     width: '100%',
     overflow: 'visible',
   }

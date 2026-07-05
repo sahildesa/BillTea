@@ -5,6 +5,7 @@ import { GlassPanel } from '../../components/ui/GlassPanel';
 import { GlassPanelElevated } from '../../components/ui/GlassPanelElevated';
 import { TrendChart } from '../../components/ui/TrendChart';
 import { Home, Moon, Receipt, TrendingUp, FileText, CircleAlert, Calendar } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -60,11 +61,17 @@ export default function DashboardScreen() {
         {/* Core Metrics Grid */}
         <View style={styles.metricsGrid}>
           {/* Invoice Card */}
-          <GlassPanel style={styles.metricCard}>
+          <GlassPanel style={[styles.metricCard, { borderColor: 'rgba(125, 211, 252, 0.2)', shadowColor: '#7dd3fc', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.05, shadowRadius: 30, elevation: 3 }]}>
+            <LinearGradient
+              colors={['rgba(125, 211, 252, 0.05)', 'transparent']}
+              style={[StyleSheet.absoluteFill, { opacity: 0.3, margin: -20 }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
             <View style={styles.metricCardTop}>
-              <Receipt color="#7dd3fc" size={24} />
+              <Receipt color="#7dd3fc" size={20} />
               <View style={styles.trendBadge}>
-                <TrendingUp color="#4ade80" size={14} />
+                <TrendingUp color="#4ade80" size={12} />
                 <Text style={styles.trendBadgeText}>+12%</Text>
               </View>
             </View>
@@ -74,11 +81,17 @@ export default function DashboardScreen() {
           </GlassPanel>
 
           {/* Quotation Card */}
-          <GlassPanel style={[styles.metricCard, { borderColor: 'rgba(200, 160, 240, 0.2)' }]}>
+          <GlassPanel style={[styles.metricCard, { borderColor: 'rgba(200, 160, 240, 0.2)', shadowColor: '#c8a0f0', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.05, shadowRadius: 30, elevation: 3 }]}>
+            <LinearGradient
+              colors={['rgba(200, 160, 240, 0.05)', 'transparent']}
+              style={[StyleSheet.absoluteFill, { opacity: 0.3, margin: -20 }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
             <View style={styles.metricCardTop}>
-              <FileText color="#c8a0f0" size={24} />
+              <FileText color="#c8a0f0" size={20} />
               <View style={styles.trendBadge}>
-                <TrendingUp color="#4ade80" size={14} />
+                <TrendingUp color="#4ade80" size={12} />
                 <Text style={styles.trendBadgeText}>+5%</Text>
               </View>
             </View>
@@ -193,6 +206,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(125, 211, 252, 0.1)',
     zIndex: 10,
+    shadowColor: '#7dd3fc',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.05,
+    shadowRadius: 30,
+    elevation: 3,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -302,7 +320,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   trendsTitle: {
     fontSize: 18,

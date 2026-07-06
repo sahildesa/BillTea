@@ -4,8 +4,22 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { FileText, Package, Plus, BarChart3, Settings } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useUiStore } from '../../app/(app)/products';
 
 export function CustomTabBar({ state, descriptors, navigation }: any) {
+  const requestQuickAdd = useUiStore((store) => store.requestQuickAdd);
+  const productsSection = useUiStore((store) => store.productsSection);
+  const currentRouteName = state.routes[state.index]?.name;
+
+  const handleQuickAddPress = () => {
+    const section = currentRouteName === 'products' ? productsSection : 'products';
+    requestQuickAdd('products', section);
+
+    if (currentRouteName !== 'products') {
+      navigation.navigate('products');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.tabBackgroundWrapper}>
@@ -47,7 +61,7 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
           if (route.name === 'dummy') {
             return (
               <View key={route.key} style={styles.fabContainer}>
-                <TouchableOpacity style={styles.fabButton} activeOpacity={0.8}>
+                <TouchableOpacity style={styles.fabButton} activeOpacity={0.8} onPress={handleQuickAddPress}>
                   <Plus color="#001f2e" size={24} strokeWidth={3} />
                 </TouchableOpacity>
               </View>

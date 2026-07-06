@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo/ui": "~57.0.1",
+    "@expo/vector-icons": "^15.1.1",
     "@react-navigation/bottom-tabs": "^7.18.5",
     "axios": "^1.18.1",
     "date-fns": "^4.4.0",
@@ -14,6 +15,7 @@
     "expo-font": "~57.0.0",
     "expo-glass-effect": "~57.0.0",
     "expo-image": "~57.0.0",
+    "expo-image-picker": "~57.0.2",
     "expo-linear-gradient": "~57.0.0",
     "expo-linking": "~57.0.1",
     "expo-router": "~57.0.2",
@@ -38,6 +40,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~57.0.0",
     "typescript": "~6.0.3"
   },
   "scripts": {

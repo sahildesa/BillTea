@@ -20,6 +20,7 @@ import { router } from 'expo-router';
 import { COLORS } from '../../constants/colors';
 import ProfileHeader from '../../components/ProfileHeader';
 import SettingsItem from '../../components/SettingsItem';
+import { useAuthStore } from '../../store/authStore';
 
 const { width } = Dimensions.get('window');
 const isTablet = width > 600;
@@ -51,10 +52,10 @@ export default function SettingsScreen() {
     }).start();
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     console.log('Logout Pressed');
-    // Placeholder handler
-    // authStore.logout();
+    const { logout } = useAuthStore.getState();
+    await logout();
     router.replace('/(auth)/explore'); // Navigate to login/auth screen
   };
 

@@ -4,14 +4,14 @@ import { useRouter } from 'expo-router';
 import { GlassPanel } from '../../components/ui/GlassPanel';
 import { GlassPanelElevated } from '../../components/ui/GlassPanelElevated';
 import { TrendChart } from '../../components/ui/TrendChart';
-import { Home, Moon, Receipt, TrendingUp, FileText, CircleAlert, Calendar } from 'lucide-react-native';
+import { AppHeader } from '../../components/ui/AppHeader';
+import { Receipt, TrendingUp, FileText, CircleAlert, Calendar } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
 export default function DashboardScreen() {
   const [activeTab, setActiveTab] = useState<'Summary' | 'Trends'>('Summary');
-  const router = useRouter();
 
   return (
     <View style={styles.container}>
@@ -22,17 +22,7 @@ export default function DashboardScreen() {
       </View>
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => router.navigate('/(app)/dashboard')}>
-            <Home color="#a0b4c4" size={24} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Dashboard</Text>
-        </View>
-        <TouchableOpacity style={styles.headerRightBtn}>
-          <Moon color="#a0b4c4" size={20} />
-        </TouchableOpacity>
-      </View>
+      <AppHeader title="Dashboard" />
 
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
@@ -195,40 +185,7 @@ const styles = StyleSheet.create({
     borderRadius: 125,
     transform: [{ scale: 1.5 }],
   },
-  header: {
-    height: 90,
-    paddingTop: 40,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(15, 21, 36, 0.6)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(125, 211, 252, 0.1)',
-    zIndex: 10,
-    shadowColor: '#7dd3fc',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.05,
-    shadowRadius: 30,
-    elevation: 3,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#e0e8f0',
-    marginLeft: 12,
-    letterSpacing: -0.5,
-  },
-  headerRightBtn: {
-    padding: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
+
   scrollContent: {
     padding: 16,
     paddingTop: 16,

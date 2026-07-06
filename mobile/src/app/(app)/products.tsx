@@ -5,7 +5,6 @@ import {
   Keyboard,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -35,6 +35,8 @@ import {
   Users,
   X,
 } from "lucide-react-native";
+
+import { AppHeader } from "../../components/ui/AppHeader";
 
 import { ENV } from "@/config/env";
 import { apiClient } from "@/api/client";
@@ -551,7 +553,10 @@ export default function ProductsScreen() {
   }, []);
 
   useEffect(() => {
-    if (!selectedBranchId) return;
+    if (!selectedBranchId) {
+      setLoadingRecords(false);
+      return;
+    }
 
     let mounted = true;
 
@@ -1121,67 +1126,26 @@ export default function ProductsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar style="light" />
 
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.iconButton}
-            onPress={() => router.replace("/(app)/dashboard")}
-          >
-            <House color="#A7B6C7" size={22} strokeWidth={2.3} />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleWrap}>
-            {searchActive ? (
-              <TextInput
-                ref={searchInputRef}
-                value={searchText}
-                onChangeText={setSearchText}
-                placeholder={
-                  activeSection === "customers"
-                    ? "Search customers..."
-                    : "Search products..."
-                }
-                placeholderTextColor="#708090"
-                autoCorrect={false}
-                autoCapitalize="none"
-                onBlur={() => setSearchActive(false)}
-                style={styles.headerSearchInput}
-              />
-            ) : (
-              <Text style={styles.title}>{title}</Text>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.iconButton}
-            onPress={handleSearchIconPress}
-          >
-            <Search
-              size={22}
-              color={searchActive ? "#7DD3FC" : "#A7B6C7"}
-              strokeWidth={2.3}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.iconButton}
-            onPress={handleFilterPress}
-          >
-            <Filter
-              size={22}
-              color={filterMode === "all" ? "#A7B6C7" : "#7DD3FC"}
-              strokeWidth={2.3}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AppHeader
+        title={title}
+        onSearchPress={handleSearchIconPress}
+        onFilterPress={handleFilterPress}
+        searchActive={searchActive}
+        filterActive={filterMode !== "all"}
+        showSearchInput={searchActive}
+        searchInputRef={searchInputRef}
+        searchText={searchText}
+        onSearchTextChange={setSearchText}
+        searchPlaceholder={
+          activeSection === "customers"
+            ? "Search customers..."
+            : "Search products..."
+        }
+        onSearchBlur={() => setSearchActive(false)}
+      />
 
       <Pressable style={styles.bodyPressable} onPress={collapseSearch}>
         <ScrollView
@@ -1336,7 +1300,7 @@ export default function ProductsScreen() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1345,59 +1309,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#0A0E1A",
   },
-  header: {
-    height: 90,
-    paddingTop: 40,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(15, 21, 36, 0.6)",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(125, 211, 252, 0.1)",
-    zIndex: 10,
-    // shadowColor: '#7dd3fc',
-    // shadowOffset: { width: 0, height: 0 },
-    // shadowOpacity: 0.05,
-    shadowRadius: 30,
-    elevation: 3,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  headerTitleWrap: {
-    flex: 1,
-    marginLeft: 12,
-    minHeight: 28,
-    justifyContent: "center",
-  },
-  headerSearchInput: {
-    color: "#E8EEF6",
-    fontSize: 20,
-    fontWeight: "700",
-    letterSpacing: -0.5,
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
   iconButton: {
     width: 36,
     height: 36,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 18,
-  },
-  title: {
-    color: "#E8EEF6",
-    fontSize: 20,
-    fontWeight: "700",
-    letterSpacing: -0.5,
   },
   content: {
     paddingHorizontal: 20,

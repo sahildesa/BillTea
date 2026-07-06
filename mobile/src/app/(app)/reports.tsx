@@ -1,22 +1,25 @@
 import React from "react";
 import {
-  SafeAreaView,
+  View,
   ScrollView,
   StatusBar,
   StyleSheet,
 } from "react-native";
 
+import { AppHeader } from "../../components/ui/AppHeader";
 import Header from "../../components/reports/Header";
 import SummaryCard from "../../components/reports/SummaryCard";
 import RecentReport from "../../components/reports/RecentReport";
 
 export default function ReportsScreen() {
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar
         barStyle="light-content"
         backgroundColor="#0A0E1A"
       />
+
+      <AppHeader title="Reports" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -26,7 +29,7 @@ export default function ReportsScreen() {
         <SummaryCard />
         <RecentReport />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -40,6 +43,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
 });

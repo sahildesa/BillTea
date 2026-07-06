@@ -5,31 +5,12 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { House } from "lucide-react-native";
 
 export default function Header() {
   const [selected, setSelected] = useState<"invoice" | "profit">("invoice");
 
   return (
     <>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity activeOpacity={0.8} style={styles.iconButton}>
-          <House
-            size={22}
-            color="#A7B6C7"
-            strokeWidth={2.3}
-          />
-        </TouchableOpacity>
-
-        <Text style={styles.title}>Reports</Text>
-
-        <View style={styles.placeholder} />
-      </View>
-
-      {/* Divider */}
-      <View style={styles.divider} />
-
       {/* Toggle */}
       <View style={styles.segment}>
         <TouchableOpacity
@@ -73,40 +54,6 @@ export default function Header() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    height: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  iconButton: {
-    width: 36,
-    height: 36,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 18,
-  },
-
-  placeholder: {
-    width: 36,
-  },
-
-  title: {
-    color: "#E8EEF6",
-    fontSize: 22,
-    fontWeight: "700",
-    letterSpacing: 0.2,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: "rgba(125,211,252,0.10)",
-    marginHorizontal: -20,
-    marginTop: 6,
-    marginBottom: 18,
-  },
-
   segment: {
     flexDirection: "row",
     backgroundColor: "rgba(15,21,36,0.65)",

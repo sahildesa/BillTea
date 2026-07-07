@@ -18,7 +18,7 @@ export function ActionIconButton({
   size = 18,
   style,
 }: ActionIconButtonProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const iconColor = color || colors.textSecondary;
 
   return (
@@ -27,8 +27,8 @@ export function ActionIconButton({
       style={[
         styles.button,
         {
-          backgroundColor: colors.isDark ? "rgba(125, 211, 252, 0.04)" : "rgba(3, 105, 161, 0.04)",
-          borderColor: colors.isDark ? "rgba(125, 211, 252, 0.08)" : "rgba(3, 105, 161, 0.08)",
+          backgroundColor: isDark ? "rgba(125, 211, 252, 0.04)" : "rgba(3, 105, 161, 0.04)",
+          borderColor: isDark ? "rgba(125, 211, 252, 0.08)" : "rgba(3, 105, 161, 0.08)",
         },
         style,
       ]}

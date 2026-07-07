@@ -122,7 +122,7 @@ function formatAbbreviatedCurrency(amount: number) {
 export default function QuotationsScreen() {
   const searchInputRef = useRef<TextInput>(null);
   const [activeTab, setActiveTab] = useState<Tab>("Quotations");
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   // Record list states
   const [quotations, setQuotations] = useState<Quotation[]>([]);
@@ -653,7 +653,7 @@ export default function QuotationsScreen() {
     return filteredExpenses;
   }, [activeTab, filteredQuotations, filteredInvoices, filteredExpenses]);
 
-  const activeCardRenderer = useMemo(() => {
+  const activeCardRenderer = useMemo<any>(() => {
     if (activeTab === "Quotations") return renderQuotationCard;
     if (activeTab === "Invoices") return renderInvoiceCard;
     return renderExpenseCard;
@@ -661,7 +661,7 @@ export default function QuotationsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={colors.isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Ambient background glow blobs */}
       <View style={styles.bgEffectsWrapper} pointerEvents="none">
@@ -682,7 +682,7 @@ export default function QuotationsScreen() {
       />
 
       <FlatList
-        data={loading ? [] : activeDataList}
+        data={loading ? [] : (activeDataList as any[])}
         keyExtractor={(item) => item.id}
         renderItem={activeCardRenderer}
         showsVerticalScrollIndicator={false}
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bgEffectsWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: "hidden",
   },
   bgEffectTop: {

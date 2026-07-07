@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   tabNav: {
     flexDirection: 'row',
     borderRadius: 999,
-    padding: 4,
+    padding: 3,
     borderWidth: 1,
     marginBottom: 16,
   },

@@ -258,7 +258,7 @@ function SegmentButton({
   );
 }
 
-function CustomerCard({
+const CustomerCard = React.memo(function CustomerCard({
   customer,
   onEdit,
   onDelete,
@@ -289,20 +289,18 @@ function CustomerCard({
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity
-            activeOpacity={0.8}
+          <Pressable
             style={styles.actionButton}
             onPress={onEdit}
           >
             <PencilLine size={18} color="#FBBF24" strokeWidth={2.2} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.8}
+          </Pressable>
+          <Pressable
             style={styles.actionButton}
             onPress={onDelete}
           >
             <Trash2 size={18} color={colors.error} strokeWidth={2.2} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
 
@@ -346,9 +344,9 @@ function CustomerCard({
       </View>
     </View>
   );
-}
+});
 
-function ProductCard({
+const ProductCard = React.memo(function ProductCard({
   product,
   onEdit,
   onDelete,
@@ -370,6 +368,7 @@ function ProductCard({
                 source={{ uri: imageUrl }}
                 style={styles.productImage}
                 contentFit="cover"
+                pointerEvents="none"
               />
             ) : (
               <Package color={colors.primary} size={20} strokeWidth={2.2} />
@@ -387,20 +386,18 @@ function ProductCard({
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity
-            activeOpacity={0.8}
+          <Pressable
             style={styles.actionButton}
             onPress={onEdit}
           >
             <PencilLine size={18} color="#FBBF24" strokeWidth={2.2} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.8}
+          </Pressable>
+          <Pressable
             style={styles.actionButton}
             onPress={onDelete}
           >
             <Trash2 size={18} color={colors.error} strokeWidth={2.2} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
 
@@ -460,7 +457,7 @@ function ProductCard({
       </View>
     </View>
   );
-}
+});
 
 function ModalField({
   label,
@@ -1165,13 +1162,13 @@ export default function ProductsScreen() {
         onSearchBlur={() => setSearchActive(false)}
       />
 
-      <Pressable style={styles.bodyPressable} onPress={collapseSearch}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.content}
-          keyboardDismissMode="on-drag"
-          onScrollBeginDrag={collapseSearch}
-        >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+        keyboardDismissMode="on-drag"
+        onScrollBeginDrag={collapseSearch}
+        keyboardShouldPersistTaps="handled"
+      >
           <View style={[styles.segment, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
             <SegmentButton
               label="Customers"
@@ -1227,8 +1224,7 @@ export default function ProductsScreen() {
               )}
             </View>
           )}
-        </ScrollView>
-      </Pressable>
+      </ScrollView>
 
       <Modal
         visible={isModalOpen}
@@ -1337,7 +1333,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 40,
+    paddingBottom: 124,
   },
   bodyPressable: {
     flex: 1,

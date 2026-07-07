@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch, API_BASE } from '@/lib/auth';
 
 const getImageUrl = (url?: string) => {
@@ -20,6 +20,8 @@ import { useBranch } from '@/components/BranchProvider';
 
 export default function CreateInvoicePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const copyFromQuotationId = searchParams.get('copyFromQuotation');
   const { selectedBranchId, branches } = useBranch();
 
   // 1. Core State
@@ -178,6 +180,12 @@ export default function CreateInvoicePage() {
     }
   }, [quotationSearch, selectedBranchId]);
 
+  useEffect(() => {
+    if (copyFromQuotationId && selectedBranchId) {
+      handleQuotationSelect({ id: copyFromQuotationId, quotationNumber: 'Loading...' });
+    }
+  }, [copyFromQuotationId, selectedBranchId]);
+
   const handleQuotationSelect = async (quotationSummary: any) => {
     try {
       setShowQuotationDropdown(false);
@@ -191,6 +199,8 @@ export default function CreateInvoicePage() {
         console.log("Full quotation fetched:", fullQuotation);
         
         // Auto-populate invoice state
+        setQuotationSearch(fullQuotation.quotationNumber);
+        setSelectedQuotation(fullQuotation);
         setCustomerSearch(fullQuotation.customer.customerName);
         setFormData(prev => ({
           ...prev,

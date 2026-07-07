@@ -1,5 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { GlassPanel } from "../ui/GlassPanel";
+import { useTheme } from "../../hooks/useTheme";
 import {
   ReceiptText,
   Wallet,
@@ -43,13 +45,15 @@ const DATA = [
 ];
 
 export default function SummaryCard() {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.grid}>
       {DATA.map((item) => {
         const Icon = item.icon;
 
         return (
-          <View key={item.id} style={styles.card}>
+          <GlassPanel key={item.id} style={styles.card}>
             <View style={styles.topRow}>
               <Icon
                 size={18}
@@ -57,7 +61,7 @@ export default function SummaryCard() {
                 strokeWidth={2}
               />
 
-              <Text style={styles.label}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
                 {item.title}
               </Text>
             </View>
@@ -70,7 +74,7 @@ export default function SummaryCard() {
             >
               {item.value}
             </Text>
-          </View>
+          </GlassPanel>
         );
       })}
     </View>
@@ -87,21 +91,7 @@ const styles = StyleSheet.create({
 
   card: {
     width: "48%",
-
-    minHeight: 110,
-
-    backgroundColor: "rgba(15,21,36,0.65)",
-
-    borderWidth: 1,
-
-    borderColor: "rgba(125,211,252,0.10)",
-
-    borderRadius: 18,
-
     padding: 16,
-
-    justifyContent: "space-between",
-
     marginBottom: 15,
   },
 
@@ -112,8 +102,6 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    color: "#A0B4C4",
-
     fontSize: 12,
 
     fontWeight: "600",

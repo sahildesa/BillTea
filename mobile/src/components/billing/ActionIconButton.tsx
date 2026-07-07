@@ -1,6 +1,7 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet, ViewStyle } from "react-native";
 import { LucideIcon } from "lucide-react-native";
+import { useTheme } from "../../hooks/useTheme";
 
 interface ActionIconButtonProps {
   icon: LucideIcon;
@@ -13,17 +14,27 @@ interface ActionIconButtonProps {
 export function ActionIconButton({
   icon: Icon,
   onPress,
-  color = "#A0B4C4",
+  color,
   size = 18,
   style,
 }: ActionIconButtonProps) {
+  const { colors } = useTheme();
+  const iconColor = color || colors.textSecondary;
+
   return (
     <TouchableOpacity
       activeOpacity={0.6}
-      style={[styles.button, style]}
+      style={[
+        styles.button,
+        {
+          backgroundColor: colors.isDark ? "rgba(125, 211, 252, 0.04)" : "rgba(3, 105, 161, 0.04)",
+          borderColor: colors.isDark ? "rgba(125, 211, 252, 0.08)" : "rgba(3, 105, 161, 0.08)",
+        },
+        style,
+      ]}
       onPress={onPress}
     >
-      <Icon size={size} color={color} strokeWidth={2.2} />
+      <Icon size={size} color={iconColor} strokeWidth={2.2} />
     </TouchableOpacity>
   );
 }
@@ -33,9 +44,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(125, 211, 252, 0.04)",
     borderWidth: 1,
-    borderColor: "rgba(125, 211, 252, 0.08)",
     alignItems: "center",
     justifyContent: "center",
   },

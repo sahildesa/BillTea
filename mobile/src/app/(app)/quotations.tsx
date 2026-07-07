@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
+  FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -25,9 +26,13 @@ import {
 import { AppHeader } from "../../components/ui/AppHeader";
 import { GlassPanel } from "../../components/ui/GlassPanel";
 import { ActionIconButton } from "../../components/billing/ActionIconButton";
+import { SegmentedControl } from "../../components/ui/SegmentedControl";
+import { useTheme } from "../../hooks/useTheme";
 import { apiClient } from "@/api/client";
 
-type Tab = "quotations" | "invoices" | "expenses";
+const { width } = Dimensions.get("window");
+
+type Tab = "Quotations" | "Invoices" | "Expenses";
 
 interface Customer {
   id: string;
@@ -114,39 +119,10 @@ function formatAbbreviatedCurrency(amount: number) {
   return formatCurrency(amount);
 }
 
-function SegmentButton({
-  label,
-  isActive,
-  onPress,
-}: {
-  label: string;
-  isActive: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.segmentButton,
-        isActive && styles.segmentButtonActive,
-        pressed && styles.segmentButtonPressed,
-      ]}
-    >
-      <Text
-        style={[
-          styles.segmentText,
-          isActive ? styles.segmentTextActive : styles.segmentTextInactive,
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 export default function QuotationsScreen() {
   const searchInputRef = useRef<TextInput>(null);
-  const [activeTab, setActiveTab] = useState<Tab>("quotations");
+  const [activeTab, setActiveTab] = useState<Tab>("Quotations");
+  const { colors } = useTheme();
 
   // Record list states
   const [quotations, setQuotations] = useState<Quotation[]>([]);
@@ -157,20 +133,14 @@ export default function QuotationsScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedTabs, setFetchedTabs] = useState<Record<Tab, boolean>>({
-    quotations: false,
-    invoices: false,
-    expenses: false,
+    Quotations: false,
+    Invoices: false,
+    Expenses: false,
   });
 
   // Search states
   const [searchActive, setSearchActive] = useState(false);
   const [searchText, setSearchText] = useState("");
-
-  const title = useMemo(() => {
-    if (activeTab === "quotations") return "Quotations";
-    if (activeTab === "invoices") return "Invoices";
-    return "Expenses";
-  }, [activeTab]);
 
   // Fetch data lazily on tab switch
   useEffect(() => {
@@ -182,26 +152,27 @@ export default function QuotationsScreen() {
       setLoading(true);
       setError(null);
       try {
-        const endpoint = `/${activeTab}`;
+        const endpoint = `/${activeTab.toLowerCase()}`;
         const res = await apiClient.get(endpoint);
         if (!mounted) return;
 
         if (res.status === 200 && res.data?.success) {
-          const list = Array.isArray(res.data[activeTab]) ? res.data[activeTab] : [];
-          if (activeTab === "quotations") {
+          const tabKey = activeTab.toLowerCase();
+          const list = Array.isArray(res.data[tabKey]) ? res.data[tabKey] : [];
+          if (activeTab === "Quotations") {
             setQuotations(list);
-          } else if (activeTab === "invoices") {
+          } else if (activeTab === "Invoices") {
             setInvoices(list);
-          } else if (activeTab === "expenses") {
+          } else if (activeTab === "Expenses") {
             setExpenses(list);
           }
           setFetchedTabs((prev) => ({ ...prev, [activeTab]: true }));
         } else {
-          setError(`Failed to load ${activeTab} list.`);
+          setError(`Failed to load ${activeTab.toLowerCase()} list.`);
         }
       } catch (err) {
         if (mounted) {
-          setError(`Failed to connect to server to load ${activeTab}.`);
+          setError(`Failed to connect to server to load ${activeTab.toLowerCase()}.`);
         }
       } finally {
         if (mounted) {
@@ -260,7 +231,7 @@ export default function QuotationsScreen() {
 
   // Stats Row calculations
   const currentStats = useMemo(() => {
-    if (activeTab === "quotations") {
+    if (activeTab === "Quotations") {
       const totalVolume = quotations.reduce(
         (sum, item) => sum + (item.totals?.grandTotal ?? 0),
         0
@@ -271,7 +242,7 @@ export default function QuotationsScreen() {
         { label: "Pending Sent", value: String(pendingCount) },
       ];
     }
-    if (activeTab === "invoices") {
+    if (activeTab === "Invoices") {
       const totalVolume = invoices.reduce(
         (sum, item) => sum + (item.totals?.grandTotal ?? 0),
         0
@@ -409,32 +380,32 @@ export default function QuotationsScreen() {
   };
 
   // Card Render functions
-  const renderQuotationCard = (quotation: Quotation) => {
+  const renderQuotationCard = ({ item }: { item: Quotation }) => {
     const statusColors = {
       DRAFT: "#fbbf24",
       SENT: "#34d399",
       ACCEPTED: "#60a5fa",
       EXPIRED: "#fb7185",
     };
-    const statusColor = statusColors[quotation.status] ?? "#A0B4C4";
+    const statusColor = statusColors[item.status] ?? colors.textSecondary;
     const customerName =
-      quotation.customer?.companyName ??
-      quotation.customer?.customerName ??
+      item.customer?.companyName ??
+      item.customer?.customerName ??
       "Unknown Customer";
 
     return (
-      <View key={quotation.id} style={styles.card}>
+      <GlassPanel style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.cardIdentity}>
-            <View style={styles.idPill}>
-              <Text style={styles.idPillText}>{quotation.quotationNumber}</Text>
+            <View style={[styles.idPill, { backgroundColor: colors.surfaceVariant }]}>
+              <Text style={[styles.idPillText, { color: colors.primary }]}>{item.quotationNumber}</Text>
             </View>
             <View style={styles.cardTitleWrap}>
-              <Text style={styles.cardTitle} numberOfLines={1}>
+              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
                 {customerName}
               </Text>
-              <Text style={styles.cardSubtitle}>
-                {formatDate(quotation.quotationDate)}
+              <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                {formatDate(item.quotationDate)}
               </Text>
             </View>
           </View>
@@ -450,18 +421,18 @@ export default function QuotationsScreen() {
           >
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
             <Text style={[styles.statusText, { color: statusColor }]}>
-              {quotation.status}
+              {item.status}
             </Text>
           </View>
         </View>
 
-        <View style={styles.innerDivider} />
+        <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
 
         <View style={styles.cardFooter}>
           <View style={styles.priceRow}>
-            <Text style={styles.priceCurrency}>$</Text>
-            <Text style={styles.priceValue}>
-              {(quotation.totals?.grandTotal ?? 0).toLocaleString("en-US", {
+            <Text style={[styles.priceCurrency, { color: colors.primary }]}>$</Text>
+            <Text style={[styles.priceValue, { color: colors.text }]}>
+              {(item.totals?.grandTotal ?? 0).toLocaleString("en-US", {
                 minimumFractionDigits: 2,
               })}
             </Text>
@@ -491,16 +462,16 @@ export default function QuotationsScreen() {
             />
             <ActionIconButton
               icon={Trash2}
-              onPress={() => handleDeleteQuotation(quotation.id)}
+              onPress={() => handleDeleteQuotation(item.id)}
               color="#FF6B6B"
             />
           </View>
         </View>
-      </View>
+      </GlassPanel>
     );
   };
 
-  const renderInvoiceCard = (invoice: Invoice) => {
+  const renderInvoiceCard = ({ item }: { item: Invoice }) => {
     const statusColors = {
       PAID: "#34d399",
       UNPAID: "#fbbf24",
@@ -510,36 +481,36 @@ export default function QuotationsScreen() {
       SENT: "#7dd3fc",
       CANCELLED: "#64748b",
     };
-    const statusColor = statusColors[invoice.status] ?? "#A0B4C4";
+    const statusColor = statusColors[item.status] ?? colors.textSecondary;
     const customerName =
-      invoice.customer?.companyName ?? invoice.customer?.customerName ?? "Unknown Customer";
+      item.customer?.companyName ?? item.customer?.customerName ?? "Unknown Customer";
 
-    const isOverdue = invoice.status === "OVERDUE";
-    const isCancelled = invoice.status === "CANCELLED";
+    const isOverdue = item.status === "OVERDUE";
+    const isCancelled = item.status === "CANCELLED";
 
     return (
-      <View
-        key={invoice.id}
+      <GlassPanel
         style={[styles.card, isCancelled && { opacity: 0.5 }]}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardIdentity}>
             <Text style={[styles.invoiceNumberText, { color: statusColor }]}>
-              {invoice.invoiceNumber}
+              {item.invoiceNumber}
             </Text>
             <View style={styles.cardTitleWrap}>
-              <Text style={styles.cardTitle} numberOfLines={1}>
+              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
                 {customerName}
               </Text>
               <Text
                 style={[
                   styles.cardSubtitle,
+                  { color: colors.textSecondary },
                   isOverdue && { color: statusColor, fontWeight: "700" },
                 ]}
               >
                 {isOverdue
-                  ? `Due ${formatDate(invoice.dueDate)}`
-                  : formatDate(invoice.invoiceDate)}
+                  ? `Due ${formatDate(item.dueDate)}`
+                  : formatDate(item.invoiceDate)}
               </Text>
             </View>
           </View>
@@ -555,24 +526,24 @@ export default function QuotationsScreen() {
           >
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
             <Text style={[styles.statusText, { color: statusColor }]}>
-              {invoice.status}
+              {item.status}
             </Text>
           </View>
         </View>
 
-        <View style={styles.innerDivider} />
+        <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
 
         <View style={styles.invoiceDetailsContainer}>
           <View style={styles.priceRow}>
-            <Text style={styles.priceCurrency}>$</Text>
-            <Text style={styles.priceValue}>
-              {(invoice.totals?.grandTotal ?? 0).toLocaleString("en-US", {
+            <Text style={[styles.priceCurrency, { color: colors.primary }]}>$</Text>
+            <Text style={[styles.priceValue, { color: colors.text }]}>
+              {(item.totals?.grandTotal ?? 0).toLocaleString("en-US", {
                 minimumFractionDigits: 2,
               })}
             </Text>
           </View>
-          <Text style={styles.balanceText}>
-            Balance: {formatCurrency(invoice.amountDue ?? 0)}
+          <Text style={[styles.balanceText, { color: colors.textSecondary }]}>
+            Balance: {formatCurrency(item.amountDue ?? 0)}
           </Text>
         </View>
 
@@ -605,57 +576,57 @@ export default function QuotationsScreen() {
           />
           <ActionIconButton
             icon={Trash2}
-            onPress={() => handleDeleteInvoice(invoice.id)}
+            onPress={() => handleDeleteInvoice(item.id)}
             color="#FF6B6B"
           />
         </View>
-      </View>
+      </GlassPanel>
     );
   };
 
-  const renderExpenseCard = (expense: Expense) => {
-    const shortId = expense.id
-      ? expense.id.substring(expense.id.length - 8).toUpperCase()
+  const renderExpenseCard = ({ item }: { item: Expense }) => {
+    const shortId = item.id
+      ? item.id.substring(item.id.length - 8).toUpperCase()
       : "EXP";
-    const loggedBy = expense.createdBy?.fullName ?? "—";
-    const categoryName = expense.category?.name ?? "Uncategorized";
+    const loggedBy = item.createdBy?.fullName ?? "—";
+    const categoryName = item.category?.name ?? "Uncategorized";
 
     return (
-      <View key={expense.id} style={styles.card}>
+      <GlassPanel style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.cardIdentity}>
-            <View style={styles.expenseIconWrap}>
-              <Text style={styles.expenseIconText}>EXP</Text>
+            <View style={[styles.expenseIconWrap, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
+              <Text style={[styles.expenseIconText, { color: colors.primary }]}>EXP</Text>
             </View>
             <View style={styles.cardTitleWrap}>
-              <Text style={styles.cardTitle} numberOfLines={1}>
+              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
                 {categoryName}
               </Text>
-              <Text style={styles.cardSubtitle}>
-                Ref: #{shortId} • {formatDate(expense.date)}
+              <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                Ref: #{shortId} • {formatDate(item.date)}
               </Text>
             </View>
           </View>
 
           <View style={styles.expenseAmountRow}>
             <Text style={styles.expenseAmountText}>
-              -{formatCurrency(expense.amount)}
+              -{formatCurrency(item.amount)}
             </Text>
           </View>
         </View>
 
-        {expense.note ? (
-          <View style={styles.noteContainer}>
-            <Text style={styles.noteText} numberOfLines={2}>
-              {expense.note}
+        {item.note ? (
+          <View style={[styles.noteContainer, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
+            <Text style={[styles.noteText, { color: colors.textSecondary }]} numberOfLines={2}>
+              {item.note}
             </Text>
           </View>
         ) : null}
 
-        <View style={styles.innerDivider} />
+        <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
 
         <View style={styles.expenseFooter}>
-          <Text style={styles.loggedByText}>Logged by: {loggedBy}</Text>
+          <Text style={[styles.loggedByText, { color: colors.textSecondary }]}>Logged by: {loggedBy}</Text>
 
           <View style={styles.actionsRow}>
             <ActionIconButton icon={Copy} onPress={() => handleComingSoon("Copy")} />
@@ -667,124 +638,107 @@ export default function QuotationsScreen() {
             <ActionIconButton icon={Eye} onPress={() => handleComingSoon("View")} />
             <ActionIconButton
               icon={Trash2}
-              onPress={() => handleDeleteExpense(expense.id)}
+              onPress={() => handleDeleteExpense(item.id)}
               color="#FF6B6B"
             />
           </View>
         </View>
-      </View>
+      </GlassPanel>
     );
   };
 
-  const collapseSearch = () => {
-    setSearchActive(false);
-    searchInputRef.current?.blur();
-  };
+  const activeDataList = useMemo(() => {
+    if (activeTab === "Quotations") return filteredQuotations;
+    if (activeTab === "Invoices") return filteredInvoices;
+    return filteredExpenses;
+  }, [activeTab, filteredQuotations, filteredInvoices, filteredExpenses]);
+
+  const activeCardRenderer = useMemo(() => {
+    if (activeTab === "Quotations") return renderQuotationCard;
+    if (activeTab === "Invoices") return renderInvoiceCard;
+    return renderExpenseCard;
+  }, [activeTab]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={colors.isDark ? "light" : "dark"} />
+
+      {/* Ambient background glow blobs */}
+      <View style={styles.bgEffectsWrapper} pointerEvents="none">
+        <View style={[styles.bgEffectTop, { backgroundColor: colors.primary + "12" }]} />
+        <View style={[styles.bgEffectBottom, { backgroundColor: colors.tertiary + "12" }]} />
+      </View>
 
       <AppHeader
-        title={title}
+        title={activeTab}
         onSearchPress={handleSearchIconPress}
         searchActive={searchActive}
         showSearchInput={searchActive}
         searchInputRef={searchInputRef}
         searchText={searchText}
         onSearchTextChange={setSearchText}
-        searchPlaceholder={`Search ${activeTab}...`}
+        searchPlaceholder={`Search ${activeTab.toLowerCase()}...`}
         onSearchBlur={() => setSearchActive(false)}
       />
 
-      <Pressable style={styles.bodyPressable} onPress={collapseSearch}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.content}
-          keyboardDismissMode="on-drag"
-          onScrollBeginDrag={collapseSearch}
-        >
-          {/* Pill Segmented Tab Control */}
-          <View style={styles.segment}>
-            <SegmentButton
-              label="Quotations"
-              isActive={activeTab === "quotations"}
-              onPress={() => setActiveTab("quotations")}
+      <FlatList
+        data={loading ? [] : activeDataList}
+        keyExtractor={(item) => item.id}
+        renderItem={activeCardRenderer}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        keyboardDismissMode="on-drag"
+        ListHeaderComponent={
+          <>
+            {/* Pill Segmented Tab Control */}
+            <SegmentedControl
+              options={["Quotations", "Invoices", "Expenses"]}
+              activeOption={activeTab}
+              onOptionChange={(opt) => setActiveTab(opt as Tab)}
+              style={{ marginBottom: 16 }}
             />
-            <SegmentButton
-              label="Invoices"
-              isActive={activeTab === "invoices"}
-              onPress={() => setActiveTab("invoices")}
-            />
-            <SegmentButton
-              label="Expenses"
-              isActive={activeTab === "expenses"}
-              onPress={() => setActiveTab("expenses")}
-            />
-          </View>
 
-          {/* Unified Stats Row */}
-          <GlassPanel style={styles.statsPanel}>
-            <View style={styles.statsContainer}>
-              {currentStats.map((stat, idx) => (
-                <React.Fragment key={stat.label}>
-                  {idx > 0 && <View style={styles.statsDivider} />}
-                  <View style={styles.statItem}>
-                    <Text style={styles.statLabel}>{stat.label}</Text>
-                    <Text
-                      style={[
-                        styles.statValue,
-                        stat.color ? { color: stat.color } : null,
-                      ]}
-                    >
-                      {stat.value}
-                    </Text>
-                  </View>
-                </React.Fragment>
-              ))}
-            </View>
-          </GlassPanel>
-
-          {/* Data List Content */}
-          {loading ? (
-            <View style={styles.stateCard}>
-              <ActivityIndicator size="large" color="#7DD3FC" />
-              <Text style={styles.stateText}>Loading {activeTab}...</Text>
-            </View>
+            {/* Unified Stats Row */}
+            <GlassPanel style={styles.statsPanel}>
+              <View style={styles.statsContainer}>
+                {currentStats.map((stat, idx) => (
+                  <React.Fragment key={stat.label}>
+                    {idx > 0 && <View style={[styles.statsDivider, { backgroundColor: colors.border }]} />}
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{stat.label}</Text>
+                      <Text
+                        style={[
+                          styles.statValue,
+                          { color: colors.primary },
+                          stat.color ? { color: stat.color } : null,
+                        ]}
+                      >
+                        {stat.value}
+                      </Text>
+                    </View>
+                  </React.Fragment>
+                ))}
+              </View>
+            </GlassPanel>
+          </>
+        }
+        ListEmptyComponent={
+          loading ? (
+            <GlassPanel style={styles.stateCard}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.stateText, { color: colors.textSecondary }]}>Loading {activeTab.toLowerCase()}...</Text>
+            </GlassPanel>
           ) : error ? (
-            <View style={styles.stateCard}>
-              <Text style={styles.stateText}>{error}</Text>
-            </View>
-          ) : activeTab === "quotations" ? (
-            <View style={styles.list}>
-              {filteredQuotations.map(renderQuotationCard)}
-              {filteredQuotations.length === 0 && (
-                <View style={styles.stateCard}>
-                  <Text style={styles.stateText}>No quotations found.</Text>
-                </View>
-              )}
-            </View>
-          ) : activeTab === "invoices" ? (
-            <View style={styles.list}>
-              {filteredInvoices.map(renderInvoiceCard)}
-              {filteredInvoices.length === 0 && (
-                <View style={styles.stateCard}>
-                  <Text style={styles.stateText}>No invoices found.</Text>
-                </View>
-              )}
-            </View>
+            <GlassPanel style={styles.stateCard}>
+              <Text style={[styles.stateText, { color: colors.error }]}>{error}</Text>
+            </GlassPanel>
           ) : (
-            <View style={styles.list}>
-              {filteredExpenses.map(renderExpenseCard)}
-              {filteredExpenses.length === 0 && (
-                <View style={styles.stateCard}>
-                  <Text style={styles.stateText}>No expenses found.</Text>
-                </View>
-              )}
-            </View>
-          )}
-        </ScrollView>
-      </Pressable>
+            <GlassPanel style={styles.stateCard}>
+              <Text style={[styles.stateText, { color: colors.textSecondary }]}>No {activeTab.toLowerCase()} found.</Text>
+            </GlassPanel>
+          )
+        }
+      />
     </View>
   );
 }
@@ -792,56 +746,37 @@ export default function QuotationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0A0E1A",
   },
-  bodyPressable: {
-    flex: 1,
+  bgEffectsWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
   },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
+  bgEffectTop: {
+    position: "absolute",
+    top: -100,
+    left: width * 0.1,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    transform: [{ scale: 2 }],
   },
-  segment: {
-    flexDirection: "row",
-    backgroundColor: "rgba(15,21,36,0.65)",
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: "rgba(125,211,252,0.12)",
-    padding: 3,
-    marginBottom: 20,
+  bgEffectBottom: {
+    position: "absolute",
+    bottom: -100,
+    right: -50,
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    transform: [{ scale: 1.5 }],
   },
-  segmentButton: {
-    flex: 1,
-    height: 42,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 21,
-  },
-  segmentButtonActive: {
-    backgroundColor: "#123854",
-    borderWidth: 1,
-    borderColor: "rgba(125,211,252,0.18)",
-  },
-  segmentButtonPressed: {
-    opacity: 0.94,
-  },
-  segmentText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  segmentTextActive: {
-    color: "#7DD3FC",
-    fontWeight: "700",
-  },
-  segmentTextInactive: {
-    color: "#9AA8B8",
+  listContent: {
+    padding: 16,
+    paddingBottom: 100,
   },
   statsPanel: {
     marginBottom: 20,
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(125,211,252,0.12)",
+    paddingVertical: 12,
   },
   statsContainer: {
     flexDirection: "row",
@@ -856,10 +791,8 @@ const styles = StyleSheet.create({
   statsDivider: {
     width: 1,
     height: 32,
-    backgroundColor: "rgba(125,211,252,0.15)",
   },
   statLabel: {
-    color: "#9AA8B8",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.1,
@@ -867,20 +800,13 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   statValue: {
-    color: "#7DD3FC",
     fontSize: 18,
     fontWeight: "800",
   },
-  list: {
-    gap: 15,
-    paddingBottom: 12,
-  },
   card: {
-    backgroundColor: "rgba(15,21,36,0.75)",
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(125, 211, 252, 0.15)",
     padding: 16,
+    marginBottom: 12,
   },
   cardHeader: {
     flexDirection: "row",
@@ -898,13 +824,11 @@ const styles = StyleSheet.create({
   idPill: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: "rgba(125, 211, 252, 0.1)",
     borderRadius: 6,
     borderWidth: 1,
     borderColor: "rgba(125, 211, 252, 0.15)",
   },
   idPillText: {
-    color: "#7DD3FC",
     fontSize: 12,
     fontWeight: "700",
   },
@@ -918,13 +842,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   cardTitle: {
-    color: "#E0E8F0",
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: -0.2,
   },
   cardSubtitle: {
-    color: "#A0B4C4",
     fontSize: 13,
     marginTop: 2,
   },
@@ -949,7 +871,6 @@ const styles = StyleSheet.create({
   },
   innerDivider: {
     height: 1,
-    backgroundColor: "rgba(125,211,252,0.1)",
     marginVertical: 14,
   },
   cardFooter: {
@@ -964,13 +885,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   priceCurrency: {
-    color: "#7DD3FC",
     fontSize: 15,
     fontWeight: "800",
     marginBottom: 1,
   },
   priceValue: {
-    color: "#7DD3FC",
     fontSize: 18,
     fontWeight: "800",
   },
@@ -986,7 +905,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   balanceText: {
-    color: "#A0B4C4",
     fontSize: 13,
     fontWeight: "500",
   },
@@ -994,14 +912,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: "rgba(18,56,84,0.95)",
     borderWidth: 1,
-    borderColor: "rgba(125,211,252,0.20)",
     alignItems: "center",
     justifyContent: "center",
   },
   expenseIconText: {
-    color: "#7DD3FC",
     fontSize: 11,
     fontWeight: "800",
   },
@@ -1014,15 +929,12 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   noteContainer: {
-    backgroundColor: "rgba(125, 211, 252, 0.03)",
     borderRadius: 8,
     padding: 8,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: "rgba(125, 211, 252, 0.05)",
   },
   noteText: {
-    color: "#9AA8B8",
     fontSize: 13,
     lineHeight: 18,
   },
@@ -1033,13 +945,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   loggedByText: {
-    color: "#9AA8B8",
     fontSize: 12,
     fontStyle: "italic",
     flex: 1,
   },
   stateCard: {
-    backgroundColor: "rgba(15,21,36,0.75)",
     borderRadius: 18,
     borderWidth: 1,
     borderColor: "rgba(125,211,252,0.15)",
@@ -1050,7 +960,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   stateText: {
-    color: "#A0B4C4",
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",

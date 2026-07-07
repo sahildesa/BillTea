@@ -10,13 +10,15 @@ import { AppHeader } from "../../components/ui/AppHeader";
 import Header from "../../components/reports/Header";
 import SummaryCard from "../../components/reports/SummaryCard";
 import RecentReport from "../../components/reports/RecentReport";
+import { useTheme } from "../../hooks/useTheme";
 
 export default function ReportsScreen() {
+  const { colors, isDark } = useTheme();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar
-        barStyle="light-content"
-        backgroundColor="#0A0E1A"
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
       />
 
       <AppHeader title="Reports" />
@@ -37,7 +39,6 @@ export default function ReportsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0A0E1A",
   },
 
   content: {

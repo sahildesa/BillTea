@@ -103,14 +103,17 @@ export default function SettingsScreen() {
 
             <Text style={[styles.headerTitle, { color: colors.text }]}>BillTea</Text>
 
-            <View style={styles.themeToggle}>
+            <View style={[styles.themeToggle, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
               {(['System', 'Light', 'Dark'] as const).map((m) => {
                 const isActive = mode === m;
                 return (
                   <Pressable
                     key={m}
                     onPress={() => setMode(m)}
-                    style={[styles.themeBtn, isActive && styles.themeBtnActive]}
+                    style={[
+                      styles.themeBtn, 
+                      isActive && [styles.themeBtnActive, { backgroundColor: colors.surfaceVariant, borderColor: colors.primary + "2E" }]
+                    ]}
                   >
                     {m === 'System' && <Laptop size={16} color={isActive ? colors.primary : colors.textSecondary} />}
                     {m === 'Dark' && <Moon size={16} color={isActive ? colors.primary : colors.textSecondary} />}
@@ -335,6 +338,26 @@ const styles = StyleSheet.create({
   },
   headerButtonPressed: {
     backgroundColor: 'rgba(125, 211, 252, 0.1)',
+  },
+  themeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 2,
+    gap: 2,
+  },
+  themeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  themeBtnActive: {
+    // Styling handled dynamically via inline styles
   },
   scrollContent: {
     paddingHorizontal: 20,

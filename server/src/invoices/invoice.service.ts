@@ -280,37 +280,43 @@ export class InvoiceService {
   }
 
   async searchCustomers(query: string, companyId: string, branchId?: string) {
-    if (!query || query.length < 1) return [];
+    const queryFilter = query && query.length > 0 ? {
+      OR: [
+        { customerName: { contains: query, mode: 'insensitive' as const } },
+        { companyName: { contains: query, mode: 'insensitive' as const } },
+        { email: { contains: query, mode: 'insensitive' as const } },
+        { mobileNumber: { contains: query, mode: 'insensitive' as const } },
+      ]
+    } : {};
 
     return this.prisma.customer.findMany({
       where: {
         companyId,
         ...(branchId ? { branchId } : {}),
-        OR: [
-          { customerName: { contains: query, mode: 'insensitive' } },
-          { companyName: { contains: query, mode: 'insensitive' } },
-          { email: { contains: query, mode: 'insensitive' } },
-          { mobileNumber: { contains: query, mode: 'insensitive' } },
-        ]
+        ...queryFilter
       },
+      orderBy: { customerName: 'asc' },
       take: 10,
     });
   }
 
   async searchProducts(query: string, companyId: string, branchId?: string) {
-    if (!query || query.length < 1) return [];
+    const queryFilter = query && query.length > 0 ? {
+      OR: [
+        { name: { contains: query, mode: 'insensitive' as const } },
+        { skuNumber: { contains: query, mode: 'insensitive' as const } },
+        { description: { contains: query, mode: 'insensitive' as const } },
+      ]
+    } : {};
 
     return this.prisma.product.findMany({
       where: {
         companyId,
         ...(branchId ? { branchId } : {}),
         isActive: true,
-        OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { skuNumber: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
-        ]
+        ...queryFilter
       },
+      orderBy: { name: 'asc' },
       take: 10,
     });
   }

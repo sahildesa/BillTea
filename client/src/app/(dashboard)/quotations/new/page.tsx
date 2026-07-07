@@ -248,22 +248,19 @@ export default function CreateQuotationPage() {
     }
   };
 
-  // 1-Letter Customer Lookup
+  // Customer Lookup
   useEffect(() => {
-    if (customerSearch.length > 0 && (!selectedCustomerDetails || customerSearch !== selectedCustomerDetails.customerName)) {
+    if (!selectedCustomerDetails || customerSearch !== selectedCustomerDetails.customerName) {
       const delayFn = setTimeout(() => {
         const fetchCust = async () => {
           const res = await apiFetch(`/quotations/customers/search?q=${customerSearch}&branchId=${selectedBranchId}`);
           if (res.ok) setCustomerResults(await res.json());
-          setShowCustomerDropdown(true);
         };
         fetchCust();
       }, 300);
       return () => clearTimeout(delayFn);
-    } else {
-      setShowCustomerDropdown(false);
     }
-  }, [customerSearch]);
+  }, [customerSearch, selectedBranchId]);
 
   const handleCustomerSelect = (customer: any) => {
     setFormData({ ...formData, customerId: customer.id });
@@ -273,15 +270,13 @@ export default function CreateQuotationPage() {
     setShowCustomerDropdown(false);
   };
 
-  // 1-Letter Product Lookup
+  // Product Lookup
   const handleProductSearch = async (query: string, rowId: string) => {
-    setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], query, show: query.length > 0 } }));
-    if (query.length > 0) {
-      const res = await apiFetch(`/quotations/products/search?q=${query}&branchId=${selectedBranchId}`);
-      if (res.ok) {
-        const results = await res.json();
-        setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], results } }));
-      }
+    setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], query, show: true } }));
+    const res = await apiFetch(`/quotations/products/search?q=${query}&branchId=${selectedBranchId}`);
+    if (res.ok) {
+      const results = await res.json();
+      setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], results } }));
     }
   };
 
@@ -399,7 +394,15 @@ export default function CreateQuotationPage() {
               <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Search Customer *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50">search</span>
-                <input type="text" value={customerSearch} onChange={(e) => { setCustomerSearch(e.target.value); if (e.target.value === '') setSelectedCustomerDetails(null); }} className="glass-input pl-10 pr-4 py-2.5 rounded-lg text-sm text-on-surface w-full focus:ring-primary/50 font-semibold" placeholder="Type to search..." />
+                <input 
+                  type="text" 
+                  value={customerSearch} 
+                  onChange={(e) => { setCustomerSearch(e.target.value); if (e.target.value === '') setSelectedCustomerDetails(null); }} 
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                  className="glass-input pl-10 pr-4 py-2.5 rounded-lg text-sm text-on-surface w-full focus:ring-primary/50 font-semibold" 
+                  placeholder="Type to search..." 
+                />
                 {showCustomerDropdown && customerResults.length > 0 && (
                   <div className="absolute top-full left-0 w-full mt-1 bg-surface-container-highest shadow-xl rounded-lg border border-primary/10 z-[100] max-h-48 overflow-y-auto">
                     {customerResults.map(c => (
@@ -576,7 +579,15 @@ export default function CreateQuotationPage() {
                         <div className="grid grid-cols-12 gap-3 md:gap-4 items-start">
                           <div className="col-span-12 md:col-span-6 relative">
                             <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Product Search</label>
-                            <input type="text" value={productSearchRows[item.id]?.query ?? item.name} onChange={(e) => handleProductSearch(e.target.value, item.id)} className="glass-input px-3 py-2 rounded-lg text-sm w-full font-bold text-primary" placeholder="Type to search..." />
+                            <input 
+                              type="text" 
+                              value={productSearchRows[item.id]?.query ?? item.name} 
+                              onChange={(e) => handleProductSearch(e.target.value, item.id)} 
+                              onFocus={() => handleProductSearch(productSearchRows[item.id]?.query ?? item.name, item.id)}
+                              onBlur={() => setTimeout(() => setProductSearchRows(prev => ({ ...prev, [item.id]: { ...prev[item.id], show: false } })), 200)}
+                              className="glass-input px-3 py-2 rounded-lg text-sm w-full font-bold text-primary" 
+                              placeholder="Type to search..." 
+                            />
                             {productSearchRows[item.id]?.show && (productSearchRows[item.id]?.results?.length || 0) > 0 && (
                               <div className="absolute top-full left-0 w-full mt-1 bg-surface-container-highest shadow-xl rounded-lg border border-primary/10 z-[100] max-h-48 overflow-y-auto">
                                 {productSearchRows[item.id].results.map(p => (

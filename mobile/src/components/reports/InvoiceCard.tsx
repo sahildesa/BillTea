@@ -5,6 +5,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { FileText } from "lucide-react-native";
+import { GlassPanel } from "../ui/GlassPanel";
+import { useTheme } from "../../hooks/useTheme";
 
 type Props = {
   invoice: string;
@@ -24,9 +26,10 @@ export default function InvoiceCard({
   status,
 }: Props) {
   const isPaid = status === "paid";
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.card}>
+    <GlassPanel style={styles.card}>
       {/* Top */}
       <View style={styles.header}>
         <View style={styles.left}>
@@ -36,12 +39,12 @@ export default function InvoiceCard({
             strokeWidth={2}
           />
 
-          <Text style={styles.invoice}>
+          <Text style={[styles.invoice, { color: colors.text }]}>
             {invoice}
           </Text>
         </View>
 
-        <Text style={styles.date}>
+        <Text style={[styles.date, { color: colors.textSecondary }]}>
           {date}
         </Text>
       </View>
@@ -49,24 +52,24 @@ export default function InvoiceCard({
       {/* Bottom */}
       <View style={styles.bottom}>
         <View>
-          <Text style={styles.company}>
+          <Text style={[styles.company, { color: colors.textSecondary }]}>
             {company}
           </Text>
 
           <View style={styles.row}>
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
               Total:
             </Text>
 
-            <Text style={styles.total}>
+            <Text style={[styles.total, { color: colors.text }]}>
               {total}
             </Text>
 
-            <Text style={styles.separator}>
+            <Text style={[styles.separator, { color: colors.textSecondary }]}>
               |
             </Text>
 
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
               Paid:
             </Text>
 
@@ -107,22 +110,13 @@ export default function InvoiceCard({
           </Text>
         </View>
       </View>
-    </View>
+    </GlassPanel>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "rgba(15,21,36,0.75)",
-
-    borderRadius: 18,
-
-    borderWidth: 1,
-
-    borderColor: "rgba(125,211,252,0.15)",
-
     padding: 16,
-
     marginBottom: 15,
   },
 
@@ -147,8 +141,6 @@ const styles = StyleSheet.create({
   },
 
   invoice: {
-    color: "#E0E8F0",
-
     marginLeft: 8,
 
     fontWeight: "600",
@@ -157,8 +149,6 @@ const styles = StyleSheet.create({
   },
 
   date: {
-    color: "#A0B4C4",
-
     fontSize: 12,
   },
 
@@ -173,9 +163,7 @@ const styles = StyleSheet.create({
   },
 
   company: {
-    color: "#E0E8F0",
-
-    fontWeight: "600",
+    fontWeight: "500",
 
     fontSize: 15,
 
@@ -191,14 +179,10 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    color: "#A0B4C4",
-
-    fontSize: 12,
+    fontSize: 13,
   },
 
   total: {
-    color: "#E0E8F0",
-
     fontSize: 12,
 
     fontWeight: "600",
@@ -207,8 +191,6 @@ const styles = StyleSheet.create({
   },
 
   separator: {
-    color: "#7DD3FC",
-
     marginHorizontal: 8,
 
     opacity: 0.35,

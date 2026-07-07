@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { authService } from '../../services/auth.service';
@@ -7,6 +8,7 @@ import { authService } from '../../services/auth.service';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { setAuthenticated, setUser } = useAuthStore();
@@ -56,13 +58,25 @@ export default function LoginScreen() {
         keyboardType="email-address"
       />
       
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+        />
+        <TouchableOpacity 
+          style={styles.eyeIcon}
+          onPress={() => setShowPassword(!showPassword)}
+        >
+          {showPassword ? (
+            <EyeOff color="#708090" size={20} />
+          ) : (
+            <Eye color="#708090" size={20} />
+          )}
+        </TouchableOpacity>
+      </View>
       
       <TouchableOpacity 
         style={styles.button} 
@@ -99,6 +113,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 15,
     fontSize: 16,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 15,
+    fontSize: 16,
+  },
+  eyeIcon: {
+    padding: 15,
   },
   button: {
     backgroundColor: '#007AFF',

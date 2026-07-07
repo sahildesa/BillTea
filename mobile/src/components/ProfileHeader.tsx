@@ -10,7 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { COLORS } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 
 interface ProfileHeaderProps {
   name: string;
@@ -27,17 +27,19 @@ export default function ProfileHeader({
   planName,
   onEditPress,
 }: ProfileHeaderProps) {
+  const { colors, isDark } = useTheme();
+
   return (
     <View style={styles.container}>
       {/* Avatar Container with Ice-Blue Glowing Border */}
       <View style={styles.avatarWrapper}>
         <LinearGradient
-          colors={['rgba(125, 211, 252, 0.5)', 'rgba(200, 160, 240, 0.25)']}
+          colors={[colors.primary + '80', colors.tertiary + '40']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.gradientBorder}
+          style={[styles.gradientBorder, { shadowColor: colors.primary }]}
         >
-          <View style={styles.avatarInnerContainer}>
+          <View style={[styles.avatarInnerContainer, { borderColor: colors.background, backgroundColor: colors.surface }]}>
             <Image
               source={{ uri: avatarUri }}
               style={styles.avatarImage}
@@ -49,31 +51,32 @@ export default function ProfileHeader({
               onPress={onEditPress}
               style={({ pressed }) => [
                 styles.editButton,
-                pressed && styles.editButtonPressed
+                pressed && { backgroundColor: colors.primary },
+                { backgroundColor: colors.surfaceVariant, borderColor: colors.glassBorder }
               ]}
             >
               {Platform.OS === 'ios' && (
-                <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                <BlurView intensity={isDark ? 20 : 40} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
               )}
-              <MaterialIcons name="edit" size={14} color={COLORS.primary} />
+              <MaterialIcons name="edit" size={14} color={colors.primary} />
             </Pressable>
           </View>
         </LinearGradient>
       </View>
 
       {/* Name and Designation */}
-      <Text style={styles.nameText}>{name}</Text>
-      <Text style={styles.roleText}>{role}</Text>
+      <Text style={[styles.nameText, { color: colors.text }]}>{name}</Text>
+      <Text style={[styles.roleText, { color: colors.textSecondary }]}>{role}</Text>
 
       {/* Premium Plan Badge */}
-      <View style={styles.badgeWrapper}>
+      <View style={[styles.badgeWrapper, { borderColor: colors.glassBorder }]}>
         <LinearGradient
-          colors={['rgba(125, 211, 252, 0.15)', 'rgba(125, 211, 252, 0.05)']}
+          colors={[colors.primary + '26', colors.primary + '0D']}
           style={styles.badgeGradient}
         >
           <View style={styles.badgeContent}>
-            <MaterialIcons name="verified" size={14} color={COLORS.primary} style={styles.verifiedIcon} />
-            <Text style={styles.badgeText}>{planName}</Text>
+            <MaterialIcons name="verified" size={14} color={colors.primary} style={styles.verifiedIcon} />
+            <Text style={[styles.badgeText, { color: colors.primary }]}>{planName}</Text>
           </View>
         </LinearGradient>
       </View>
@@ -89,7 +92,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   avatarWrapper: {
-    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 20,
@@ -109,8 +111,6 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 62,
     borderWidth: 2,
-    borderColor: COLORS.background,
-    backgroundColor: COLORS.surface,
     position: 'relative',
     overflow: 'visible', // allow edit badge to position slightly outer if needed
   },
@@ -126,9 +126,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(26, 36, 56, 0.85)',
     borderWidth: 1,
-    borderColor: 'rgba(125, 211, 252, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -138,20 +136,14 @@ const styles = StyleSheet.create({
     elevation: 4,
     overflow: 'hidden',
   },
-  editButtonPressed: {
-    backgroundColor: COLORS.primary,
-    opacity: 0.9,
-  },
   nameText: {
     fontSize: 22,
     fontWeight: '700',
-    color: COLORS.text,
     letterSpacing: 0.3,
     marginBottom: 4,
   },
   roleText: {
     fontSize: 13,
-    color: COLORS.textSecondary,
     fontWeight: '500',
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -160,7 +152,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(125, 211, 252, 0.25)',
   },
   badgeGradient: {
     paddingHorizontal: 12,
@@ -175,7 +166,6 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 11,
-    color: COLORS.primary,
     fontWeight: '600',
     letterSpacing: 0.8,
     textTransform: 'uppercase',

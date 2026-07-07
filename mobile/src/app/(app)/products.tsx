@@ -5,7 +5,6 @@ import {
   Keyboard,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -35,6 +35,9 @@ import {
   Users,
   X,
 } from "lucide-react-native";
+
+import { AppHeader } from "../../components/ui/AppHeader";
+import { useTheme } from "../../hooks/useTheme";
 
 import { ENV } from "@/config/env";
 import { apiClient } from "@/api/client";
@@ -225,19 +228,28 @@ function SegmentButton({
   isActive: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.segmentButton,
-        isActive && styles.segmentButtonActive,
+        isActive && [
+          styles.segmentButtonActive,
+          {
+            backgroundColor: colors.surfaceVariant,
+            borderColor: colors.primary + "2E",
+          },
+        ],
         pressed && styles.segmentButtonPressed,
       ]}
     >
       <Text
         style={[
           styles.segmentText,
-          isActive ? styles.segmentTextActive : styles.segmentTextInactive,
+          { color: isActive ? colors.primary : colors.textSecondary },
+          isActive && { fontWeight: "700" },
         ]}
       >
         {label}
@@ -256,20 +268,21 @@ function CustomerCard({
   onDelete: () => void;
 }) {
   const Icon = getCustomerIcon(customer.companyName);
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { borderColor: colors.glassBorder }]}>
       <View style={styles.cardHeader}>
         <View style={styles.cardIdentity}>
-          <View style={styles.customerIconWrap}>
-            <Icon color="#7DD3FC" size={20} strokeWidth={2.2} />
+          <View style={[styles.customerIconWrap, { borderColor: colors.primary + "33" }]}>
+            <Icon color={colors.primary} size={20} strokeWidth={2.2} />
           </View>
 
           <View style={styles.cardTitleWrap}>
-            <Text style={styles.cardTitle} numberOfLines={1}>
+            <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
               {customer.customerName}
             </Text>
-            <Text style={styles.cardSubtitle} numberOfLines={1}>
+            <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
               {customer.companyName || "Individual"}
             </Text>
           </View>
@@ -288,45 +301,45 @@ function CustomerCard({
             style={styles.actionButton}
             onPress={onDelete}
           >
-            <Trash2 size={18} color="#FF6B6B" strokeWidth={2.2} />
+            <Trash2 size={18} color={colors.error} strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <View style={styles.innerDivider} />
+      <View style={[styles.innerDivider, { backgroundColor: colors.primary + "1A" }]} />
 
       <View style={styles.detailRow}>
         {/* <View style={styles.detailItem}></View> */}
 
         <View style={styles.detailItem}>
-          <Phone size={15} color="#7DD3FC" strokeWidth={2.1} />
-          <Text style={styles.detailText} numberOfLines={1}>
+          <Phone size={15} color={colors.primary} strokeWidth={2.1} />
+          <Text style={[styles.detailText, { color: colors.textSecondary }]} numberOfLines={1}>
             {customer.mobileNumber}
           </Text>
-          <Mail size={15} color="#7DD3FC" strokeWidth={2.1} />
-          <Text style={styles.detailText} numberOfLines={1}>
+          <Mail size={15} color={colors.primary} strokeWidth={2.1} />
+          <Text style={[styles.detailText, { color: colors.textSecondary }]} numberOfLines={1}>
             {customer.email}
           </Text>
         </View>
       </View>
 
       <View style={styles.gstRow}>
-        <Text style={styles.gstLabel}>GST</Text>
-        <Text style={styles.gstValue} numberOfLines={1}>
+        <Text style={[styles.gstLabel, { color: colors.primary }]}>GST</Text>
+        <Text style={[styles.gstValue, { color: colors.text }]} numberOfLines={1}>
           {customer.businessLabelValue || "—"}
         </Text>
       </View>
 
       <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>QUOTATIONS</Text>
-          <Text style={styles.statValuePrimary}>
+        <View style={[styles.statCard, { borderColor: colors.primary + "14" }]}>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>QUOTATIONS</Text>
+          <Text style={[styles.statValuePrimary, { color: colors.primary }]}>
             {String(customer.quotationCount ?? 0).padStart(2, "0")}
           </Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>INVOICES</Text>
-          <Text style={styles.statValueSecondary}>
+        <View style={[styles.statCard, { borderColor: colors.primary + "14" }]}>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>INVOICES</Text>
+          <Text style={[styles.statValueSecondary, { color: colors.secondary }]}>
             {String(customer.invoiceCount ?? 0)}
           </Text>
         </View>
@@ -345,12 +358,13 @@ function ProductCard({
   onDelete: () => void;
 }) {
   const imageUrl = getImageUrl(product.image);
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { borderColor: colors.glassBorder }]}>
       <View style={styles.cardHeader}>
         <View style={styles.cardIdentity}>
-          <View style={styles.productIconWrap}>
+          <View style={[styles.productIconWrap, { borderColor: colors.primary + "33" }]}>
             {imageUrl ? (
               <Image
                 source={{ uri: imageUrl }}
@@ -358,15 +372,15 @@ function ProductCard({
                 contentFit="cover"
               />
             ) : (
-              <Package color="#7DD3FC" size={20} strokeWidth={2.2} />
+              <Package color={colors.primary} size={20} strokeWidth={2.2} />
             )}
           </View>
 
           <View style={styles.cardTitleWrap}>
-            <Text style={styles.cardTitle} numberOfLines={1}>
+            <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
               {product.name}
             </Text>
-            <Text style={styles.cardSubtitle} numberOfLines={1}>
+            <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
               {product.description || "No description provided"}
             </Text>
           </View>
@@ -385,24 +399,24 @@ function ProductCard({
             style={styles.actionButton}
             onPress={onDelete}
           >
-            <Trash2 size={18} color="#FF6B6B" strokeWidth={2.2} />
+            <Trash2 size={18} color={colors.error} strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <View style={styles.innerDivider} />
+      <View style={[styles.innerDivider, { backgroundColor: colors.primary + "1A" }]} />
 
       <View style={styles.productMetaRow}>
-        <View style={styles.metaPill}>
-          <Text style={styles.metaLabel}>SKU</Text>
-          <Text style={styles.metaValue} numberOfLines={1}>
+        <View style={[styles.metaPill, { backgroundColor: colors.primary + "0D", borderColor: colors.primary + "14" }]}>
+          <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>SKU</Text>
+          <Text style={[styles.metaValue, { color: colors.text }]} numberOfLines={1}>
             {product.skuNumber || "N/A"}
           </Text>
         </View>
 
-        <View style={styles.metaPill}>
-          <Text style={styles.metaLabel}>HSN</Text>
-          <Text style={styles.metaValue} numberOfLines={1}>
+        <View style={[styles.metaPill, { backgroundColor: colors.primary + "0D", borderColor: colors.primary + "14" }]}>
+          <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>HSN</Text>
+          <Text style={[styles.metaValue, { color: colors.text }]} numberOfLines={1}>
             {product.hsnNumber || "N/A"}
           </Text>
         </View>
@@ -410,8 +424,8 @@ function ProductCard({
 
       <View style={styles.productFooterRow}>
         <View style={styles.priceRow}>
-          <Text style={styles.priceCurrency}>₹</Text>
-          <Text style={styles.priceValue}>
+          <Text style={[styles.priceCurrency, { color: colors.primary }]}>₹</Text>
+          <Text style={[styles.priceValue, { color: colors.primary }]}>
             {product.price.toLocaleString("en-IN", {
               minimumFractionDigits: 2,
             })}
@@ -465,9 +479,11 @@ function ModalField({
   multiline?: boolean;
   required?: boolean;
 }) {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.fieldGroup}>
-      <Text style={styles.fieldLabel}>
+      <Text style={[styles.fieldLabel, { color: colors.primary }]}>
         {label}
         {required ? " *" : ""}
       </Text>
@@ -475,10 +491,10 @@ function ModalField({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#708090"
+        placeholderTextColor={colors.textSecondary}
         keyboardType={keyboardType}
         multiline={multiline}
-        style={[styles.fieldInput, multiline && styles.fieldInputMultiline]}
+        style={[styles.fieldInput, { borderColor: colors.glassBorder, backgroundColor: colors.surface, color: colors.text }, multiline && styles.fieldInputMultiline]}
         textAlignVertical={multiline ? "top" : "center"}
       />
     </View>
@@ -487,6 +503,7 @@ function ModalField({
 
 export default function ProductsScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const searchInputRef = useRef<TextInput>(null);
   const quickAddRequest = useUiStore((state) => state.quickAddRequest);
   const clearQuickAddRequest = useUiStore(
@@ -539,9 +556,11 @@ export default function ProductsScreen() {
           setBranches([]);
           setSelectedBranchId(null);
         }
-      } catch (err) {
+      } catch (err: any) {
+        console.error("Failed to load branches:", err);
         setBranches([]);
         setSelectedBranchId(null);
+        setError(err?.message || "Failed to load branches.");
       } finally {
         setLoadingBranches(false);
       }
@@ -551,7 +570,10 @@ export default function ProductsScreen() {
   }, []);
 
   useEffect(() => {
-    if (!selectedBranchId) return;
+    if (!selectedBranchId) {
+      setLoadingRecords(false);
+      return;
+    }
 
     let mounted = true;
 
@@ -586,9 +608,10 @@ export default function ProductsScreen() {
         } else {
           setProducts([]);
         }
-      } catch (err) {
+      } catch (err: any) {
+        console.error("Failed to load records:", err);
         if (mounted) {
-          setError("Failed to load records.");
+          setError(err?.message || "Failed to load records.");
           setCustomers([]);
           setProducts([]);
         }
@@ -1037,29 +1060,29 @@ export default function ProductsScreen() {
             keyboardType="numeric"
           />
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Default Product Image</Text>
+            <Text style={[styles.fieldLabel, { color: colors.primary }]}>Default Product Image</Text>
             <TouchableOpacity
               activeOpacity={0.85}
-              style={styles.imagePickerButton}
+              style={[styles.imagePickerButton, { borderColor: colors.primary + "2E", backgroundColor: colors.surface }]}
               onPress={handlePickImage}
             >
-              <Upload size={18} color="#7DD3FC" strokeWidth={2.2} />
-              <Text style={styles.imagePickerText}>
+              <Upload size={18} color={colors.primary} strokeWidth={2.2} />
+              <Text style={[styles.imagePickerText, { color: colors.text }]}>
                 {productImage ? "Change Image" : "Select Image"}
               </Text>
             </TouchableOpacity>
             {productImage ? (
-              <View style={styles.imagePreviewRow}>
+              <View style={[styles.imagePreviewRow, { borderColor: colors.primary + "1A", backgroundColor: colors.surface }]}>
                 <Image
                   source={{ uri: productImage.uri }}
                   style={styles.imagePreview}
                   contentFit="cover"
                 />
                 <View style={styles.imagePreviewText}>
-                  <Text style={styles.imagePreviewTitle} numberOfLines={1}>
+                  <Text style={[styles.imagePreviewTitle, { color: colors.text }]} numberOfLines={1}>
                     {productImage.fileName || "Selected image"}
                   </Text>
-                  <Text style={styles.imagePreviewSubtitle} numberOfLines={2}>
+                  <Text style={[styles.imagePreviewSubtitle, { color: colors.textSecondary }]} numberOfLines={2}>
                     Image will be uploaded with the product.
                   </Text>
                 </View>
@@ -1067,7 +1090,7 @@ export default function ProductsScreen() {
             ) : editProductId &&
               products.find((product) => product.id === editProductId)
                 ?.image ? (
-              <View style={styles.imagePreviewRow}>
+              <View style={[styles.imagePreviewRow, { borderColor: colors.primary + "1A", backgroundColor: colors.surface }]}>
                 <Image
                   source={{
                     uri:
@@ -1080,10 +1103,10 @@ export default function ProductsScreen() {
                   contentFit="cover"
                 />
                 <View style={styles.imagePreviewText}>
-                  <Text style={styles.imagePreviewTitle} numberOfLines={1}>
+                  <Text style={[styles.imagePreviewTitle, { color: colors.text }]} numberOfLines={1}>
                     Current image
                   </Text>
-                  <Text style={styles.imagePreviewSubtitle} numberOfLines={2}>
+                  <Text style={[styles.imagePreviewSubtitle, { color: colors.textSecondary }]} numberOfLines={2}>
                     Selecting a new image will replace this one.
                   </Text>
                 </View>
@@ -1121,67 +1144,26 @@ export default function ProductsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.iconButton}
-            onPress={() => router.replace("/(app)/dashboard")}
-          >
-            <House color="#A7B6C7" size={22} strokeWidth={2.3} />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleWrap}>
-            {searchActive ? (
-              <TextInput
-                ref={searchInputRef}
-                value={searchText}
-                onChangeText={setSearchText}
-                placeholder={
-                  activeSection === "customers"
-                    ? "Search customers..."
-                    : "Search products..."
-                }
-                placeholderTextColor="#708090"
-                autoCorrect={false}
-                autoCapitalize="none"
-                onBlur={() => setSearchActive(false)}
-                style={styles.headerSearchInput}
-              />
-            ) : (
-              <Text style={styles.title}>{title}</Text>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.iconButton}
-            onPress={handleSearchIconPress}
-          >
-            <Search
-              size={22}
-              color={searchActive ? "#7DD3FC" : "#A7B6C7"}
-              strokeWidth={2.3}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.iconButton}
-            onPress={handleFilterPress}
-          >
-            <Filter
-              size={22}
-              color={filterMode === "all" ? "#A7B6C7" : "#7DD3FC"}
-              strokeWidth={2.3}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AppHeader
+        title={title}
+        onSearchPress={handleSearchIconPress}
+        onFilterPress={handleFilterPress}
+        searchActive={searchActive}
+        filterActive={filterMode !== "all"}
+        showSearchInput={searchActive}
+        searchInputRef={searchInputRef}
+        searchText={searchText}
+        onSearchTextChange={setSearchText}
+        searchPlaceholder={
+          activeSection === "customers"
+            ? "Search customers..."
+            : "Search products..."
+        }
+        onSearchBlur={() => setSearchActive(false)}
+      />
 
       <Pressable style={styles.bodyPressable} onPress={collapseSearch}>
         <ScrollView
@@ -1190,7 +1172,7 @@ export default function ProductsScreen() {
           keyboardDismissMode="on-drag"
           onScrollBeginDrag={collapseSearch}
         >
-          <View style={styles.segment}>
+          <View style={[styles.segment, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
             <SegmentButton
               label="Customers"
               isActive={activeSection === "customers"}
@@ -1204,13 +1186,13 @@ export default function ProductsScreen() {
           </View>
 
           {loadingBranches || loadingRecords ? (
-            <View style={styles.stateCard}>
-              <ActivityIndicator size="large" color="#7DD3FC" />
-              <Text style={styles.stateText}>Loading records...</Text>
+            <View style={[styles.stateCard, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.stateText, { color: colors.textSecondary }]}>Loading records...</Text>
             </View>
           ) : error ? (
-            <View style={styles.stateCard}>
-              <Text style={styles.stateText}>{error}</Text>
+            <View style={[styles.stateCard, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
+              <Text style={[styles.stateText, { color: colors.textSecondary }]}>{error}</Text>
             </View>
           ) : activeSection === "customers" ? (
             <View style={styles.list}>
@@ -1223,8 +1205,8 @@ export default function ProductsScreen() {
                 />
               ))}
               {visibleCustomers.length === 0 && (
-                <View style={styles.stateCard}>
-                  <Text style={styles.stateText}>No customers found.</Text>
+                <View style={[styles.stateCard, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
+                  <Text style={[styles.stateText, { color: colors.textSecondary }]}>No customers found.</Text>
                 </View>
               )}
             </View>
@@ -1239,8 +1221,8 @@ export default function ProductsScreen() {
                 />
               ))}
               {visibleProducts.length === 0 && (
-                <View style={styles.stateCard}>
-                  <Text style={styles.stateText}>No products found.</Text>
+                <View style={[styles.stateCard, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
+                  <Text style={[styles.stateText, { color: colors.textSecondary }]}>No products found.</Text>
                 </View>
               )}
             </View>
@@ -1255,13 +1237,13 @@ export default function ProductsScreen() {
         onRequestClose={closeModal}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalPanel}>
+          <View style={[styles.modalOverlay, { backgroundColor: isDark ? "rgba(10, 14, 26, 0.82)" : "rgba(0, 0, 0, 0.45)" }]}>
+            <View style={[styles.modalPanel, { backgroundColor: isDark ? "rgba(15,21,36,0.95)" : colors.surface, borderColor: colors.glassBorder }]}>
               <View style={styles.modalGlow} pointerEvents="none" />
 
-              <View style={styles.modalHeader}>
+              <View style={[styles.modalHeader, { borderBottomColor: colors.primary + "1A" }]}>
                 <View style={styles.modalHeadingWrap}>
-                  <Text style={styles.modalTitle}>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>
                     {modalSection === "customers"
                       ? editCustomerId
                         ? "Edit Customer"
@@ -1270,7 +1252,7 @@ export default function ProductsScreen() {
                         ? "Edit Product"
                         : "New Product"}
                   </Text>
-                  <Text style={styles.modalSubtitle}>
+                  <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
                     {modalSection === "customers"
                       ? editCustomerId
                         ? "Update the details for this connection."
@@ -1283,10 +1265,10 @@ export default function ProductsScreen() {
 
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  style={styles.modalCloseButton}
+                  style={[styles.modalCloseButton, { backgroundColor: colors.surfaceVariant }]}
                   onPress={closeModal}
                 >
-                  <X size={18} color="#A0B4C4" strokeWidth={2.2} />
+                  <X size={18} color={colors.textSecondary} strokeWidth={2.2} />
                 </TouchableOpacity>
               </View>
 
@@ -1296,34 +1278,34 @@ export default function ProductsScreen() {
                 keyboardShouldPersistTaps="handled"
               >
                 {error ? (
-                  <View style={styles.modalError}>
-                    <Text style={styles.modalErrorText}>{error}</Text>
+                  <View style={[styles.modalError, { borderColor: colors.error + "2E" }]}>
+                    <Text style={[styles.modalErrorText, { color: colors.error }]}>{error}</Text>
                   </View>
                 ) : null}
 
                 {renderModalFields()}
               </ScrollView>
 
-              <View style={styles.modalFooter}>
+              <View style={[styles.modalFooter, { borderTopColor: colors.primary + "1A" }]}>
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  style={styles.modalCancelButton}
+                  style={[styles.modalCancelButton, { backgroundColor: colors.surfaceVariant }]}
                   onPress={closeModal}
                 >
-                  <Text style={styles.modalCancelText}>Cancel</Text>
+                  <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  style={styles.modalSaveButton}
+                  style={[styles.modalSaveButton, { backgroundColor: colors.primary }]}
                   onPress={handleSave}
                   disabled={saving}
                 >
                   {saving ? (
-                    <ActivityIndicator size="small" color="#001f2e" />
+                    <ActivityIndicator size="small" color={isDark ? "#001f2e" : "#FFFFFF"} />
                   ) : (
                     <>
-                      <Plus size={16} color="#001f2e" strokeWidth={3} />
-                      <Text style={styles.modalSaveText}>
+                      <Plus size={16} color={isDark ? "#001f2e" : "#FFFFFF"} strokeWidth={3} />
+                      <Text style={[styles.modalSaveText, { color: isDark ? "#001F2E" : "#FFFFFF" }]}>
                         {modalSection === "customers"
                           ? "Save Customer"
                           : "Save Product"}
@@ -1336,7 +1318,7 @@ export default function ProductsScreen() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1345,59 +1327,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#0A0E1A",
   },
-  header: {
-    height: 90,
-    paddingTop: 40,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(15, 21, 36, 0.6)",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(125, 211, 252, 0.1)",
-    zIndex: 10,
-    // shadowColor: '#7dd3fc',
-    // shadowOffset: { width: 0, height: 0 },
-    // shadowOpacity: 0.05,
-    shadowRadius: 30,
-    elevation: 3,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  headerTitleWrap: {
-    flex: 1,
-    marginLeft: 12,
-    minHeight: 28,
-    justifyContent: "center",
-  },
-  headerSearchInput: {
-    color: "#E8EEF6",
-    fontSize: 20,
-    fontWeight: "700",
-    letterSpacing: -0.5,
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
   iconButton: {
     width: 36,
     height: 36,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 18,
-  },
-  title: {
-    color: "#E8EEF6",
-    fontSize: 20,
-    fontWeight: "700",
-    letterSpacing: -0.5,
   },
   content: {
     paddingHorizontal: 20,
@@ -1447,7 +1382,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   card: {
-    backgroundColor: "rgba(15,21,36,0.75)",
+    backgroundColor: "transparent",
     borderRadius: 18,
     borderWidth: 1,
     borderColor: "rgba(125,211,252,0.15)",
@@ -1470,7 +1405,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 15,
-    backgroundColor: "rgba(18,56,84,0.95)",
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: "rgba(125,211,252,0.20)",
     alignItems: "center",
@@ -1480,7 +1415,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 15,
-    backgroundColor: "rgba(18,56,84,0.95)",
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: "rgba(125,211,252,0.20)",
     alignItems: "center",
@@ -1567,7 +1502,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minHeight: 56,
-    backgroundColor: "rgba(18,56,84,0.26)",
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: "rgba(125,211,252,0.08)",
     borderRadius: 16,
@@ -1580,18 +1515,18 @@ const styles = StyleSheet.create({
   statLabel: {
     color: "#9AA8B8",
     fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.2,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
   statValuePrimary: {
     color: "#7DD3FC",
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: 15,
+    fontWeight: "700",
   },
   statValueSecondary: {
-    color: "#C8A0F0",
-    fontSize: 18,
-    fontWeight: "800",
+    color: "#88B4CC",
+    fontSize: 15,
+    fontWeight: "700",
   },
   productMetaRow: {
     flexDirection: "row",

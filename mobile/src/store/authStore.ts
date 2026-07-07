@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
 import { TOKEN_KEYS } from '../api/client';
+import { getStorageItemAsync, deleteStorageItemAsync } from '../utils/storage';
 
 export interface User {
   id: string;
@@ -27,8 +27,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   setAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
   logout: async () => {
     try {
-      await SecureStore.deleteItemAsync(TOKEN_KEYS.ACCESS);
-      await SecureStore.deleteItemAsync(TOKEN_KEYS.REFRESH);
+      await deleteStorageItemAsync(TOKEN_KEYS.ACCESS);
+      await deleteStorageItemAsync(TOKEN_KEYS.REFRESH);
     } catch (e) {
       console.error('Error removing tokens', e);
     }
@@ -37,7 +37,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   restoreToken: async () => {
     set({ isLoading: true });
     try {
-      const token = await SecureStore.getItemAsync(TOKEN_KEYS.ACCESS);
+      const token = await getStorageItemAsync(TOKEN_KEYS.ACCESS);
       if (token) {
         // Here we could ideally decode the token or call /auth/me to get the user
         // For now, if there's a token, we assume authenticated.

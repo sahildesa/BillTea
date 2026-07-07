@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { AppHeader } from '../../components/ui/AppHeader';
 import { GlassPanel } from '../../components/ui/GlassPanel';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
+import { useTheme } from '../../hooks/useTheme';
 import {
   Menu,
   SlidersHorizontal,
@@ -199,6 +201,7 @@ const actionRowStyles = StyleSheet.create({
 
 function QuotationCard({ item }: { item: Quotation }) {
   const isArchived = item.contact === null;
+  const { colors } = useTheme();
 
   return (
     <GlassPanel
@@ -210,14 +213,14 @@ function QuotationCard({ item }: { item: Quotation }) {
       {/* Row 1: ID / date + amount / status */}
       <View style={cardStyles.topRow}>
         <View style={cardStyles.topLeft}>
-          <View style={cardStyles.idPill}>
-            <Text style={cardStyles.idText}>#{item.id}</Text>
+          <View style={[cardStyles.idPill, { backgroundColor: colors.surfaceVariant }]}>
+            <Text style={[cardStyles.idText, { color: colors.textSecondary }]}>#{item.id}</Text>
           </View>
-          <Text style={cardStyles.dateText}>{item.date}</Text>
+          <Text style={[cardStyles.dateText, { color: colors.textSecondary }]}>{item.date}</Text>
         </View>
 
         <View style={cardStyles.topRight}>
-          <Text style={cardStyles.amountText}>
+          <Text style={[cardStyles.amountText, { color: colors.text }]}>
             {formatCurrency(item.amount)}
           </Text>
           <StatusBadge status={item.status} />
@@ -226,9 +229,9 @@ function QuotationCard({ item }: { item: Quotation }) {
 
       {/* Row 2: Company + contact */}
       <View style={cardStyles.clientRow}>
-        <Text style={cardStyles.companyText}>{item.company}</Text>
+        <Text style={[cardStyles.companyText, { color: colors.text }]}>{item.company}</Text>
         {item.contact ? (
-          <Text style={cardStyles.contactText}>{item.contact}</Text>
+          <Text style={[cardStyles.contactText, { color: colors.textSecondary }]}>{item.contact}</Text>
         ) : null}
       </View>
 
@@ -314,19 +317,18 @@ const cardStyles = StyleSheet.create({
 
 export default function QuotationsScreen() {
   const [activeTab, setActiveTab] = useState<TabName>('Quotations');
-
-  const tabs: TabName[] = ['Quotations', 'Invoices', 'Expenses'];
+  const { colors } = useTheme();
 
   const renderItem = ({ item }: { item: Quotation }) => (
     <QuotationCard item={item} />
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Ambient background glow blobs */}
       <View style={styles.bgEffectsWrapper} pointerEvents="none">
-        <View style={styles.bgEffectTop} />
-        <View style={styles.bgEffectBottom} />
+        <View style={[styles.bgEffectTop, { backgroundColor: colors.primary + '1A' }]} />
+        <View style={[styles.bgEffectBottom, { backgroundColor: colors.tertiary + '1A' }]} />
       </View>
 
       <AppHeader
@@ -345,41 +347,23 @@ export default function QuotationsScreen() {
         ListHeaderComponent={
           <>
             {/* Segmented tab control */}
-            <View style={styles.tabNav}>
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab;
-                return (
-                  <TouchableOpacity
-                    key={tab}
-                    style={[styles.tabBtn, isActive && styles.tabBtnActive]}
-                    onPress={() => setActiveTab(tab)}
-                  >
-                    <Text
-                      style={[
-                        styles.tabBtnText,
-                        isActive
-                          ? styles.tabBtnTextActive
-                          : styles.tabBtnTextInactive,
-                      ]}
-                    >
-                      {tab}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <SegmentedControl
+              options={['Quotations', 'Invoices', 'Expenses']}
+              activeOption={activeTab}
+              onOptionChange={(opt) => setActiveTab(opt as TabName)}
+            />
 
             {/* Stats summary row */}
             <View style={styles.statsRow}>
               <GlassPanel style={styles.statCard}>
-                <Text style={styles.statLabel}>Total Volume</Text>
-                <Text style={[styles.statValue, { color: '#7dd3fc' }]}>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Total Volume</Text>
+                <Text style={[styles.statValue, { color: colors.primary }]}>
                   $1.2M
                 </Text>
               </GlassPanel>
               <GlassPanel style={styles.statCard}>
-                <Text style={styles.statLabel}>Pending</Text>
-                <Text style={[styles.statValue, { color: '#c8a0f0' }]}>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Pending</Text>
+                <Text style={[styles.statValue, { color: colors.tertiary }]}>
                   42
                 </Text>
               </GlassPanel>
@@ -389,7 +373,7 @@ export default function QuotationsScreen() {
         ListEmptyComponent={
           activeTab !== 'Quotations' ? (
             <GlassPanel style={styles.comingSoonCard}>
-              <Text style={styles.comingSoonText}>
+              <Text style={[styles.comingSoonText, { color: colors.text }]}>
                 {activeTab} coming soon
               </Text>
             </GlassPanel>
@@ -407,7 +391,6 @@ export default function QuotationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0e1a',
   },
 
   // -- Ambient background blobs (copied from dashboard.tsx) --
@@ -421,7 +404,6 @@ const styles = StyleSheet.create({
     left: width * 0.1,
     width: 300,
     height: 300,
-    backgroundColor: 'rgba(125, 211, 252, 0.1)',
     borderRadius: 150,
     transform: [{ scale: 2 }],
   },
@@ -431,7 +413,6 @@ const styles = StyleSheet.create({
     right: -50,
     width: 250,
     height: 250,
-    backgroundColor: 'rgba(200, 160, 240, 0.1)',
     borderRadius: 125,
     transform: [{ scale: 1.5 }],
   },

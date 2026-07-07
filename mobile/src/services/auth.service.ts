@@ -1,5 +1,5 @@
 import { apiClient, TOKEN_KEYS } from '../api/client';
-import { setStorageItemAsync } from '../store/authStore';
+import { setStorageItemAsync } from '../utils/storage';
 
 export const authService = {
   login: async (email: string, password: string) => {

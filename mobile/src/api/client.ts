@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { ENV } from '../config/env';
-import { getStorageItemAsync, setStorageItemAsync, deleteStorageItemAsync } from '../store/authStore';
+import { getStorageItemAsync, setStorageItemAsync, deleteStorageItemAsync } from '../utils/storage';
 
 export const apiClient = axios.create({
   baseURL: ENV.API_URL,

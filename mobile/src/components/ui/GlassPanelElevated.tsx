@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, StyleSheet, ViewProps } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useTheme } from '../../hooks/useTheme';
 
 export function GlassPanelElevated({ children, style, ...props }: ViewProps) {
+  const { colors, isDark } = useTheme();
+
   return (
-    <View style={[styles.wrapper, style]} {...props}>
-      <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill} />
-      <View style={styles.overlay} />
+    <View style={[styles.wrapper, { borderColor: colors.glassBorder, shadowColor: colors.primary }, style]} {...props}>
+      <BlurView intensity={isDark ? 70 : 80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+      <View style={[styles.overlay, { backgroundColor: colors.glassBackground }]} />
       <View style={styles.content}>
         {children}
       </View>
@@ -18,9 +21,7 @@ const styles = StyleSheet.create({
   wrapper: {
     borderRadius: 16,
     overflow: 'hidden',
-    borderColor: 'rgba(125, 211, 252, 0.15)',
     borderWidth: 1,
-    shadowColor: '#7dd3fc',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.05,
     shadowRadius: 30,
@@ -28,7 +29,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(15, 21, 36, 0.75)',
   },
   content: {
     padding: 20,

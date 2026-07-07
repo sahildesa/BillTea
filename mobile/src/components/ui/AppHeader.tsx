@@ -9,6 +9,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Home, Search, Filter } from 'lucide-react-native';
+import { useTheme } from '../../hooks/useTheme';
 
 const HEADER_CONTENT_HEIGHT = 56;
 
@@ -52,6 +53,7 @@ export function AppHeader({
 }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
 
   const handleHomePress = () => {
     router.navigate('/(app)/dashboard');
@@ -63,7 +65,12 @@ export function AppHeader({
     <View
       style={[
         styles.container,
-        { paddingTop: insets.top },
+        { 
+          paddingTop: insets.top,
+          backgroundColor: colors.glassBackground,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.glassBorder,
+        },
       ]}
     >
       <View style={styles.content}>
@@ -75,7 +82,7 @@ export function AppHeader({
             pressed && styles.iconButtonPressed,
           ]}
         >
-          <Home size={22} color="#A0B4C4" strokeWidth={2.2} />
+          <Home size={22} color={colors.textSecondary} strokeWidth={2.2} />
         </Pressable>
 
         {/* Center: Title or Search Input */}
@@ -86,14 +93,14 @@ export function AppHeader({
               value={searchText}
               onChangeText={onSearchTextChange}
               placeholder={searchPlaceholder}
-              placeholderTextColor="#708090"
+              placeholderTextColor={colors.textSecondary}
               autoCorrect={false}
               autoCapitalize="none"
               onBlur={onSearchBlur}
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.text }]}
             />
           ) : (
-            <Text style={styles.title} numberOfLines={1}>
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
               {title}
             </Text>
           )}
@@ -112,7 +119,7 @@ export function AppHeader({
               >
                 <Filter
                   size={22}
-                  color={filterActive ? '#7DD3FC' : '#A0B4C4'}
+                  color={filterActive ? colors.primary : colors.textSecondary}
                   strokeWidth={2.2}
                 />
               </Pressable>
@@ -127,7 +134,7 @@ export function AppHeader({
               >
                 <Search
                   size={22}
-                  color={searchActive ? '#7DD3FC' : '#A0B4C4'}
+                  color={searchActive ? colors.primary : colors.textSecondary}
                   strokeWidth={2.2}
                 />
               </Pressable>
@@ -141,9 +148,7 @@ export function AppHeader({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(15, 21, 36, 0.85)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(125, 211, 252, 0.1)',
+    // Dynamic styles moved inline or handled via theme
     zIndex: 10,
   },
   content: {
@@ -168,18 +173,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    color: '#E0E8F0',
     fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.3,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   searchInput: {
-    color: '#E0E8F0',
+    flex: 1,
     fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: -0.3,
-    paddingVertical: 0,
-    paddingHorizontal: 0,
+    padding: 0,
+    margin: 0,
   },
   rightActions: {
     flexDirection: 'row',

@@ -44,8 +44,8 @@ async function bootstrap() {
   expressApp.set('trust proxy', 1);
 
   const port = process.env.PORT || 5000;
-  await app.listen(port);
-  console.log(`🚀 BillTea API server running on http://localhost:${port}/api/v1`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 BillTea API server running on http://0.0.0.0:${port}/api/v1`);
   console.log(`📚 Swagger documentation available at http://localhost:${port}/api/docs`);
 }
 bootstrap();

@@ -17,19 +17,23 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Home } from 'lucide-react-native';
 import { router } from 'expo-router';
 
-import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { Sun, Moon, Laptop } from 'lucide-react-native';
 import ProfileHeader from '../../components/ProfileHeader';
 import SettingsItem from '../../components/SettingsItem';
 import { useAuthStore } from '../../store/authStore';
+import { useThemeStore } from '../../store/themeStore';
 
 const { width } = Dimensions.get('window');
 const isTablet = width > 600;
 
 export default function SettingsScreen() {
+  const { colors, isDark } = useTheme();
+  const { theme: mode, setTheme: setMode } = useThemeStore();
   const handleEditProfile = () => {
     console.log('Edit Profile Pressed');
     // Placeholder handler
-    // router.push('/profile-edit');
+    // router.push(('/profile-edit' as any));
   };
 
   const logoutScaleAnim = React.useRef(new Animated.Value(1)).current;
@@ -56,12 +60,12 @@ export default function SettingsScreen() {
     console.log('Logout Pressed');
     const { logout } = useAuthStore.getState();
     await logout();
-    router.replace('/(auth)/explore'); // Navigate to login/auth screen
+    router.replace(('/(auth)/explore' as any)); // Navigate to login/auth screen
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       {/* Background Ambient Glows */}
       {/* Top Blue Glow */}
@@ -88,26 +92,33 @@ export default function SettingsScreen() {
           )}
           <View style={styles.headerContent}>
             <Pressable
-              onPress={() => router.push('/dashboard')}
+              onPress={() => router.push(('/dashboard' as any))}
               style={({ pressed }) => [
                 styles.headerButton,
                 pressed && styles.headerButtonPressed
               ]}
             >
-              <Home size={24} color={COLORS.textSecondary} />
+              <Home size={24} color={colors.textSecondary} />
             </Pressable>
 
-            <Text style={styles.headerTitle}>BillTea</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>BillTea</Text>
 
-            <Pressable
-              onPress={() => console.log('More options pressed')}
-              style={({ pressed }) => [
-                styles.headerButton,
-                pressed && styles.headerButtonPressed
-              ]}
-            >
-              <MaterialIcons name="more-vert" size={24} color={COLORS.textSecondary} />
-            </Pressable>
+            <View style={styles.themeToggle}>
+              {(['System', 'Light', 'Dark'] as const).map((m) => {
+                const isActive = mode === m;
+                return (
+                  <Pressable
+                    key={m}
+                    onPress={() => setMode(m)}
+                    style={[styles.themeBtn, isActive && styles.themeBtnActive]}
+                  >
+                    {m === 'System' && <Laptop size={16} color={isActive ? colors.primary : colors.textSecondary} />}
+                    {m === 'Dark' && <Moon size={16} color={isActive ? colors.primary : colors.textSecondary} />}
+                    {m === 'Light' && <Sun size={16} color={isActive ? colors.primary : colors.textSecondary} />}
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         </View>
 
@@ -130,16 +141,16 @@ export default function SettingsScreen() {
 
           {/* Preferences Section */}
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionHeader}>Preferences</Text>
+            <Text style={[styles.sectionHeader, { color: colors.text }]}>Preferences</Text>
 
             {/* Company Settings */}
             <SettingsItem
               label="Company Settings"
               subLabel="Profile, Tax details"
               iconName="business"
-              iconColor={COLORS.primary}
+              iconColor={colors.primary}
               borderColor="rgba(125, 211, 252, 0.15)"
-              onPress={() => router.push('/company-settings')}
+              onPress={() => router.push(('/company-settings' as any))}
             />
 
             {/* Theme Settings */}
@@ -147,9 +158,9 @@ export default function SettingsScreen() {
               label="Theme Settings"
               subLabel="Appearance, Dark mode"
               iconName="palette"
-              iconColor={COLORS.tertiary}
+              iconColor={colors.tertiary}
               borderColor="rgba(200, 160, 240, 0.15)"
-              onPress={() => router.push('/theme-settings')}
+              onPress={() => router.push(('/theme-settings' as any))}
             />
 
             {/* Invoice Settings */}
@@ -157,9 +168,9 @@ export default function SettingsScreen() {
               label="Invoice Settings"
               subLabel="Templates, Numbering"
               iconName="description"
-              iconColor={COLORS.secondary}
+              iconColor={colors.secondary}
               borderColor="rgba(136, 180, 204, 0.15)"
-              onPress={() => router.push('/invoice-settings')}
+              onPress={() => router.push(('/invoice-settings' as any))}
             />
 
             {/* Account Security */}
@@ -167,9 +178,9 @@ export default function SettingsScreen() {
               label="Account Security"
               subLabel="Password, 2FA"
               iconName="lock"
-              iconColor={COLORS.error}
+              iconColor={colors.error}
               borderColor="rgba(255, 107, 107, 0.15)"
-              onPress={() => router.push('/account-security')}
+              onPress={() => router.push(('/account-security' as any))}
             />
 
             {/* Help & Support */}
@@ -177,9 +188,9 @@ export default function SettingsScreen() {
               label="Help & Support"
               subLabel="FAQs, Contact us"
               iconName="help"
-              iconColor={COLORS.textSecondary}
+              iconColor={colors.textSecondary}
               borderColor="rgba(160, 180, 196, 0.15)"
-              onPress={() => router.push('/help-support')}
+              onPress={() => router.push(('/help-support' as any))}
             />
 
             {/* Quotation Settings */}
@@ -187,9 +198,9 @@ export default function SettingsScreen() {
               label="Quotation Settings"
               subLabel="Templates, numbering"
               iconName="request-quote"
-              iconColor={COLORS.primary}
+              iconColor={colors.primary}
               borderColor="rgba(125, 211, 252, 0.15)"
-              onPress={() => router.push('/quotation-settings')}
+              onPress={() => router.push(('/quotation-settings' as any))}
             />
 
             {/* Plan & Subscription */}
@@ -197,9 +208,9 @@ export default function SettingsScreen() {
               label="Plan & Subscription"
               subLabel="Manage your premium plan"
               iconName="card-membership"
-              iconColor={COLORS.tertiary}
+              iconColor={colors.tertiary}
               borderColor="rgba(200, 160, 240, 0.15)"
-              onPress={() => router.push('/plan-subscription')}
+              onPress={() => router.push(('/plan-subscription' as any))}
             />
 
             {/* WhatsApp Settings */}
@@ -207,9 +218,9 @@ export default function SettingsScreen() {
               label="WhatsApp Settings"
               subLabel="Notifications, messaging"
               iconName="chat"
-              iconColor={COLORS.secondary}
+              iconColor={colors.secondary}
               borderColor="rgba(136, 180, 204, 0.15)"
-              onPress={() => router.push('/whatsapp-settings')}
+              onPress={() => router.push(('/whatsapp-settings' as any))}
             />
 
             {/* Branch Settings */}
@@ -217,9 +228,9 @@ export default function SettingsScreen() {
               label="Branch Settings"
               subLabel="Manage multiple locations"
               iconName="store"
-              iconColor={COLORS.textSecondary}
+              iconColor={colors.textSecondary}
               borderColor="rgba(160, 180, 196, 0.15)"
-              onPress={() => router.push('/branch-settings')}
+              onPress={() => router.push(('/branch-settings' as any))}
             />
 
             {/* User Management */}
@@ -227,9 +238,9 @@ export default function SettingsScreen() {
               label="User Management"
               subLabel="Team roles, permissions"
               iconName="group-add"
-              iconColor={COLORS.primary}
+              iconColor={colors.primary}
               borderColor="rgba(125, 211, 252, 0.15)"
-              onPress={() => router.push('/user-management')}
+              onPress={() => router.push(('/user-management' as any))}
             />
 
             {/* Logout Button */}
@@ -251,10 +262,10 @@ export default function SettingsScreen() {
                 <MaterialIcons
                   name="logout"
                   size={20}
-                  color={COLORS.error}
+                  color={colors.error}
                   style={styles.logoutIcon}
                 />
-                <Text style={styles.logoutText}>Log Out</Text>
+                <Text style={[styles.logoutText, { color: colors.error }]}>Log Out</Text>
               </Pressable>
             </Animated.View>
           </View>
@@ -267,7 +278,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#0A0E1A",
   },
   safeArea: {
     flex: 1,
@@ -311,7 +322,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: "#7DD3FC",
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -342,7 +353,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: "#A0B4C4",
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 2,
@@ -385,7 +396,7 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.error,
+    color: "#FF6B6B",
     letterSpacing: 0.5,
   },
 });

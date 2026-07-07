@@ -33,7 +33,7 @@ export default function SettingsScreen() {
   const handleEditProfile = () => {
     console.log('Edit Profile Pressed');
     // Placeholder handler
-    // router.push(('/profile-edit' as any));
+    // router.push(('/settings/profile-edit' as any));
   };
 
   const logoutScaleAnim = React.useRef(new Animated.Value(1)).current;
@@ -60,7 +60,7 @@ export default function SettingsScreen() {
     console.log('Logout Pressed');
     const { logout } = useAuthStore.getState();
     await logout();
-    router.replace(('/(auth)/explore' as any)); // Navigate to login/auth screen
+    router.replace(('/(auth)/login' as any)); // Navigate to login/auth screen
   };
 
   return (
@@ -111,7 +111,7 @@ export default function SettingsScreen() {
                     key={m}
                     onPress={() => setMode(m)}
                     style={[
-                      styles.themeBtn, 
+                      styles.themeBtn,
                       isActive && [styles.themeBtnActive, { backgroundColor: colors.surfaceVariant, borderColor: colors.primary + "2E" }]
                     ]}
                   >
@@ -153,7 +153,7 @@ export default function SettingsScreen() {
               iconName="business"
               iconColor={colors.primary}
               borderColor="rgba(125, 211, 252, 0.15)"
-              onPress={() => router.push(('/company-settings' as any))}
+              onPress={() => router.push(('/settings/company-settings' as any))}
             />
 
             {/* Theme Settings */}
@@ -163,7 +163,7 @@ export default function SettingsScreen() {
               iconName="palette"
               iconColor={colors.tertiary}
               borderColor="rgba(200, 160, 240, 0.15)"
-              onPress={() => router.push(('/theme-settings' as any))}
+              onPress={() => router.push(('/settings/theme-settings' as any))}
             />
 
             {/* Invoice Settings */}
@@ -173,7 +173,7 @@ export default function SettingsScreen() {
               iconName="description"
               iconColor={colors.secondary}
               borderColor="rgba(136, 180, 204, 0.15)"
-              onPress={() => router.push(('/invoice-settings' as any))}
+              onPress={() => router.push(('/settings/invoice-settings' as any))}
             />
 
             {/* Account Security */}
@@ -183,7 +183,7 @@ export default function SettingsScreen() {
               iconName="lock"
               iconColor={colors.error}
               borderColor="rgba(255, 107, 107, 0.15)"
-              onPress={() => router.push(('/account-security' as any))}
+              onPress={() => router.push(('/settings/account-security' as any))}
             />
 
             {/* Help & Support */}
@@ -193,7 +193,7 @@ export default function SettingsScreen() {
               iconName="help"
               iconColor={colors.textSecondary}
               borderColor="rgba(160, 180, 196, 0.15)"
-              onPress={() => router.push(('/help-support' as any))}
+              onPress={() => router.push(('/settings/help-support' as any))}
             />
 
             {/* Quotation Settings */}
@@ -203,7 +203,7 @@ export default function SettingsScreen() {
               iconName="request-quote"
               iconColor={colors.primary}
               borderColor="rgba(125, 211, 252, 0.15)"
-              onPress={() => router.push(('/quotation-settings' as any))}
+              onPress={() => router.push(('/settings/quotation-settings' as any))}
             />
 
             {/* Plan & Subscription */}
@@ -213,7 +213,7 @@ export default function SettingsScreen() {
               iconName="card-membership"
               iconColor={colors.tertiary}
               borderColor="rgba(200, 160, 240, 0.15)"
-              onPress={() => router.push(('/plan-subscription' as any))}
+              onPress={() => router.push(('/settings/plan-subscription' as any))}
             />
 
             {/* WhatsApp Settings */}
@@ -223,7 +223,7 @@ export default function SettingsScreen() {
               iconName="chat"
               iconColor={colors.secondary}
               borderColor="rgba(136, 180, 204, 0.15)"
-              onPress={() => router.push(('/whatsapp-settings' as any))}
+              onPress={() => router.push(('/settings/whatsapp-settings' as any))}
             />
 
             {/* Branch Settings */}
@@ -233,7 +233,7 @@ export default function SettingsScreen() {
               iconName="store"
               iconColor={colors.textSecondary}
               borderColor="rgba(160, 180, 196, 0.15)"
-              onPress={() => router.push(('/branch-settings' as any))}
+              onPress={() => router.push(('/settings/branch-settings' as any))}
             />
 
             {/* User Management */}
@@ -243,7 +243,7 @@ export default function SettingsScreen() {
               iconName="group-add"
               iconColor={colors.primary}
               borderColor="rgba(125, 211, 252, 0.15)"
-              onPress={() => router.push(('/user-management' as any))}
+              onPress={() => router.push(('/settings/user-management' as any))}
             />
 
             {/* Logout Button */}

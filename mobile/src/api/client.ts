@@ -28,7 +28,7 @@ apiClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.error('Error fetching token from SecureStore', error);
+      console.error('Error fetching token from storage', error);
     }
     return config;
   },
@@ -69,7 +69,7 @@ apiClient.interceptors.response.use(
         // If refresh fails, we should logout the user (clear tokens)
         await deleteStorageItemAsync(TOKEN_KEYS.ACCESS);
         await deleteStorageItemAsync(TOKEN_KEYS.REFRESH);
-        
+
         // You might want to trigger a global event here so the UI can redirect to login
         console.error('Refresh token expired or invalid', refreshError);
       }

@@ -33,7 +33,7 @@ export default function SettingsScreen() {
   const handleEditProfile = () => {
     console.log('Edit Profile Pressed');
     // Placeholder handler
-    // router.push(('/profile-edit' as any));
+    // router.push(('/settings/profile-edit' as any));
   };
 
   const logoutScaleAnim = React.useRef(new Animated.Value(1)).current;
@@ -60,7 +60,7 @@ export default function SettingsScreen() {
     console.log('Logout Pressed');
     const { logout } = useAuthStore.getState();
     await logout();
-    router.replace(('/(auth)/explore' as any)); // Navigate to login/auth screen
+    router.replace(('/(auth)/login' as any)); // Navigate to login/auth screen
   };
 
   return (
@@ -111,7 +111,7 @@ export default function SettingsScreen() {
                     key={m}
                     onPress={() => setMode(m)}
                     style={[
-                      styles.themeBtn, 
+                      styles.themeBtn,
                       isActive && [styles.themeBtnActive, { backgroundColor: colors.surfaceVariant, borderColor: colors.primary + "2E" }]
                     ]}
                   >
@@ -142,9 +142,9 @@ export default function SettingsScreen() {
             onEditPress={handleEditProfile}
           />
 
-          {/* Preferences Section */}
+          {/* Business Settings Section */}
           <View style={styles.sectionContainer}>
-            <Text style={[styles.sectionHeader, { color: colors.text }]}>Preferences</Text>
+            <Text style={[styles.sectionHeader, { color: colors.text }]}>Business Settings</Text>
 
             {/* Company Settings */}
             <SettingsItem
@@ -153,77 +153,7 @@ export default function SettingsScreen() {
               iconName="business"
               iconColor={colors.primary}
               borderColor="rgba(125, 211, 252, 0.15)"
-              onPress={() => router.push(('/company-settings' as any))}
-            />
-
-            {/* Theme Settings */}
-            <SettingsItem
-              label="Theme Settings"
-              subLabel="Appearance, Dark mode"
-              iconName="palette"
-              iconColor={colors.tertiary}
-              borderColor="rgba(200, 160, 240, 0.15)"
-              onPress={() => router.push(('/theme-settings' as any))}
-            />
-
-            {/* Invoice Settings */}
-            <SettingsItem
-              label="Invoice Settings"
-              subLabel="Templates, Numbering"
-              iconName="description"
-              iconColor={colors.secondary}
-              borderColor="rgba(136, 180, 204, 0.15)"
-              onPress={() => router.push(('/invoice-settings' as any))}
-            />
-
-            {/* Account Security */}
-            <SettingsItem
-              label="Account Security"
-              subLabel="Password, 2FA"
-              iconName="lock"
-              iconColor={colors.error}
-              borderColor="rgba(255, 107, 107, 0.15)"
-              onPress={() => router.push(('/account-security' as any))}
-            />
-
-            {/* Help & Support */}
-            <SettingsItem
-              label="Help & Support"
-              subLabel="FAQs, Contact us"
-              iconName="help"
-              iconColor={colors.textSecondary}
-              borderColor="rgba(160, 180, 196, 0.15)"
-              onPress={() => router.push(('/help-support' as any))}
-            />
-
-            {/* Quotation Settings */}
-            <SettingsItem
-              label="Quotation Settings"
-              subLabel="Templates, numbering"
-              iconName="request-quote"
-              iconColor={colors.primary}
-              borderColor="rgba(125, 211, 252, 0.15)"
-              onPress={() => router.push(('/quotation-settings' as any))}
-            />
-
-            {/* Plan & Subscription */}
-            <SettingsItem
-              label="Plan & Subscription"
-              subLabel="Manage your premium plan"
-              iconName="card-membership"
-              iconColor={colors.tertiary}
-              borderColor="rgba(200, 160, 240, 0.15)"
-              onPress={() => router.push(('/plan-subscription' as any))}
-            />
-
-            {/* WhatsApp Settings */}
-            <SettingsItem
-              label="WhatsApp Settings"
-              subLabel="Notifications, messaging"
-              iconName="chat"
-              iconColor={colors.secondary}
-              borderColor="rgba(136, 180, 204, 0.15)"
-              onPress={() => router.push(('/whatsapp-settings' as any))}
+              onPress={() => router.push(('/settings/company-settings' as any))}
             />
 
             {/* Branch Settings */}
@@ -233,7 +163,7 @@ export default function SettingsScreen() {
               iconName="store"
               iconColor={colors.textSecondary}
               borderColor="rgba(160, 180, 196, 0.15)"
-              onPress={() => router.push(('/branch-settings' as any))}
+              onPress={() => router.push(('/settings/branch-settings' as any))}
             />
 
             {/* User Management */}
@@ -243,7 +173,97 @@ export default function SettingsScreen() {
               iconName="group-add"
               iconColor={colors.primary}
               borderColor="rgba(125, 211, 252, 0.15)"
-              onPress={() => router.push(('/user-management' as any))}
+              onPress={() => router.push(('/settings/user-management' as any))}
+            />
+          </View>
+
+          {/* Billing & Invoicing Section */}
+          <View style={styles.sectionContainer}>
+            <Text style={[styles.sectionHeader, { color: colors.text }]}>Billing & Invoicing</Text>
+
+            {/* Invoice Settings */}
+            <SettingsItem
+              label="Invoice Settings"
+              subLabel="Templates, Numbering"
+              iconName="description"
+              iconColor={colors.secondary}
+              borderColor="rgba(136, 180, 204, 0.15)"
+              onPress={() => router.push(('/settings/invoice-settings' as any))}
+            />
+
+            {/* Quotation Settings */}
+            <SettingsItem
+              label="Quotation Settings"
+              subLabel="Templates, numbering"
+              iconName="request-quote"
+              iconColor={colors.primary}
+              borderColor="rgba(125, 211, 252, 0.15)"
+              onPress={() => router.push(('/settings/quotation-settings' as any))}
+            />
+          </View>
+
+          {/* Integrations Section */}
+          <View style={styles.sectionContainer}>
+            <Text style={[styles.sectionHeader, { color: colors.text }]}>Integrations</Text>
+
+            {/* WhatsApp Settings */}
+            <SettingsItem
+              label="WhatsApp Settings"
+              subLabel="Notifications, messaging"
+              iconName="chat"
+              iconColor={colors.secondary}
+              borderColor="rgba(136, 180, 204, 0.15)"
+              onPress={() => router.push(('/settings/whatsapp-settings' as any))}
+            />
+          </View>
+
+          {/* Account & Security Section */}
+          <View style={styles.sectionContainer}>
+            <Text style={[styles.sectionHeader, { color: colors.text }]}>Account & Security</Text>
+
+            {/* Plan & Subscription */}
+            <SettingsItem
+              label="Plan & Subscription"
+              subLabel="Manage your premium plan"
+              iconName="card-membership"
+              iconColor={colors.tertiary}
+              borderColor="rgba(200, 160, 240, 0.15)"
+              onPress={() => router.push(('/settings/plan-subscription' as any))}
+            />
+
+            {/* Account Security */}
+            <SettingsItem
+              label="Account Security"
+              subLabel="Password, 2FA"
+              iconName="lock"
+              iconColor={colors.error}
+              borderColor="rgba(255, 107, 107, 0.15)"
+              onPress={() => router.push(('/settings/account-security' as any))}
+            />
+          </View>
+
+          {/* Preferences & Support Section */}
+          <View style={styles.sectionContainer}>
+            <Text style={[styles.sectionHeader, { color: colors.text }]}>Preferences & Support</Text>
+
+            {/* Theme Settings */}
+            <SettingsItem
+              label="Theme Settings"
+              subLabel="Appearance, Dark mode"
+              iconName="palette"
+              iconColor={colors.tertiary}
+              borderColor="rgba(200, 160, 240, 0.15)"
+              onPress={() => router.push(('/settings/theme-settings' as any))}
+            />
+
+            {/* Help & Support */}
+            <SettingsItem
+              label="Help & Support"
+              subLabel="FAQs, Contact us"
+              iconName="help"
+              iconColor={colors.textSecondary}
+              borderColor="rgba(160, 180, 196, 0.15)"
+              onPress={() => router.push(('/settings/help-support' as any))}
             />
 
             {/* Logout Button */}

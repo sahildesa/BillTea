@@ -41,6 +41,7 @@ pnpm-debug.log*
 AGENTS.md
 CLAUDE.md
 .windsurf/
+mobile/.claude/
 
 # ==============================================================================
 # Dependencies & Package Managers
@@ -106,3 +107,4 @@ Page Templates/
 stitch_indux_technology_landing_page/
 server_old/
 .vercel/
+Templates/

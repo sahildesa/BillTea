@@ -39,7 +39,8 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
 
       <View style={styles.tabContent}>
         {state.routes.map((route: any, index: number) => {
-          if (route.name === '_sitemap' || route.name === '+not-found' || route.name === 'dashboard') return null;
+          const allowedTabs = ['quotations', 'products', 'dummy', 'reports', 'settings'];
+          if (!allowedTabs.includes(route.name)) return null;
 
           const isFocused = state.index === index;
           const color = isFocused ? '#7dd3fc' : '#a0b4c4';

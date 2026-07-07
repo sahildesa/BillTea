@@ -43,6 +43,7 @@ export async function deleteStorageItemAsync(key: string) {
   }
 }
 
+
 /**
  * Platform-aware storage abstraction.
  * Uses SecureStore on native platforms (iOS/Android) for encrypted storage.

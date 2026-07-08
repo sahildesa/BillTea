@@ -62,7 +62,7 @@ export default function EditQuotationPage() {
   const [existingAttachments, setExistingAttachments] = useState<any[]>([]);
 
   // Branch Settings
-  const [branchTaxConfig, setBranchTaxConfig] = useState({ label: 'GST', tax: 18 });
+  const [branchTaxConfig, setBranchTaxConfig] = useState({ label: 'GST', tax: 0 });
 
   // Preview & Processing State
   const [calculatedTotals, setCalculatedTotals] = useState({ subtotal: 0, discountAmount: 0, taxAmount: 0, grandTotal: 0 });
@@ -374,7 +374,12 @@ export default function EditQuotationPage() {
           <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-2">
             <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to List
           </button>
-          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">Edit Quotation</h1>
+          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <span className="material-symbols-outlined text-[24px]">edit_document</span>
+            </div>
+            Edit Quotation
+          </h1>
           {quotationNumber && (
             <span className="text-sm font-semibold text-primary mt-1 inline-flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[14px]">tag</span> {quotationNumber}

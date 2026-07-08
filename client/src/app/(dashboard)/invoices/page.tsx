@@ -358,7 +358,7 @@ export default function InvoicesPage() {
                   </td>
                 </tr>
               ) : (
-                invoices.map((invoice) => (
+                invoices.map((invoice, index) => (
                   <tr key={invoice.id} className="hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-6 py-4 font-semibold text-primary">{invoice.invoiceNumber}</td>
                     <td className="px-6 py-4 flex items-center gap-3">
@@ -382,40 +382,60 @@ export default function InvoicesPage() {
                       ₹ {invoice.totals?.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
                     </td>
                     <td className="px-6 py-4">
-                      {openActionId === invoice.id ? (
-                        <div className="flex items-center justify-end gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                          <button onClick={() => handleViewPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer" title="View">
-                            <span className="material-symbols-outlined text-[16px]">visibility</span>
-                          </button>
-                          <Link href={`/invoices/${invoice.id}/edit`}>
-                            <button className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 tooltip cursor-pointer" title="Edit">
-                              <span className="material-symbols-outlined text-[16px]">edit</span>
+                      {index === 0 ? (
+                        openActionId === invoice.id ? (
+                          <div className="flex items-center justify-end gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <button onClick={() => handleViewPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer" title="View">
+                              <span className="material-symbols-outlined text-[16px]">visibility</span>
                             </button>
-                          </Link>
-                          <button onClick={() => handleOpenPaymentModal(invoice)} className="glass-button-icon p-1 rounded-md transition-all hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 tooltip cursor-pointer" title="Add Payment">
-                            <span className="material-symbols-outlined text-[16px]">payments</span>
-                          </button>
-                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
-                            <span className="material-symbols-outlined text-[16px]">send</span>
-                          </button>
-                          <Link href={`/invoices/new?copyFrom=${invoice.id}`}>
-                            <button className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:border-blue-400/30 hover:bg-blue-400/10 tooltip cursor-pointer" title="Copy">
-                              <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                            <Link href={`/invoices/${invoice.id}/edit`}>
+                              <button className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 tooltip cursor-pointer" title="Edit">
+                                <span className="material-symbols-outlined text-[16px]">edit</span>
+                              </button>
+                            </Link>
+                            <button onClick={() => handleOpenPaymentModal(invoice)} className="glass-button-icon p-1 rounded-md transition-all hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 tooltip cursor-pointer" title="Add Payment">
+                              <span className="material-symbols-outlined text-[16px]">payments</span>
                             </button>
-                          </Link>
-                          <button onClick={() => handleDownloadPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-1 rounded-md transition-all hover:text-indigo-400 hover:border-indigo-400/30 hover:bg-indigo-400/10 tooltip cursor-pointer" title="Download PDF">
-                            <span className="material-symbols-outlined text-[16px]">download</span>
-                          </button>
-                          <button onClick={() => handleDelete(invoice.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
-                            <span className="material-symbols-outlined text-[16px]">delete</span>
-                          </button>
-                          <div className="w-px h-4 bg-primary/20 mx-1"></div>
-                          <button 
-                            onClick={() => setOpenActionId(null)}
-                            className="glass-button-icon p-1 rounded-md transition-all hover:text-on-surface-variant hover:bg-surface-container-highest tooltip cursor-pointer" title="Close">
-                            <span className="material-symbols-outlined text-[16px]">close</span>
-                          </button>
-                        </div>
+                            <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
+                              <span className="material-symbols-outlined text-[16px]">send</span>
+                            </button>
+                            <button onClick={() => handleDownloadPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-1 rounded-md transition-all hover:text-indigo-400 hover:border-indigo-400/30 hover:bg-indigo-400/10 tooltip cursor-pointer" title="Download PDF">
+                              <span className="material-symbols-outlined text-[16px]">download</span>
+                            </button>
+                            <button onClick={() => handleDelete(invoice.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                            <div className="w-px h-4 bg-primary/20 mx-1"></div>
+                            <button 
+                              onClick={() => setOpenActionId(null)}
+                              className="glass-button-icon p-1 rounded-md transition-all hover:text-on-surface-variant hover:bg-surface-container-highest tooltip cursor-pointer" title="Close">
+                              <span className="material-symbols-outlined text-[16px]">close</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2 animate-in fade-in duration-300">
+                            <button onClick={() => handleViewPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer" title="View">
+                              <span className="material-symbols-outlined text-[16px]">visibility</span>
+                            </button>
+                            <Link href={`/invoices/${invoice.id}/edit`}>
+                              <button className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 tooltip cursor-pointer" title="Edit">
+                                <span className="material-symbols-outlined text-[16px]">edit</span>
+                              </button>
+                            </Link>
+                            <button onClick={() => handleOpenPaymentModal(invoice)} className="glass-button-icon p-1 rounded-md transition-all hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 tooltip cursor-pointer" title="Add Payment">
+                              <span className="material-symbols-outlined text-[16px]">payments</span>
+                            </button>
+                            <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
+                              <span className="material-symbols-outlined text-[16px]">send</span>
+                            </button>
+                            <div className="w-px h-4 bg-primary/20 mx-1"></div>
+                            <button 
+                              onClick={() => setOpenActionId(invoice.id)}
+                              className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:bg-primary/10 tooltip cursor-pointer" title="More Actions">
+                              <span className="material-symbols-outlined text-[16px]">more_horiz</span>
+                            </button>
+                          </div>
+                        )
                       ) : (
                         <div className="flex items-center justify-end gap-2 animate-in fade-in duration-300">
                           <button onClick={() => handleViewPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer" title="View">
@@ -432,11 +452,8 @@ export default function InvoicesPage() {
                           <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
                             <span className="material-symbols-outlined text-[16px]">send</span>
                           </button>
-                          <div className="w-px h-4 bg-primary/20 mx-1"></div>
-                          <button 
-                            onClick={() => setOpenActionId(invoice.id)}
-                            className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:bg-primary/10 tooltip cursor-pointer" title="More Actions">
-                            <span className="material-symbols-outlined text-[16px]">more_horiz</span>
+                          <button onClick={() => handleDownloadPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-1 rounded-md transition-all hover:text-indigo-400 hover:border-indigo-400/30 hover:bg-indigo-400/10 tooltip cursor-pointer" title="Download PDF">
+                            <span className="material-symbols-outlined text-[16px]">download</span>
                           </button>
                         </div>
                       )}
@@ -499,11 +516,7 @@ export default function InvoicesPage() {
                           <span className="material-symbols-outlined text-[20px]">edit</span>
                         </button>
                       </Link>
-                      <Link href={`/invoices/new?copyFrom=${activeInvoice.id}`}>
-                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-blue-400/10 hover:text-blue-400 border border-transparent hover:border-blue-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Copy">
-                          <span className="material-symbols-outlined text-[20px]">content_copy</span>
-                        </button>
-                      </Link>
+
                       <button onClick={() => { closePdfViewer(); handleOpenPaymentModal(activeInvoice); }} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Add Payment">
                         <span className="material-symbols-outlined text-[20px]">payments</span>
                       </button>

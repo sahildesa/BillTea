@@ -73,6 +73,14 @@ export default function CreateInvoicePage() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
 
   // Setup branch defaults
   useEffect(() => {
@@ -364,9 +372,9 @@ export default function CreateInvoicePage() {
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3">
-          <span className="material-symbols-outlined text-error mt-0.5">error</span>
-          <p className="text-sm text-error font-medium">{error}</p>
+        <div ref={errorRef} className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
+          <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
+          <div className="text-sm text-red-700 font-medium whitespace-pre-line leading-relaxed">{error}</div>
         </div>
       )}
 

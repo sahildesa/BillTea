@@ -62,12 +62,22 @@ export default function CreateQuotationPage() {
   // Branch Settings
   const [branchTaxConfig, setBranchTaxConfig] = useState({ label: 'GST', tax: 0 });
 
+
+
   // Preview & Processing State
   const [calculatedTotals, setCalculatedTotals] = useState({ subtotal: 0, discountAmount: 0, taxAmount: 0, grandTotal: 0 });
   const [calculatedItems, setCalculatedItems] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
 
   // Track if initial data has been loaded (to avoid overwriting with branch defaults when copying)
   const initialLoadDone = useRef(false);
@@ -293,11 +303,105 @@ export default function CreateQuotationPage() {
   const addItem = () => setItems([...items, { id: Math.random().toString(), productId: '', name: '', description: '', price: 0, originalPrice: 0, originalDescription: '', quantity: 1, discount: { type: 'PERCENTAGE', value: 0 }, tax: 0, image: '', sku: '', hsnCode: '' }]);
   const removeItem = (id: string) => { if (items.length > 1) setItems(items.filter(i => i.id !== id)); };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files).filter(f => ['application/pdf', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'].includes(f.type));
-      setAttachments([...attachments, ...newFiles]);
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1920;
+          const MAX_HEIGHT = 1080;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(file); // fallback
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              resolve(file); // fallback
+              return;
+            }
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }, 'image/jpeg', 0.7); // 70% quality
+        };
+        img.onerror = () => resolve(file); // fallback to original file if browser cannot render it (e.g., HEIC)
+      };
+      reader.onerror = () => resolve(file); // fallback
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    
+    setError(''); // clear previous errors
+    const allowedTypes = [
+      'application/pdf', 
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+    ];
+    const MAX_SIZE_MB = 5;
+    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+    
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    for (const file of Array.from(e.target.files)) {
+      if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
+        errors.push(`${file.name}: Invalid format. (PDF, Excel, Word, or Images only)`);
+        continue;
+      }
+      if (file.size > MAX_SIZE_BYTES) {
+        errors.push(`${file.name}: Exceeds ${MAX_SIZE_MB}MB.`);
+        continue;
+      }
+      
+      try {
+        if (file.type.startsWith('image/')) {
+          const compressed = await compressImage(file);
+          validFiles.push(compressed);
+        } else {
+          validFiles.push(file);
+        }
+      } catch (err) {
+        errors.push(`${file.name}: Compression failed.`);
+      }
     }
+
+    if (errors.length > 0) {
+      setError(`Attachment errors:\n• ${errors.join('\n• ')}`);
+    }
+    
+    if (validFiles.length > 0) {
+      setAttachments(prev => [...prev, ...validFiles]);
+    }
+    
+    e.target.value = ''; // reset input
   };
 
   const handleSave = async () => {
@@ -380,9 +484,9 @@ export default function CreateQuotationPage() {
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3">
-          <span className="material-symbols-outlined text-error mt-0.5">error</span>
-          <p className="text-sm text-error font-medium">{error}</p>
+        <div ref={errorRef} className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
+          <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
+          <div className="text-sm text-red-700 font-medium whitespace-pre-line leading-relaxed">{error}</div>
         </div>
       )}
 

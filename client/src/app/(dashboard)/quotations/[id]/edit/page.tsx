@@ -417,11 +417,18 @@ export default function EditQuotationPage() {
                   placeholder="Type to search..." 
                 />
                 {showCustomerDropdown && customerResults.length > 0 && (
-                  <div className="absolute top-full left-0 w-full mt-1 bg-surface-container-highest shadow-xl rounded-lg border border-primary/10 z-[100] max-h-48 overflow-y-auto">
+                  <div className="absolute top-full left-0 w-full mt-2 bg-surface/95 backdrop-blur-xl shadow-2xl rounded-xl border border-outline-variant/30 z-[100] max-h-60 overflow-y-auto overflow-x-hidden flex flex-col p-1">
                     {customerResults.map(c => (
-                      <div key={c.id} onClick={() => handleCustomerSelect(c)} className="p-3 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 last:border-0 transition-colors">
-                        <div className="font-bold text-sm text-on-surface">{c.customerName}</div>
-                        <div className="text-xs text-on-surface-variant">{c.companyName} | {c.email} | {c.mobileNumber}</div>
+                      <div key={c.id} onMouseDown={(e) => { e.preventDefault(); handleCustomerSelect(c); }} className="px-3 py-2.5 hover:bg-primary/5 rounded-lg cursor-pointer transition-all duration-200 group flex items-center gap-3 border-b border-outline-variant/10 last:border-0">
+                        <div className="text-primary/70 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[20px]">person</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{c.customerName}</span>
+                          <span className="text-[11px] text-on-surface-variant">
+                            {[c.companyName, c.email, c.mobileNumber].filter(Boolean).join(' • ')}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -602,10 +609,23 @@ export default function EditQuotationPage() {
                               placeholder="Type to search..." 
                             />
                             {productSearchRows[item.id]?.show && (productSearchRows[item.id]?.results?.length || 0) > 0 && (
-                              <div className="absolute top-full left-0 w-full mt-1 bg-surface-container-highest shadow-xl rounded-lg border border-primary/10 z-[100] max-h-48 overflow-y-auto">
+                              <div className="absolute top-full left-0 w-full mt-2 bg-surface/95 backdrop-blur-xl shadow-2xl rounded-xl border border-outline-variant/30 z-[100] max-h-60 overflow-y-auto overflow-x-hidden p-1">
                                 {productSearchRows[item.id].results.map(p => (
-                                  <div key={p.id} onClick={() => handleProductSelect(p, item.id)} className="p-3 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 text-sm font-semibold transition-colors">
-                                    {p.name} <span className="text-xs font-normal text-on-surface-variant float-right">₹{p.price}</span>
+                                  <div key={p.id} onMouseDown={(e) => { e.preventDefault(); handleProductSelect(p, item.id); }} className="px-3 py-2.5 hover:bg-primary/5 rounded-lg cursor-pointer transition-all duration-200 group flex justify-between items-center border-b border-outline-variant/10 last:border-0">
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-primary/70 flex items-center justify-center">
+                                        <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+                                      </div>
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{p.name}</span>
+                                        {(p.sku || p.hsnCode) && (
+                                          <span className="text-[11px] text-on-surface-variant">
+                                            {[p.sku && `SKU: ${p.sku}`, p.hsnCode && `HSN: ${p.hsnCode}`].filter(Boolean).join(' • ')}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded">₹{p.price}</span>
                                   </div>
                                 ))}
                               </div>

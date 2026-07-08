@@ -512,6 +512,47 @@ export default function QuotationsPage() {
               </div>
               
               <div className="flex items-center gap-3">
+                {(() => {
+                  const activeQuotation = quotations.find(q => q.id === viewerPdfUrl.id);
+                  if (!activeQuotation) return null;
+                  
+                  return (
+                    <div className="flex items-center gap-2 hidden lg:flex">
+                      <Link href={`/quotations/${activeQuotation.id}/edit`}>
+                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Edit">
+                          <span className="material-symbols-outlined text-[20px]">edit</span>
+                        </button>
+                      </Link>
+                      <Link href={`/quotations/new?copyFrom=${activeQuotation.id}`}>
+                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-blue-400/10 hover:text-blue-400 border border-transparent hover:border-blue-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Copy">
+                          <span className="material-symbols-outlined text-[20px]">content_copy</span>
+                        </button>
+                      </Link>
+                      <Link href={`/invoices/new?copyFromQuotation=${activeQuotation.id}`}>
+                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Convert to Invoice">
+                          <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+                        </button>
+                      </Link>
+                      <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Send">
+                        <span className="material-symbols-outlined text-[20px]">send</span>
+                      </button>
+                      <button 
+                        onClick={() => {
+                          closePdfViewer();
+                          setNotesModalData({
+                            id: activeQuotation.id,
+                            notes: activeQuotation.notes || '',
+                            followUpDate: activeQuotation.followUpDate ? new Date(activeQuotation.followUpDate).toISOString().split('T')[0] : ''
+                          });
+                        }}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-amber-400/10 hover:text-amber-400 border border-transparent hover:border-amber-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Notes & Reminder">
+                        <span className="material-symbols-outlined text-[20px]">sticky_note_2</span>
+                      </button>
+                      <div className="w-px h-6 bg-white/10 mx-1"></div>
+                    </div>
+                  );
+                })()}
+
                 <a 
                   href={viewerPdfUrl.url} 
                   download={viewerPdfUrl.title}
@@ -519,7 +560,7 @@ export default function QuotationsPage() {
                 >
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
                   <span className="material-symbols-outlined text-[18px] relative z-10">download</span>
-                  <span className="relative z-10 text-sm">Download</span>
+                  <span className="relative z-10 text-sm hidden sm:inline-block">Download</span>
                 </a>
                 <div className="w-px h-8 bg-white/10 mx-1"></div>
                 <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-error/10 hover:text-error border border-transparent hover:border-error/20 text-on-surface-variant transition-all cursor-pointer">

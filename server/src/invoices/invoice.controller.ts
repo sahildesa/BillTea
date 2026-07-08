@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Query, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Query, UseInterceptors, UploadedFile, BadRequestException, Res, StreamableFile } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -98,5 +99,24 @@ export class InvoiceController {
     @ApiResponse({ status: 200, description: 'Successful operation.' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.invoiceService.remove(id, user.companyId);
+  }
+
+  @Get(':id/pdf')
+    @ApiOperation({ summary: 'Download Pdf' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
+  async downloadPdf(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const buffer = await this.invoiceService.generatePdf(id, user.companyId);
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-${id}.pdf"`,
+      'Content-Length': buffer.length,
+    });
+    
+    return new StreamableFile(buffer);
   }
 }

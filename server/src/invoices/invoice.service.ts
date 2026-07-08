@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceMapper } from './invoice.mapper';
 import { generateExpiryDate } from './invoice.utils';
 import { INVOICE_CONSTANTS } from './invoice.constants';
+import { PdfService } from './pdf.service';
 
 @Injectable()
 export class InvoiceService {
@@ -16,6 +17,7 @@ export class InvoiceService {
     private readonly numberService: InvoiceNumberService,
     private readonly calculatorService: InvoiceCalculatorService,
     private readonly prisma: PrismaService,
+    private readonly pdfService: PdfService,
   ) {}
 
   async create(companyId: string, userId: string, dto: CreateInvoiceDto) {
@@ -351,5 +353,30 @@ export class InvoiceService {
 
     const attachment = await this.repository.createAttachment(attachmentData);
     return InvoiceMapper.toAttachmentDto(attachment);
+  }
+
+  async generatePdf(id: string, companyId: string): Promise<Buffer> {
+    const invoice = await this.repository.findById(id, companyId);
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
+    
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: invoice.branchId },
+    });
+
+    if (!branch) {
+      throw new NotFoundException('Branch not found');
+    }
+
+    return this.pdfService.generateInvoicePdf(invoice, company, branch, invoice.customer);
   }
 }

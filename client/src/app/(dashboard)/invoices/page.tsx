@@ -25,6 +25,9 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [viewerPdfUrl, setViewerPdfUrl] = useState<{url: string, title: string, id: string} | null>(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
   useEffect(() => {
     if (selectedBranchId) {
@@ -66,6 +69,58 @@ export default function InvoicesPage() {
       }
     } catch (err: any) {
       alert('Failed to delete invoice');
+    }
+  };
+
+  const handleDownloadPdf = async (id: string, invoiceNumber: string) => {
+    try {
+      const res = await apiFetch(`/invoices/${id}/pdf`, {
+        method: 'GET',
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to download PDF');
+      }
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Invoice-${invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      alert('Failed to download PDF. Please try again.');
+    }
+  };
+
+  const handleViewPdf = async (id: string, invoiceNumber: string) => {
+    try {
+      setIsLoadingPdf(true);
+      const res = await apiFetch(`/invoices/${id}/pdf`, {
+        method: 'GET',
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to load PDF preview');
+      }
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      setViewerPdfUrl({ url, title: `Invoice-${invoiceNumber}.pdf`, id });
+    } catch (err) {
+      alert('Failed to load PDF preview. Please try again.');
+    } finally {
+      setIsLoadingPdf(false);
+    }
+  };
+
+  const closePdfViewer = () => {
+    if (viewerPdfUrl) {
+      window.URL.revokeObjectURL(viewerPdfUrl.url);
+      setViewerPdfUrl(null);
     }
   };
 
@@ -204,17 +259,64 @@ export default function InvoicesPage() {
                       ₹ {invoice.totals?.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button className="glass-button-icon p-1 rounded-md transition-all tooltip cursor-pointer" title="View">
-                          <span className="material-symbols-outlined text-[16px]">visibility</span>
-                        </button>
-                        <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
-                          <span className="material-symbols-outlined text-[16px]">send</span>
-                        </button>
-                        <button onClick={() => handleDelete(invoice.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
-                          <span className="material-symbols-outlined text-[16px]">delete</span>
-                        </button>
-                      </div>
+                      {openActionId === invoice.id ? (
+                        <div className="flex items-center justify-end gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                          <button onClick={() => handleViewPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer" title="View">
+                            <span className="material-symbols-outlined text-[16px]">visibility</span>
+                          </button>
+                          <Link href={`/invoices/${invoice.id}/edit`}>
+                            <button className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 tooltip cursor-pointer" title="Edit">
+                              <span className="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                          </Link>
+                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 tooltip cursor-pointer" title="Add Payment">
+                            <span className="material-symbols-outlined text-[16px]">payments</span>
+                          </button>
+                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
+                            <span className="material-symbols-outlined text-[16px]">send</span>
+                          </button>
+                          <Link href={`/invoices/new?copyFrom=${invoice.id}`}>
+                            <button className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:border-blue-400/30 hover:bg-blue-400/10 tooltip cursor-pointer" title="Copy">
+                              <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                            </button>
+                          </Link>
+                          <button onClick={() => handleDownloadPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-1 rounded-md transition-all hover:text-indigo-400 hover:border-indigo-400/30 hover:bg-indigo-400/10 tooltip cursor-pointer" title="Download PDF">
+                            <span className="material-symbols-outlined text-[16px]">download</span>
+                          </button>
+                          <button onClick={() => handleDelete(invoice.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
+                          <div className="w-px h-4 bg-primary/20 mx-1"></div>
+                          <button 
+                            onClick={() => setOpenActionId(null)}
+                            className="glass-button-icon p-1 rounded-md transition-all hover:text-on-surface-variant hover:bg-surface-container-highest tooltip cursor-pointer" title="Close">
+                            <span className="material-symbols-outlined text-[16px]">close</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-2 animate-in fade-in duration-300">
+                          <button onClick={() => handleViewPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer" title="View">
+                            <span className="material-symbols-outlined text-[16px]">visibility</span>
+                          </button>
+                          <Link href={`/invoices/${invoice.id}/edit`}>
+                            <button className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 tooltip cursor-pointer" title="Edit">
+                              <span className="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                          </Link>
+                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 tooltip cursor-pointer" title="Add Payment">
+                            <span className="material-symbols-outlined text-[16px]">payments</span>
+                          </button>
+                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
+                            <span className="material-symbols-outlined text-[16px]">send</span>
+                          </button>
+                          <div className="w-px h-4 bg-primary/20 mx-1"></div>
+                          <button 
+                            onClick={() => setOpenActionId(invoice.id)}
+                            className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:bg-primary/10 tooltip cursor-pointer" title="More Actions">
+                            <span className="material-symbols-outlined text-[16px]">more_horiz</span>
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -241,6 +343,81 @@ export default function InvoicesPage() {
           </div>
         </div>
       </div>
+
+      {/* PDF Viewer Modal */}
+      {viewerPdfUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={closePdfViewer}></div>
+          <div className="relative bg-surface w-full max-w-5xl h-[90vh] rounded-2xl shadow-2xl border border-primary/20 flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-primary/10 bg-surface-container/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined">picture_as_pdf</span>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-on-surface">{viewerPdfUrl.title}</h2>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Preview Document</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link href={`/invoices/${viewerPdfUrl.id}/edit`} onClick={closePdfViewer}>
+                  <button className="glass-button-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 tooltip cursor-pointer" title="Edit">
+                    <span className="material-symbols-outlined text-[18px]">edit</span> Edit
+                  </button>
+                </Link>
+                <button className="glass-button px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 transition-colors tooltip cursor-pointer" title="Add Payment">
+                  <span className="material-symbols-outlined text-[18px]">payments</span> Add Payment
+                </button>
+                <button className="glass-button px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 transition-colors tooltip cursor-pointer" title="Send">
+                  <span className="material-symbols-outlined text-[18px]">send</span> Send
+                </button>
+                <button 
+                  onClick={() => handleDownloadPdf(viewerPdfUrl.id, viewerPdfUrl.title.replace('Invoice-', '').replace('.pdf', ''))}
+                  className="glass-button px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:text-primary hover:border-primary/30 transition-colors tooltip cursor-pointer" 
+                  title="Download"
+                >
+                  <span className="material-symbols-outlined text-[18px]">download</span> Download
+                </button>
+                <button 
+                  onClick={() => { closePdfViewer(); handleDelete(viewerPdfUrl.id); }} 
+                  className="glass-button-icon p-2 rounded-lg hover:bg-error/10 hover:text-error transition-colors tooltip cursor-pointer ml-2" 
+                  title="Delete"
+                >
+                  <span className="material-symbols-outlined">delete</span>
+                </button>
+                <div className="w-px h-6 bg-primary/20 mx-1"></div>
+                <button onClick={closePdfViewer} className="glass-button-icon p-2 rounded-lg hover:bg-surface-container-highest transition-colors cursor-pointer">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+            
+            {/* PDF Content Area */}
+            <div className="flex-1 w-full relative bg-surface-container-low flex flex-col items-center justify-center min-h-[500px]">
+              {isLoadingPdf ? (
+                <div className="flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in-95 duration-500">
+                  <div className="relative w-16 h-16">
+                    <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
+                    <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+                    <span className="absolute inset-0 flex items-center justify-center material-symbols-outlined text-primary text-2xl animate-pulse">description</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <h3 className="text-lg font-bold text-on-surface tracking-wide">Generating PDF</h3>
+                    <p className="text-sm text-on-surface-variant/80 mt-1">Please wait while we render your document...</p>
+                  </div>
+                </div>
+              ) : (
+                <iframe 
+                  src={viewerPdfUrl.url} 
+                  className="w-full h-full border-none bg-white rounded-b-2xl shadow-inner animate-in fade-in slide-in-from-bottom-4 duration-500"
+                  title="PDF Preview"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -138,7 +138,7 @@ export default function InvoicesPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar">
+    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
         <div>
@@ -346,55 +346,70 @@ export default function InvoicesPage() {
 
       {/* PDF Viewer Modal */}
       {viewerPdfUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={closePdfViewer}></div>
-          <div className="relative bg-surface w-full max-w-5xl h-[90vh] rounded-2xl shadow-2xl border border-primary/20 flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-primary/10 bg-surface-container/30">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <span className="material-symbols-outlined">picture_as_pdf</span>
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-8">
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-xl transition-opacity" onClick={closePdfViewer}></div>
+          <div className="bg-surface/80 backdrop-blur-2xl rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] w-full max-w-6xl overflow-hidden relative z-10 flex flex-col h-[90vh] animate-in zoom-in-95 fade-in duration-300 border border-white/10">
+            
+            {/* Premium Toolbar */}
+            <div className="px-6 py-4 bg-gradient-to-r from-surface-container/50 to-surface-container/10 flex items-center justify-between border-b border-white/10 relative">
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
+              
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
+                  <span className="material-symbols-outlined text-[24px]">picture_as_pdf</span>
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-on-surface">{viewerPdfUrl.title}</h2>
-                  <p className="text-xs text-on-surface-variant mt-0.5">Preview Document</p>
+                  <h3 className="text-lg font-headline font-bold text-on-surface tracking-tight leading-tight">Document Preview</h3>
+                  <p className="text-sm text-on-surface-variant font-medium mt-0.5">{viewerPdfUrl.title}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Link href={`/invoices/${viewerPdfUrl.id}/edit`} onClick={closePdfViewer}>
-                  <button className="glass-button-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 tooltip cursor-pointer" title="Edit">
-                    <span className="material-symbols-outlined text-[18px]">edit</span> Edit
-                  </button>
-                </Link>
-                <button className="glass-button px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 transition-colors tooltip cursor-pointer" title="Add Payment">
-                  <span className="material-symbols-outlined text-[18px]">payments</span> Add Payment
-                </button>
-                <button className="glass-button px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 transition-colors tooltip cursor-pointer" title="Send">
-                  <span className="material-symbols-outlined text-[18px]">send</span> Send
-                </button>
-                <button 
-                  onClick={() => handleDownloadPdf(viewerPdfUrl.id, viewerPdfUrl.title.replace('Invoice-', '').replace('.pdf', ''))}
-                  className="glass-button px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:text-primary hover:border-primary/30 transition-colors tooltip cursor-pointer" 
-                  title="Download"
+              
+              <div className="flex items-center gap-3">
+                {(() => {
+                  const activeInvoice = invoices.find(q => q.id === viewerPdfUrl.id);
+                  if (!activeInvoice) return null;
+                  
+                  return (
+                    <div className="flex items-center gap-2 hidden lg:flex">
+                      <Link href={`/invoices/${activeInvoice.id}/edit`}>
+                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Edit">
+                          <span className="material-symbols-outlined text-[20px]">edit</span>
+                        </button>
+                      </Link>
+                      <Link href={`/invoices/new?copyFrom=${activeInvoice.id}`}>
+                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-blue-400/10 hover:text-blue-400 border border-transparent hover:border-blue-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Copy">
+                          <span className="material-symbols-outlined text-[20px]">content_copy</span>
+                        </button>
+                      </Link>
+                      <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Add Payment">
+                        <span className="material-symbols-outlined text-[20px]">payments</span>
+                      </button>
+                      <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Send">
+                        <span className="material-symbols-outlined text-[20px]">send</span>
+                      </button>
+                      <div className="w-px h-6 bg-white/10 mx-1"></div>
+                    </div>
+                  );
+                })()}
+
+                <a 
+                  href={viewerPdfUrl.url} 
+                  download={viewerPdfUrl.title}
+                  className="group relative inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:translate-y-0"
                 >
-                  <span className="material-symbols-outlined text-[18px]">download</span> Download
-                </button>
-                <button 
-                  onClick={() => { closePdfViewer(); handleDelete(viewerPdfUrl.id); }} 
-                  className="glass-button-icon p-2 rounded-lg hover:bg-error/10 hover:text-error transition-colors tooltip cursor-pointer ml-2" 
-                  title="Delete"
-                >
-                  <span className="material-symbols-outlined">delete</span>
-                </button>
-                <div className="w-px h-6 bg-primary/20 mx-1"></div>
-                <button onClick={closePdfViewer} className="glass-button-icon p-2 rounded-lg hover:bg-surface-container-highest transition-colors cursor-pointer">
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+                  <span className="material-symbols-outlined text-[18px] relative z-10">download</span>
+                  <span className="relative z-10 text-sm hidden sm:inline-block">Download</span>
+                </a>
+                <div className="w-px h-8 bg-white/10 mx-1"></div>
+                <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-error/10 hover:text-error border border-transparent hover:border-error/20 text-on-surface-variant transition-all cursor-pointer">
                   <span className="material-symbols-outlined">close</span>
                 </button>
               </div>
             </div>
             
-            {/* PDF Content Area */}
-            <div className="flex-1 w-full relative bg-surface-container-low flex flex-col items-center justify-center min-h-[500px]">
+            {/* Content Area with sophisticated framing */}
+            <div className="flex-1 bg-black/40 p-2 sm:p-6 flex items-center justify-center overflow-hidden">
               {isLoadingPdf ? (
                 <div className="flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in-95 duration-500">
                   <div className="relative w-16 h-16">
@@ -403,16 +418,18 @@ export default function InvoicesPage() {
                     <span className="absolute inset-0 flex items-center justify-center material-symbols-outlined text-primary text-2xl animate-pulse">description</span>
                   </div>
                   <div className="flex flex-col items-center">
-                    <h3 className="text-lg font-bold text-on-surface tracking-wide">Generating PDF</h3>
-                    <p className="text-sm text-on-surface-variant/80 mt-1">Please wait while we render your document...</p>
+                    <h3 className="text-lg font-bold text-on-surface tracking-wide text-white">Generating PDF</h3>
+                    <p className="text-sm text-white/70 mt-1">Please wait while we render your document...</p>
                   </div>
                 </div>
               ) : (
-                <iframe 
-                  src={viewerPdfUrl.url} 
-                  className="w-full h-full border-none bg-white rounded-b-2xl shadow-inner animate-in fade-in slide-in-from-bottom-4 duration-500"
-                  title="PDF Preview"
-                />
+                <div className="w-full h-full max-w-[800px] bg-white rounded-xl shadow-2xl overflow-hidden relative border border-white/20">
+                  <iframe 
+                    src={viewerPdfUrl.url} 
+                    className="w-full h-full border-none"
+                    title="PDF Viewer"
+                  />
+                </div>
               )}
             </div>
           </div>

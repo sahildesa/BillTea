@@ -1,25 +1,30 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
+import React from "react";
 import { SegmentedControl } from "../ui/SegmentedControl";
 
-export default function Header() {
-  const [selected, setSelected] = useState<"invoice" | "profit">("invoice");
+type Props = {
+  selected: "invoice" | "profit";
+  onChange: (value: "invoice" | "profit") => void;
+};
 
+export default function Header({
+  selected,
+  onChange,
+}: Props) {
   return (
-    <>
-      {/* Toggle */}
-      <SegmentedControl
-        options={["Invoice Report", "Profit Report"]}
-        activeOption={selected === "invoice" ? "Invoice Report" : "Profit Report"}
-        onOptionChange={(opt) => setSelected(opt === "Invoice Report" ? "invoice" : "profit")}
-      />
-    </>
+    <SegmentedControl
+      options={["Invoice Report", "Profit Report"]}
+      activeOption={
+        selected === "invoice"
+          ? "Invoice Report"
+          : "Profit Report"
+      }
+      onOptionChange={(option) =>
+        onChange(
+          option === "Invoice Report"
+            ? "invoice"
+            : "profit"
+        )
+      }
+    />
   );
 }
-
-const styles = StyleSheet.create({});

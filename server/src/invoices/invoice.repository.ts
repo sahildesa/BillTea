@@ -28,6 +28,14 @@ export class InvoiceRepository {
           payments: true,
         },
       });
+
+      if (data.linkedQuotationId) {
+        await tx.quotation.update({
+          where: { id: data.linkedQuotationId },
+          data: { status: 'ACCEPTED' },
+        });
+      }
+
       return invoice;
     });
   }

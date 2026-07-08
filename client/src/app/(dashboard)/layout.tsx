@@ -137,7 +137,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               <span className="material-symbols-outlined text-on-surface">menu</span>
             </button>
             <h2 className="text-2xl font-semibold text-on-surface tracking-tight drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]">
-              {pathname === '/home' ? 'Dashboard' : pathname.replace('/', '').charAt(0).toUpperCase() + pathname.replace('/', '').slice(1)}
+              {pathname === '/home' ? 'Dashboard' : 
+                pathname.includes('/edit') ? `Edit ${pathname.split('/')[1].replace(/s$/, '').charAt(0).toUpperCase() + pathname.split('/')[1].replace(/s$/, '').slice(1)}` :
+                pathname.includes('/new') ? `New ${pathname.split('/')[1].replace(/s$/, '').charAt(0).toUpperCase() + pathname.split('/')[1].replace(/s$/, '').slice(1)}` :
+                pathname.split('/')[1].charAt(0).toUpperCase() + pathname.split('/')[1].slice(1)}
             </h2>
           </div>
           <div className="flex items-center gap-6">

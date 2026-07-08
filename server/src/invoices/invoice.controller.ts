@@ -94,6 +94,17 @@ export class InvoiceController {
   }
 
 
+  @Put(':id')
+    @ApiOperation({ summary: 'Update' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
+  update(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() updateInvoiceDto: UpdateInvoiceDto,
+  ) {
+    return this.invoiceService.update(id, user.companyId, user.sub, updateInvoiceDto);
+  }
+
   @Delete(':id')
     @ApiOperation({ summary: 'Remove' })
     @ApiResponse({ status: 200, description: 'Successful operation.' })

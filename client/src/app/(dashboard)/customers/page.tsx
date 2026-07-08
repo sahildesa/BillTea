@@ -15,6 +15,10 @@ type Customer = {
   address: string;
   otherInfo: string;
   isActive: boolean;
+  _count?: {
+    invoices: number;
+    quotations: number;
+  };
 };
 
 export default function CustomersPage() {
@@ -252,12 +256,12 @@ export default function CustomersPage() {
                     </td>
                     <td className="px-6 py-5 text-center">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary-container/45 text-secondary text-xs font-medium border border-secondary/10">
-                        <span className="material-symbols-outlined text-sm">description</span> 0
+                        <span className="material-symbols-outlined text-sm">description</span> {customer._count?.invoices || 0}
                       </span>
                     </td>
                     <td className="px-6 py-5 text-center">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-tertiary-container/45 text-tertiary text-xs font-medium border border-tertiary/10">
-                        <span className="material-symbols-outlined text-sm">request_quote</span> 0
+                        <span className="material-symbols-outlined text-sm">request_quote</span> {customer._count?.quotations || 0}
                       </span>
                     </td>
                     <td className="px-6 py-5 text-right pr-8">

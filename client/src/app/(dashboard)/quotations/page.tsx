@@ -305,6 +305,11 @@ export default function QuotationsPage() {
                             <span className="material-symbols-outlined text-[16px]">content_copy</span>
                           </button>
                         </Link>
+                        <Link href={`/invoices/new?copyFromQuotation=${quotation.id}`}>
+                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 tooltip cursor-pointer" title="Convert to Invoice">
+                            <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                          </button>
+                        </Link>
                         <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
                           <span className="material-symbols-outlined text-[16px]">send</span>
                         </button>

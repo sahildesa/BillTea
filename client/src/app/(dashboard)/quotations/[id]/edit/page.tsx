@@ -62,7 +62,9 @@ export default function EditQuotationPage() {
   const [existingAttachments, setExistingAttachments] = useState<any[]>([]);
 
   // Branch Settings
-  const [branchTaxConfig, setBranchTaxConfig] = useState({ label: 'GST', tax: 18 });
+  const [branchTaxConfig, setBranchTaxConfig] = useState({ label: 'GST', tax: 0 });
+
+
 
   // Preview & Processing State
   const [calculatedTotals, setCalculatedTotals] = useState({ subtotal: 0, discountAmount: 0, taxAmount: 0, grandTotal: 0 });
@@ -70,6 +72,14 @@ export default function EditQuotationPage() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
 
   // Track if initial data has been loaded (to avoid overwriting with branch defaults)
   const initialLoadDone = useRef(false);
@@ -256,22 +266,19 @@ export default function EditQuotationPage() {
     }
   };
 
-  // 1-Letter Customer Lookup
+  // Customer Lookup
   useEffect(() => {
-    if (customerSearch.length > 0 && (!selectedCustomerDetails || customerSearch !== selectedCustomerDetails.customerName)) {
+    if (!selectedCustomerDetails || customerSearch !== selectedCustomerDetails.customerName) {
       const delayFn = setTimeout(() => {
         const fetchCust = async () => {
           const res = await apiFetch(`/quotations/customers/search?q=${customerSearch}&branchId=${selectedBranchId}`);
           if (res.ok) setCustomerResults(await res.json());
-          setShowCustomerDropdown(true);
         };
         fetchCust();
       }, 300);
       return () => clearTimeout(delayFn);
-    } else {
-      setShowCustomerDropdown(false);
     }
-  }, [customerSearch]);
+  }, [customerSearch, selectedBranchId]);
 
   const handleCustomerSelect = (customer: any) => {
     setFormData({ ...formData, customerId: customer.id });
@@ -281,15 +288,13 @@ export default function EditQuotationPage() {
     setShowCustomerDropdown(false);
   };
 
-  // 1-Letter Product Lookup
+  // Product Lookup
   const handleProductSearch = async (query: string, rowId: string) => {
-    setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], query, show: query.length > 0 } }));
-    if (query.length > 0) {
-      const res = await apiFetch(`/quotations/products/search?q=${query}&branchId=${selectedBranchId}`);
-      if (res.ok) {
-        const results = await res.json();
-        setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], results } }));
-      }
+    setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], query, show: true } }));
+    const res = await apiFetch(`/quotations/products/search?q=${query}&branchId=${selectedBranchId}`);
+    if (res.ok) {
+      const results = await res.json();
+      setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], results } }));
     }
   };
 
@@ -306,11 +311,105 @@ export default function EditQuotationPage() {
   const addItem = () => setItems([...items, { id: Math.random().toString(), productId: '', name: '', description: '', price: 0, originalPrice: 0, originalDescription: '', quantity: 1, discount: { type: 'PERCENTAGE', value: 0 }, tax: 0, image: '', sku: '', hsnCode: '' }]);
   const removeItem = (id: string) => { if (items.length > 1) setItems(items.filter(i => i.id !== id)); };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files).filter(f => ['application/pdf', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'].includes(f.type));
-      setAttachments([...attachments, ...newFiles]);
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1920;
+          const MAX_HEIGHT = 1080;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(file); // fallback
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              resolve(file); // fallback
+              return;
+            }
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }, 'image/jpeg', 0.7); // 70% quality
+        };
+        img.onerror = () => resolve(file); // fallback to original file if browser cannot render it (e.g., HEIC)
+      };
+      reader.onerror = () => resolve(file); // fallback
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    
+    setError(''); // clear previous errors
+    const allowedTypes = [
+      'application/pdf', 
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+    ];
+    const MAX_SIZE_MB = 5;
+    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+    
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    for (const file of Array.from(e.target.files)) {
+      if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
+        errors.push(`${file.name}: Invalid format. (PDF, Excel, Word, or Images only)`);
+        continue;
+      }
+      if (file.size > MAX_SIZE_BYTES) {
+        errors.push(`${file.name}: Exceeds ${MAX_SIZE_MB}MB.`);
+        continue;
+      }
+      
+      try {
+        if (file.type.startsWith('image/')) {
+          const compressed = await compressImage(file);
+          validFiles.push(compressed);
+        } else {
+          validFiles.push(file);
+        }
+      } catch (err) {
+        errors.push(`${file.name}: Compression failed.`);
+      }
     }
+
+    if (errors.length > 0) {
+      setError(`Attachment errors:\n• ${errors.join('\n• ')}`);
+    }
+    
+    if (validFiles.length > 0) {
+      setAttachments(prev => [...prev, ...validFiles]);
+    }
+    
+    e.target.value = ''; // reset input
   };
 
   const handleSave = async () => {
@@ -379,7 +478,12 @@ export default function EditQuotationPage() {
           <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-2">
             <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to List
           </button>
-          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">Edit Quotation</h1>
+          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <span className="material-symbols-outlined text-[24px]">edit_document</span>
+            </div>
+            Edit Quotation
+          </h1>
           {quotationNumber && (
             <span className="text-sm font-semibold text-primary mt-1 inline-flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[14px]">tag</span> {quotationNumber}
@@ -393,9 +497,9 @@ export default function EditQuotationPage() {
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3">
-          <span className="material-symbols-outlined text-error mt-0.5">error</span>
-          <p className="text-sm text-error font-medium">{error}</p>
+        <div ref={errorRef} className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
+          <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
+          <div className="text-sm text-red-700 font-medium whitespace-pre-line leading-relaxed">{error}</div>
         </div>
       )}
 
@@ -412,13 +516,28 @@ export default function EditQuotationPage() {
               <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Search Customer *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50">search</span>
-                <input type="text" value={customerSearch} onChange={(e) => { setCustomerSearch(e.target.value); if (e.target.value === '') setSelectedCustomerDetails(null); }} className="glass-input pl-10 pr-4 py-2.5 rounded-lg text-sm text-on-surface w-full focus:ring-primary/50 font-semibold" placeholder="Type to search..." />
+                <input 
+                  type="text" 
+                  value={customerSearch} 
+                  onChange={(e) => { setCustomerSearch(e.target.value); if (e.target.value === '') setSelectedCustomerDetails(null); }} 
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                  className="glass-input pl-10 pr-4 py-2.5 rounded-lg text-sm text-on-surface w-full focus:ring-primary/50 font-semibold" 
+                  placeholder="Type to search..." 
+                />
                 {showCustomerDropdown && customerResults.length > 0 && (
-                  <div className="absolute top-full left-0 w-full mt-1 bg-surface-container-highest shadow-xl rounded-lg border border-primary/10 z-[100] max-h-48 overflow-y-auto">
+                  <div className="absolute top-full left-0 w-full mt-2 bg-surface/95 backdrop-blur-xl shadow-2xl rounded-xl border border-outline-variant/30 z-[100] max-h-60 overflow-y-auto overflow-x-hidden flex flex-col p-1">
                     {customerResults.map(c => (
-                      <div key={c.id} onClick={() => handleCustomerSelect(c)} className="p-3 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 last:border-0 transition-colors">
-                        <div className="font-bold text-sm text-on-surface">{c.customerName}</div>
-                        <div className="text-xs text-on-surface-variant">{c.companyName} | {c.email} | {c.mobileNumber}</div>
+                      <div key={c.id} onMouseDown={(e) => { e.preventDefault(); handleCustomerSelect(c); }} className="px-3 py-2.5 hover:bg-primary/5 rounded-lg cursor-pointer transition-all duration-200 group flex items-center gap-3 border-b border-outline-variant/10 last:border-0">
+                        <div className="text-primary/70 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[20px]">person</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{c.customerName}</span>
+                          <span className="text-[11px] text-on-surface-variant">
+                            {[c.companyName, c.email, c.mobileNumber].filter(Boolean).join(' • ')}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -589,12 +708,33 @@ export default function EditQuotationPage() {
                         <div className="grid grid-cols-12 gap-3 md:gap-4 items-start">
                           <div className="col-span-12 md:col-span-6 relative">
                             <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Product Search</label>
-                            <input type="text" value={productSearchRows[item.id]?.query ?? item.name} onChange={(e) => handleProductSearch(e.target.value, item.id)} className="glass-input px-3 py-2 rounded-lg text-sm w-full font-bold text-primary" placeholder="Type to search..." />
+                            <input 
+                              type="text" 
+                              value={productSearchRows[item.id]?.query ?? item.name} 
+                              onChange={(e) => handleProductSearch(e.target.value, item.id)} 
+                              onFocus={() => handleProductSearch(productSearchRows[item.id]?.query ?? item.name, item.id)}
+                              onBlur={() => setTimeout(() => setProductSearchRows(prev => ({ ...prev, [item.id]: { ...prev[item.id], show: false } })), 200)}
+                              className="glass-input px-3 py-2 rounded-lg text-sm w-full font-bold text-primary" 
+                              placeholder="Type to search..." 
+                            />
                             {productSearchRows[item.id]?.show && (productSearchRows[item.id]?.results?.length || 0) > 0 && (
-                              <div className="absolute top-full left-0 w-full mt-1 bg-surface-container-highest shadow-xl rounded-lg border border-primary/10 z-[100] max-h-48 overflow-y-auto">
+                              <div className="absolute top-full left-0 w-full mt-2 bg-surface/95 backdrop-blur-xl shadow-2xl rounded-xl border border-outline-variant/30 z-[100] max-h-60 overflow-y-auto overflow-x-hidden p-1">
                                 {productSearchRows[item.id].results.map(p => (
-                                  <div key={p.id} onClick={() => handleProductSelect(p, item.id)} className="p-3 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 text-sm font-semibold transition-colors">
-                                    {p.name} <span className="text-xs font-normal text-on-surface-variant float-right">₹{p.price}</span>
+                                  <div key={p.id} onMouseDown={(e) => { e.preventDefault(); handleProductSelect(p, item.id); }} className="px-3 py-2.5 hover:bg-primary/5 rounded-lg cursor-pointer transition-all duration-200 group flex justify-between items-center border-b border-outline-variant/10 last:border-0">
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-primary/70 flex items-center justify-center">
+                                        <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+                                      </div>
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{p.name}</span>
+                                        {(p.sku || p.hsnCode) && (
+                                          <span className="text-[11px] text-on-surface-variant">
+                                            {[p.sku && `SKU: ${p.sku}`, p.hsnCode && `HSN: ${p.hsnCode}`].filter(Boolean).join(' • ')}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded">₹{p.price}</span>
                                   </div>
                                 ))}
                               </div>

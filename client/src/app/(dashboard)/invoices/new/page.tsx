@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch, API_BASE } from '@/lib/auth';
 
 const getImageUrl = (url?: string) => {
@@ -20,6 +20,8 @@ import { useBranch } from '@/components/BranchProvider';
 
 export default function CreateInvoicePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const copyFromQuotationId = searchParams.get('copyFromQuotation');
   const { selectedBranchId, branches } = useBranch();
 
   // 1. Core State
@@ -63,7 +65,7 @@ export default function CreateInvoicePage() {
   const [paymentAttachment, setPaymentAttachment] = useState<File | null>(null);
 
   // Branch Settings
-  const [branchTaxConfig, setBranchTaxConfig] = useState({ label: 'GST', tax: 18 });
+  const [branchTaxConfig, setBranchTaxConfig] = useState({ label: 'GST', tax: 0 });
 
   // Preview & Processing State
   const [calculatedTotals, setCalculatedTotals] = useState({ subtotal: 0, discountAmount: 0, taxAmount: 0, grandTotal: 0 });
@@ -71,6 +73,14 @@ export default function CreateInvoicePage() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
 
   // Setup branch defaults
   useEffect(() => {
@@ -139,44 +149,43 @@ export default function CreateInvoicePage() {
     }
   };
 
-  // 1-Letter Customer Lookup
+  // Customer Lookup
   useEffect(() => {
-    if (customerSearch.length > 0 && (!selectedCustomerDetails || customerSearch !== selectedCustomerDetails.customerName)) {
+    if (!selectedCustomerDetails || customerSearch !== selectedCustomerDetails.customerName) {
       const delayFn = setTimeout(() => {
         const fetchCust = async () => {
           const res = await apiFetch(`/invoices/customers/search?q=${customerSearch}&branchId=${selectedBranchId}`);
           if (res.ok) setCustomerResults(await res.json());
-          setShowCustomerDropdown(true);
         };
         fetchCust();
       }, 300);
       return () => clearTimeout(delayFn);
-    } else {
-      setShowCustomerDropdown(false);
     }
-  }, [customerSearch]);
+  }, [customerSearch, selectedBranchId]);
 
-  // 1-Letter Quotation Lookup
+  // Quotation Lookup
   useEffect(() => {
-    if (quotationSearch.length > 0 && (!selectedQuotation || quotationSearch !== selectedQuotation.quotationNumber)) {
+    if (!selectedQuotation || quotationSearch !== selectedQuotation.quotationNumber) {
       const delayFn = setTimeout(() => {
         const fetchQuot = async () => {
-          // fetch quotations
           const res = await apiFetch(`/quotations?branchId=${selectedBranchId}`);
           if (res.ok) {
             const all = await res.json();
             const filtered = all.filter((q: any) => q.quotationNumber.toLowerCase().includes(quotationSearch.toLowerCase()) || q.customer.customerName.toLowerCase().includes(quotationSearch.toLowerCase()));
             setQuotationResults(filtered);
           }
-          setShowQuotationDropdown(true);
         };
         fetchQuot();
       }, 300);
       return () => clearTimeout(delayFn);
-    } else {
-      setShowQuotationDropdown(false);
     }
   }, [quotationSearch, selectedBranchId]);
+
+  useEffect(() => {
+    if (copyFromQuotationId && selectedBranchId) {
+      handleQuotationSelect({ id: copyFromQuotationId, quotationNumber: 'Loading...' });
+    }
+  }, [copyFromQuotationId, selectedBranchId]);
 
   const handleQuotationSelect = async (quotationSummary: any) => {
     try {
@@ -191,6 +200,8 @@ export default function CreateInvoicePage() {
         console.log("Full quotation fetched:", fullQuotation);
         
         // Auto-populate invoice state
+        setQuotationSearch(fullQuotation.quotationNumber);
+        setSelectedQuotation(fullQuotation);
         setCustomerSearch(fullQuotation.customer.customerName);
         setFormData(prev => ({
           ...prev,
@@ -249,15 +260,13 @@ export default function CreateInvoicePage() {
     setShowCustomerDropdown(false);
   };
 
-  // 1-Letter Product Lookup
+  // Product Lookup
   const handleProductSearch = async (query: string, rowId: string) => {
-    setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], query, show: query.length > 0 } }));
-    if (query.length > 0) {
-      const res = await apiFetch(`/invoices/products/search?q=${query}&branchId=${selectedBranchId}`);
-      if (res.ok) {
-        const results = await res.json();
-        setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], results } }));
-      }
+    setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], query, show: true } }));
+    const res = await apiFetch(`/invoices/products/search?q=${query}&branchId=${selectedBranchId}`);
+    if (res.ok) {
+      const results = await res.json();
+      setProductSearchRows(prev => ({ ...prev, [rowId]: { ...prev[rowId], results } }));
     }
   };
 
@@ -349,7 +358,12 @@ export default function CreateInvoicePage() {
           <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-2">
             <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to List
           </button>
-          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">Create Invoice</h1>
+          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <span className="material-symbols-outlined text-[24px]">post_add</span>
+            </div>
+            New Invoice
+          </h1>
         </div>
         <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="glass-button-primary rounded-lg py-2.5 px-6 flex items-center gap-2 text-sm font-semibold transition-all shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
           {isSaving ? <span className="material-symbols-outlined animate-spin text-[18px]">refresh</span> : <span className="material-symbols-outlined text-[18px]">save</span>}
@@ -358,9 +372,9 @@ export default function CreateInvoicePage() {
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3">
-          <span className="material-symbols-outlined text-error mt-0.5">error</span>
-          <p className="text-sm text-error font-medium">{error}</p>
+        <div ref={errorRef} className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
+          <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
+          <div className="text-sm text-red-700 font-medium whitespace-pre-line leading-relaxed">{error}</div>
         </div>
       )}
 
@@ -380,7 +394,7 @@ export default function CreateInvoicePage() {
                   type="text"
                   value={quotationSearch}
                   onChange={(e) => setQuotationSearch(e.target.value)}
-                  onFocus={() => { if (quotationSearch.length > 0) setShowQuotationDropdown(true); }}
+                  onFocus={() => setShowQuotationDropdown(true)}
                   onBlur={() => setTimeout(() => setShowQuotationDropdown(false), 200)}
                   placeholder="Start typing quotation number..."
                   className="glass-input pl-10 pr-4 py-2.5 rounded-lg text-sm w-full font-semibold focus:border-primary/50 transition-all placeholder:font-normal"
@@ -389,14 +403,21 @@ export default function CreateInvoicePage() {
 
               {/* Quotation Dropdown */}
               {showQuotationDropdown && quotationResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-outline-variant/30 rounded-xl shadow-2xl z-[100] max-h-60 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-surface/95 backdrop-blur-xl shadow-2xl rounded-xl border border-outline-variant/30 z-[100] max-h-60 overflow-y-auto overflow-x-hidden p-1">
                   {quotationResults.map((q) => (
-                    <div key={q.id} onMouseDown={(e) => { e.preventDefault(); handleQuotationSelect(q); }} className="p-4 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 transition-colors flex justify-between items-center">
-                      <div>
-                        <p className="text-sm font-bold text-on-surface">{q.quotationNumber}</p>
-                        <p className="text-xs font-semibold text-on-surface-variant/70">{q.customer.customerName}</p>
+                    <div key={q.id} onMouseDown={(e) => { e.preventDefault(); handleQuotationSelect(q); }} className="px-3 py-2.5 hover:bg-primary/5 rounded-lg cursor-pointer transition-all duration-200 group flex justify-between items-center border-b border-outline-variant/10 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className="text-primary/70 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{q.quotationNumber}</span>
+                          <span className="text-[11px] text-on-surface-variant">
+                            {q.customer.customerName}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded-md">₹{(q.totals?.grandTotal ?? 0).toLocaleString('en-IN')}</span>
+                      <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded">₹{(q.totals?.grandTotal ?? 0).toLocaleString('en-IN')}</span>
                     </div>
                   ))}
                 </div>
@@ -414,13 +435,28 @@ export default function CreateInvoicePage() {
               <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Search Customer *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50">search</span>
-                <input type="text" value={customerSearch} onChange={(e) => { setCustomerSearch(e.target.value); if (e.target.value === '') setSelectedCustomerDetails(null); }} className="glass-input pl-10 pr-4 py-2.5 rounded-lg text-sm text-on-surface w-full focus:ring-primary/50 font-semibold" placeholder="Type to search..." />
+                <input 
+                  type="text" 
+                  value={customerSearch} 
+                  onChange={(e) => { setCustomerSearch(e.target.value); if (e.target.value === '') setSelectedCustomerDetails(null); }} 
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                  className="glass-input pl-10 pr-4 py-2.5 rounded-lg text-sm text-on-surface w-full focus:ring-primary/50 font-semibold" 
+                  placeholder="Type to search..." 
+                />
                 {showCustomerDropdown && customerResults.length > 0 && (
-                  <div className="absolute top-full left-0 w-full mt-1 bg-surface-container-highest shadow-xl rounded-lg border border-primary/10 z-[100] max-h-48 overflow-y-auto">
+                  <div className="absolute top-full left-0 w-full mt-2 bg-surface/95 backdrop-blur-xl shadow-2xl rounded-xl border border-outline-variant/30 z-[100] max-h-60 overflow-y-auto overflow-x-hidden flex flex-col p-1">
                     {customerResults.map(c => (
-                      <div key={c.id} onMouseDown={(e) => { e.preventDefault(); handleCustomerSelect(c); }} className="p-3 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 last:border-0 transition-colors">
-                        <div className="font-bold text-sm text-on-surface">{c.customerName}</div>
-                        <div className="text-xs text-on-surface-variant">{c.companyName} | {c.email} | {c.mobileNumber}</div>
+                      <div key={c.id} onMouseDown={(e) => { e.preventDefault(); handleCustomerSelect(c); }} className="px-3 py-2.5 hover:bg-primary/5 rounded-lg cursor-pointer transition-all duration-200 group flex items-center gap-3 border-b border-outline-variant/10 last:border-0">
+                        <div className="text-primary/70 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[20px]">person</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{c.customerName}</span>
+                          <span className="text-[11px] text-on-surface-variant">
+                            {[c.companyName, c.email, c.mobileNumber].filter(Boolean).join(' • ')}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -591,12 +627,33 @@ export default function CreateInvoicePage() {
                         <div className="grid grid-cols-12 gap-3 md:gap-4 items-start">
                           <div className="col-span-12 md:col-span-6 relative">
                             <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Product Search</label>
-                            <input type="text" value={productSearchRows[item.id]?.query ?? item.name} onChange={(e) => handleProductSearch(e.target.value, item.id)} className="glass-input px-3 py-2 rounded-lg text-sm w-full font-bold text-primary" placeholder="Type to search..." />
+                            <input 
+                              type="text" 
+                              value={productSearchRows[item.id]?.query ?? item.name} 
+                              onChange={(e) => handleProductSearch(e.target.value, item.id)} 
+                              onFocus={() => handleProductSearch(productSearchRows[item.id]?.query ?? item.name, item.id)}
+                              onBlur={() => setTimeout(() => setProductSearchRows(prev => ({ ...prev, [item.id]: { ...prev[item.id], show: false } })), 200)}
+                              className="glass-input px-3 py-2 rounded-lg text-sm w-full font-bold text-primary" 
+                              placeholder="Type to search..." 
+                            />
                             {productSearchRows[item.id]?.show && (productSearchRows[item.id]?.results?.length || 0) > 0 && (
-                              <div className="absolute top-full left-0 w-full mt-1 bg-surface-container-highest shadow-xl rounded-lg border border-primary/10 z-[100] max-h-48 overflow-y-auto">
+                              <div className="absolute top-full left-0 w-full mt-2 bg-surface/95 backdrop-blur-xl shadow-2xl rounded-xl border border-outline-variant/30 z-[100] max-h-60 overflow-y-auto overflow-x-hidden p-1">
                                 {productSearchRows[item.id].results.map(p => (
-                                  <div key={p.id} onMouseDown={(e) => { e.preventDefault(); handleProductSelect(p, item.id); }} className="p-3 hover:bg-primary/10 cursor-pointer border-b border-outline-variant/10 text-sm font-semibold transition-colors">
-                                    {p.name} <span className="text-xs font-normal text-on-surface-variant float-right">₹{p.price}</span>
+                                  <div key={p.id} onMouseDown={(e) => { e.preventDefault(); handleProductSelect(p, item.id); }} className="px-3 py-2.5 hover:bg-primary/5 rounded-lg cursor-pointer transition-all duration-200 group flex justify-between items-center border-b border-outline-variant/10 last:border-0">
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-primary/70 flex items-center justify-center">
+                                        <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+                                      </div>
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{p.name}</span>
+                                        {(p.sku || p.hsnCode) && (
+                                          <span className="text-[11px] text-on-surface-variant">
+                                            {[p.sku && `SKU: ${p.sku}`, p.hsnCode && `HSN: ${p.hsnCode}`].filter(Boolean).join(' • ')}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded">₹{p.price}</span>
                                   </div>
                                 ))}
                               </div>

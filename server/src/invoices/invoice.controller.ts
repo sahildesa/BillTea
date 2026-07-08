@@ -6,6 +6,7 @@ import { extname } from 'path';
 import { InvoiceService } from './invoice.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { AddPaymentDto } from './dto/add-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
@@ -93,6 +94,44 @@ export class InvoiceController {
     return this.invoiceService.uploadAttachment(id, user.companyId, file);
   }
 
+
+  @Post(':id/payments')
+    @ApiOperation({ summary: 'Add Payment' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
+  addPayment(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() addPaymentDto: AddPaymentDto,
+  ) {
+    return this.invoiceService.addPayment(id, user.companyId, user.sub, addPaymentDto);
+  }
+
+  @Post(':id/payments/:paymentId/attachment')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          cb(null, `${uniqueSuffix}${ext}`);
+        },
+      }),
+    }),
+  )
+    @ApiOperation({ summary: 'Upload Payment Attachment' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
+  uploadPaymentAttachment(
+    @Param('id') id: string,
+    @Param('paymentId') paymentId: string,
+    @CurrentUser() user: any,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+    return this.invoiceService.uploadPaymentAttachment(paymentId, id, user.companyId, file);
+  }
 
   @Put(':id')
     @ApiOperation({ summary: 'Update' })

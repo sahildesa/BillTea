@@ -4,6 +4,7 @@ import { InvoiceNumberService } from './invoice-number.service';
 import { InvoiceCalculatorService } from './invoice-calculator.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { AddPaymentDto } from './dto/add-payment.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceMapper } from './invoice.mapper';
 import { generateExpiryDate } from './invoice.utils';
@@ -432,6 +433,62 @@ export class InvoiceService {
 
     await this.repository.deleteInvoice(id, companyId);
     return { success: true, message: 'Invoice deleted successfully' };
+  }
+
+  async addPayment(invoiceId: string, companyId: string, userId: string, dto: AddPaymentDto) {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id: invoiceId, companyId },
+    });
+
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    const newAmountPaid = (invoice.amountPaid || 0) + dto.amount;
+    const amountDue = Math.max(0, invoice.grandTotal - newAmountPaid);
+    
+    let status = invoice.status;
+    if (newAmountPaid >= invoice.grandTotal && invoice.grandTotal > 0) {
+      status = 'PAID';
+    } else if (newAmountPaid > 0) {
+      status = 'PARTIAL';
+    }
+
+    const paymentData = {
+      amount: dto.amount,
+      method: dto.method,
+      date: new Date(dto.date),
+      note: dto.note || '',
+      recordedById: userId,
+    };
+
+    const updateData = {
+      amountPaid: newAmountPaid,
+      amountDue,
+      status,
+    };
+
+    const payment = await this.repository.addPayment(invoiceId, companyId, paymentData, updateData);
+    return payment;
+  }
+
+  async uploadPaymentAttachment(paymentId: string, invoiceId: string, companyId: string, file: Express.Multer.File) {
+    const payment = await this.prisma.invoicePayment.findFirst({
+      where: { id: paymentId, invoiceId },
+      include: { invoice: true }
+    });
+    
+    if (!payment || payment.invoice.companyId !== companyId) {
+       throw new NotFoundException('Payment not found');
+    }
+    
+    const filePath = `/uploads/${file.filename}`;
+    return this.repository.updatePaymentAttachment(
+      paymentId,
+      invoiceId,
+      filePath,
+      file.originalname,
+      file.mimetype,
+      file.size
+    );
   }
 
   async searchCustomers(query: string, companyId: string, branchId?: string) {

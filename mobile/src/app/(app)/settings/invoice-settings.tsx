@@ -29,9 +29,9 @@ import {
   Check,
 } from 'lucide-react-native';
 
-import { useTheme } from '../../../hooks/useTheme';
-import { GlassPanel } from '../../../components/ui/GlassPanel';
-import { useInvoiceSettingsStore } from '../../../store/invoiceSettingsStore';
+import { useTheme } from '@/hooks/useTheme';
+import { GlassPanel } from '@/components/ui/GlassPanel';
+import { useInvoiceSettingsStore } from '@/store/invoiceSettingsStore';
 
 // Custom Animated Switch to match the premium screenshot design
 interface CustomSwitchProps {

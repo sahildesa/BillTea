@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { apiFetch, API_BASE } from '@/lib/auth';
 
 const getImageUrl = (url?: string) => {
@@ -18,11 +18,15 @@ const getImageUrl = (url?: string) => {
 };
 import { useBranch } from '@/components/BranchProvider';
 
-export default function CreateInvoicePage() {
+export default function EditInvoicePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const copyFromQuotationId = searchParams.get('copyFromQuotation');
+  const params = useParams();
+  const invoiceId = params.id as string;
   const { selectedBranchId, branches } = useBranch();
+
+  // Loading State for fetching existing invoice
+  const [isLoading, setIsLoading] = useState(true);
+  const [invoiceNumber, setInvoiceNumber] = useState('');
 
   // 1. Core State
   const [formData, setFormData] = useState({
@@ -62,6 +66,7 @@ export default function CreateInvoicePage() {
 
   // Attachments State
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<any[]>([]);
   const [paymentAttachment, setPaymentAttachment] = useState<File | null>(null);
 
   // Branch Settings
@@ -82,6 +87,128 @@ export default function CreateInvoicePage() {
     }
   }, [error]);
 
+  // Track if initial data has been loaded
+  const initialLoadDone = useRef(false);
+
+  // Fetch existing invoice data on mount
+  useEffect(() => {
+    if (invoiceId) {
+      fetchInvoice();
+    }
+  }, [invoiceId]);
+
+  const fetchInvoice = async () => {
+    try {
+      setIsLoading(true);
+      const res = await apiFetch(`/invoices/${invoiceId}`);
+      if (!res.ok) throw new Error('Failed to fetch invoice');
+      const data = await res.json();
+
+      setInvoiceNumber(data.invoiceNumber);
+
+      setFormData({
+        customerId: data.customer?.id || '',
+        invoiceDate: data.invoiceDate ? new Date(data.invoiceDate).toISOString().split('T')[0] : '',
+        dueDate: data.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : '',
+        shippingSameAsBilling: data.shippingSameAsBilling ?? true,
+        discountConfiguration: {
+          mode: data.discountConfiguration?.mode || 'FIXED',
+          type: data.discountConfiguration?.type || 'PERCENTAGE',
+          value: data.discountConfiguration?.value || 0,
+        },
+        taxConfiguration: {
+          mode: data.taxConfiguration?.mode || 'FIXED',
+          customTaxActive: data.taxConfiguration?.customTaxActive || false,
+          label: data.taxConfiguration?.label || '',
+          value: data.taxConfiguration?.value || 0,
+        },
+        paymentConfiguration: { addPayment: false, amount: 0, method: 'CASH', date: new Date().toISOString().split('T')[0], note: '' },
+        notes: data.notes || '',
+        termsAndConditions: typeof data.termsAndConditions === 'object'
+          ? (data.termsAndConditions?.text || data.termsAndConditions?.editedSnapshot || data.termsAndConditions?.defaultSnapshot || '')
+          : (data.termsAndConditions || ''),
+        linkedQuotationId: data.linkedQuotationId || '',
+      });
+
+      if (data.customer) {
+        setCustomerSearch(data.customer.customerName || '');
+        setSelectedCustomerDetails(data.customer);
+      }
+
+      if (data.billingAddressSnapshot) {
+        setBillingAddress({
+          address: data.billingAddressSnapshot.address || '',
+          city: data.billingAddressSnapshot.city || '',
+          state: data.billingAddressSnapshot.state || '',
+          pincode: data.billingAddressSnapshot.pincode || '',
+        });
+      }
+      if (data.shippingAddressSnapshot && !data.shippingSameAsBilling) {
+        setShippingAddress({
+          address: data.shippingAddressSnapshot.address || '',
+          city: data.shippingAddressSnapshot.city || '',
+          state: data.shippingAddressSnapshot.state || '',
+          pincode: data.shippingAddressSnapshot.pincode || '',
+        });
+      }
+
+      if (data.items && data.items.length > 0) {
+        const mappedItems = data.items.map((item: any) => ({
+          id: item.id || Math.random().toString(),
+          productId: item.productId || '',
+          name: item.productSnapshot?.name || '',
+          description: item.description || '',
+          price: item.price || 0,
+          originalPrice: item.productSnapshot?.price || item.price || 0,
+          originalDescription: item.productSnapshot?.description || item.description || '',
+          quantity: item.quantity || 1,
+          discount: item.discount || { type: 'PERCENTAGE', value: 0 },
+          tax: item.tax || 0,
+          image: item.image || item.productSnapshot?.image || '',
+          sku: item.productSnapshot?.skuNumber || '',
+          hsnCode: item.productSnapshot?.hsnNumber || '',
+        }));
+        setItems(mappedItems);
+
+        const searchRows: any = {};
+        mappedItems.forEach((item: any) => {
+          searchRows[item.id] = { query: item.name, results: [], show: false };
+        });
+        setProductSearchRows(searchRows);
+      }
+
+      if (data.attachments && data.attachments.length > 0) {
+        setExistingAttachments(data.attachments);
+      }
+
+      setCalculatedTotals({
+        subtotal: data.subtotal || 0,
+        discountAmount: data.discountAmount || 0,
+        taxAmount: data.taxAmount || 0,
+        grandTotal: data.grandTotal || 0,
+      });
+
+      if (data.linkedQuotationId) {
+        try {
+          const qRes = await apiFetch(`/quotations/${data.linkedQuotationId}`);
+          if (qRes.ok) {
+            const q = await qRes.json();
+            setQuotationSearch(q.quotationNumber);
+            setSelectedQuotation(q);
+          }
+        } catch (err) {
+          console.error('Failed to fetch linked quotation', err);
+        }
+      }
+
+      initialLoadDone.current = true;
+    } catch (err: any) {
+      setError(err.message || 'Failed to load invoice');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Setup branch defaults
   useEffect(() => {
     if (selectedBranchId) {
@@ -91,7 +218,7 @@ export default function CreateInvoicePage() {
   }, [selectedBranchId, branches]);
 
   useEffect(() => {
-    if (selectedBranchId && branchTaxConfig.tax > 0) {
+    if (selectedBranchId && branchTaxConfig.tax > 0 && !initialLoadDone.current) {
       setFormData(prev => ({
         ...prev,
         taxConfiguration: { ...prev.taxConfiguration, label: branchTaxConfig.label, value: branchTaxConfig.tax }
@@ -180,12 +307,6 @@ export default function CreateInvoicePage() {
       return () => clearTimeout(delayFn);
     }
   }, [quotationSearch, selectedBranchId]);
-
-  useEffect(() => {
-    if (copyFromQuotationId && selectedBranchId) {
-      handleQuotationSelect({ id: copyFromQuotationId, quotationNumber: 'Loading...' });
-    }
-  }, [copyFromQuotationId, selectedBranchId]);
 
   const handleQuotationSelect = async (quotationSummary: any) => {
     try {
@@ -394,7 +515,6 @@ export default function CreateInvoicePage() {
     try {
       setIsSaving(true); setError('');
 
-      // Resolve tax config same as preview
       const effectiveTaxConfig = {
         mode: formData.taxConfiguration.mode,
         label: formData.taxConfiguration.customTaxActive ? formData.taxConfiguration.label : branchTaxConfig.label,
@@ -411,31 +531,23 @@ export default function CreateInvoicePage() {
         shippingSameAsBilling: formData.shippingSameAsBilling,
         discountConfiguration: formData.discountConfiguration,
         taxConfiguration: effectiveTaxConfig,
-        paymentConfiguration: formData.paymentConfiguration,
         linkedQuotationId: formData.linkedQuotationId || undefined,
         notes: formData.notes,
         termsAndConditions: { text: formData.termsAndConditions },
         items: items.map(i => ({ productId: i.productId || undefined, price: i.price, description: i.description, quantity: i.quantity, discount: i.discount, tax: i.tax }))
       };
 
-      const res = await apiFetch('/invoices', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      const res = await apiFetch(`/invoices/${invoiceId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to save invoice');
+      if (!res.ok) throw new Error(data.message || 'Failed to update invoice');
 
       // Upload Attachments
       for (const file of attachments) {
         const fileFormData = new FormData();
         fileFormData.append('file', file);
-        await apiFetch(`/invoices/${data.id}/attachments`, { method: 'POST', body: fileFormData, headers: {} }); // empty headers allows fetch to set multipart boundary
-      }
-
-      // Upload Payment Attachment
-      if (paymentAttachment && formData.paymentConfiguration.addPayment && data.payments && data.payments.length > 0) {
-        const paymentFormData = new FormData();
-        paymentFormData.append('file', paymentAttachment);
-        await apiFetch(`/invoices/${data.id}/payments/${data.payments[0].id}/attachment`, { method: 'POST', body: paymentFormData, headers: {} });
+        await apiFetch(`/invoices/${invoiceId}/attachments`, { method: 'POST', body: fileFormData, headers: {} });
       }
 
       router.push('/invoices');
@@ -445,6 +557,17 @@ export default function CreateInvoicePage() {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+          <p className="text-on-surface-variant">Loading invoice details...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar bg-background">
@@ -456,14 +579,14 @@ export default function CreateInvoicePage() {
           </button>
           <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-[24px]">post_add</span>
+              <span className="material-symbols-outlined text-[24px]">edit</span>
             </div>
-            New Invoice
+            Edit Invoice <span className="text-primary">{invoiceNumber && `#${invoiceNumber}`}</span>
           </h1>
         </div>
         <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="glass-button-primary rounded-lg py-2.5 px-6 flex items-center gap-2 text-sm font-semibold transition-all shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
           {isSaving ? <span className="material-symbols-outlined animate-spin text-[18px]">refresh</span> : <span className="material-symbols-outlined text-[18px]">save</span>}
-          Save Invoice
+          Update Invoice
         </button>
       </div>
 
@@ -480,7 +603,7 @@ export default function CreateInvoicePage() {
           {/* Convert from Quotation Section */}
           <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/20 bg-primary/5 overflow-visible relative">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">receipt_long</span> Convert from Quotation
+              <span className="material-symbols-outlined text-primary">receipt_long</span> Linked Quotation
             </h2>
             <div className="relative z-50">
               <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Search Quotation Number or Customer</label>
@@ -1030,6 +1153,24 @@ export default function CreateInvoicePage() {
               </div>
             </div>
           </div>
+
+          {/* Existing Attachments */}
+          {existingAttachments.length > 0 && (
+            <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+              <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Existing Attachments</h3>
+              <div className="space-y-2">
+                {existingAttachments.map((att: any) => (
+                  <div key={att.id} className="flex justify-between items-center p-3 rounded-lg bg-surface-container/50 border border-outline-variant/10">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary text-[18px]">attach_file</span>
+                      <span className="text-xs text-on-surface font-semibold truncate max-w-[180px]">{att.fileName}</span>
+                    </div>
+                    <span className="text-[10px] text-on-surface-variant">{(att.fileSize / 1024).toFixed(1)} KB</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Attachments Dropzone */}
           <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">

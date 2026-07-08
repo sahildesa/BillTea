@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Query, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Query, UseInterceptors, UploadedFile, BadRequestException, Res, StreamableFile } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { InvoiceService } from './invoice.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { AddPaymentDto } from './dto/add-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
@@ -93,10 +95,78 @@ export class InvoiceController {
   }
 
 
+  @Post(':id/payments')
+    @ApiOperation({ summary: 'Add Payment' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
+  addPayment(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() addPaymentDto: AddPaymentDto,
+  ) {
+    return this.invoiceService.addPayment(id, user.companyId, user.sub, addPaymentDto);
+  }
+
+  @Post(':id/payments/:paymentId/attachment')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          cb(null, `${uniqueSuffix}${ext}`);
+        },
+      }),
+    }),
+  )
+    @ApiOperation({ summary: 'Upload Payment Attachment' })
+    @ApiResponse({ status: 201, description: 'Created successfully.' })
+  uploadPaymentAttachment(
+    @Param('id') id: string,
+    @Param('paymentId') paymentId: string,
+    @CurrentUser() user: any,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+    return this.invoiceService.uploadPaymentAttachment(paymentId, id, user.companyId, file);
+  }
+
+  @Put(':id')
+    @ApiOperation({ summary: 'Update' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
+  update(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() updateInvoiceDto: UpdateInvoiceDto,
+  ) {
+    return this.invoiceService.update(id, user.companyId, user.sub, updateInvoiceDto);
+  }
+
   @Delete(':id')
     @ApiOperation({ summary: 'Remove' })
     @ApiResponse({ status: 200, description: 'Successful operation.' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.invoiceService.remove(id, user.companyId);
+  }
+
+  @Get(':id/pdf')
+    @ApiOperation({ summary: 'Download Pdf' })
+    @ApiResponse({ status: 200, description: 'Successful operation.' })
+  async downloadPdf(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const buffer = await this.invoiceService.generatePdf(id, user.companyId);
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-${id}.pdf"`,
+      'Content-Length': buffer.length,
+    });
+    
+    return new StreamableFile(buffer);
   }
 }

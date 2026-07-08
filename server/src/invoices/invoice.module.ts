@@ -4,6 +4,7 @@ import { InvoiceController } from './invoice.controller';
 import { InvoiceRepository } from './invoice.repository';
 import { InvoiceNumberService } from './invoice-number.service';
 import { InvoiceCalculatorService } from './invoice-calculator.service';
+import { PdfService } from './pdf.service';
 
 @Module({
   controllers: [InvoiceController],
@@ -11,7 +12,8 @@ import { InvoiceCalculatorService } from './invoice-calculator.service';
     InvoiceService, 
     InvoiceRepository, 
     InvoiceNumberService, 
-    InvoiceCalculatorService
+    InvoiceCalculatorService,
+    PdfService
   ],
   exports: [InvoiceService]
 })

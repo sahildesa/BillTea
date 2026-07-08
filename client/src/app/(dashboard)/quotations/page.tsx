@@ -33,6 +33,7 @@ export default function QuotationsPage() {
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [viewerPdfUrl, setViewerPdfUrl] = useState<{url: string, title: string, id: string} | null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedBranchId) {
@@ -291,48 +292,76 @@ export default function QuotationsPage() {
                       ₹ {quotation.totals?.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleViewPdf(quotation.id, quotation.quotationNumber)} disabled={isLoadingPdf} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer disabled:opacity-50" title="View">
-                          <span className="material-symbols-outlined text-[16px]">visibility</span>
-                        </button>
-                        <Link href={`/quotations/${quotation.id}/edit`}>
-                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 tooltip cursor-pointer" title="Edit">
-                            <span className="material-symbols-outlined text-[16px]">edit</span>
+                      {openActionId === quotation.id ? (
+                        <div className="flex items-center justify-end gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                          <button onClick={() => handleViewPdf(quotation.id, quotation.quotationNumber)} disabled={isLoadingPdf} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer disabled:opacity-50" title="View">
+                            <span className="material-symbols-outlined text-[16px]">visibility</span>
                           </button>
-                        </Link>
-                        <Link href={`/quotations/new?copyFrom=${quotation.id}`}>
-                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:border-blue-400/30 hover:bg-blue-400/10 tooltip cursor-pointer" title="Copy">
-                            <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                          <Link href={`/quotations/${quotation.id}/edit`}>
+                            <button className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 tooltip cursor-pointer" title="Edit">
+                              <span className="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                          </Link>
+                          <Link href={`/quotations/new?copyFrom=${quotation.id}`}>
+                            <button className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:border-blue-400/30 hover:bg-blue-400/10 tooltip cursor-pointer" title="Copy">
+                              <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                            </button>
+                          </Link>
+                          <Link href={`/invoices/new?copyFromQuotation=${quotation.id}`}>
+                            <button className="glass-button-icon p-1 rounded-md transition-all hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 tooltip cursor-pointer" title="Convert to Invoice">
+                              <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                            </button>
+                          </Link>
+                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
+                            <span className="material-symbols-outlined text-[16px]">send</span>
                           </button>
-                        </Link>
-                        <Link href={`/invoices/new?copyFromQuotation=${quotation.id}`}>
-                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 tooltip cursor-pointer" title="Convert to Invoice">
-                            <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                          <button 
+                            onClick={() => handleDownloadPdf(quotation.id, quotation.quotationNumber)}
+                            className="glass-button-icon p-1 rounded-md transition-all hover:text-indigo-400 hover:border-indigo-400/30 hover:bg-indigo-400/10 tooltip cursor-pointer" title="Download PDF">
+                            <span className="material-symbols-outlined text-[16px]">download</span>
                           </button>
-                        </Link>
-                        <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
-                          <span className="material-symbols-outlined text-[16px]">send</span>
-                        </button>
-                        <button 
-                          onClick={() => handleDownloadPdf(quotation.id, quotation.quotationNumber)}
-                          className="glass-button-icon p-1 rounded-md transition-all hover:text-indigo-400 hover:border-indigo-400/30 hover:bg-indigo-400/10 tooltip cursor-pointer" title="Download PDF">
-                          <span className="material-symbols-outlined text-[16px]">download</span>
-                        </button>
-                        <button 
-                          onClick={() => setNotesModalData({
-                            id: quotation.id,
-                            notes: quotation.notes || '',
-                            followUpDate: quotation.followUpDate ? new Date(quotation.followUpDate).toISOString().split('T')[0] : ''
-                          })}
-                          className="glass-button-icon p-1 rounded-md transition-all hover:text-amber-400 hover:border-amber-400/30 hover:bg-amber-400/10 tooltip cursor-pointer" title="Notes & Reminder">
-                          <span className="material-symbols-outlined text-[16px]">sticky_note_2</span>
-                        </button>
-                        {index === 0 && (
-                          <button onClick={() => setQuotationToDelete(quotation.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
-                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          <button 
+                            onClick={() => setNotesModalData({
+                              id: quotation.id,
+                              notes: quotation.notes || '',
+                              followUpDate: quotation.followUpDate ? new Date(quotation.followUpDate).toISOString().split('T')[0] : ''
+                            })}
+                            className="glass-button-icon p-1 rounded-md transition-all hover:text-amber-400 hover:border-amber-400/30 hover:bg-amber-400/10 tooltip cursor-pointer" title="Notes & Reminder">
+                            <span className="material-symbols-outlined text-[16px]">sticky_note_2</span>
                           </button>
-                        )}
-                      </div>
+                          {index === 0 && (
+                            <button onClick={() => setQuotationToDelete(quotation.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                          )}
+                          <div className="w-px h-4 bg-primary/20 mx-1"></div>
+                          <button 
+                            onClick={() => setOpenActionId(null)}
+                            className="glass-button-icon p-1 rounded-md transition-all hover:text-on-surface-variant hover:bg-surface-container-highest tooltip cursor-pointer" title="Close">
+                            <span className="material-symbols-outlined text-[16px]">close</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-2 animate-in fade-in duration-300">
+                          <button onClick={() => handleViewPdf(quotation.id, quotation.quotationNumber)} disabled={isLoadingPdf} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer disabled:opacity-50" title="View">
+                            <span className="material-symbols-outlined text-[16px]">visibility</span>
+                          </button>
+                          <Link href={`/invoices/new?copyFromQuotation=${quotation.id}`}>
+                            <button className="glass-button-icon p-1 rounded-md transition-all hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 tooltip cursor-pointer" title="Convert to Invoice">
+                              <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                            </button>
+                          </Link>
+                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
+                            <span className="material-symbols-outlined text-[16px]">send</span>
+                          </button>
+                          <div className="w-px h-4 bg-primary/20 mx-1"></div>
+                          <button 
+                            onClick={() => setOpenActionId(quotation.id)}
+                            className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:bg-primary/10 tooltip cursor-pointer" title="More Actions">
+                            <span className="material-symbols-outlined text-[16px]">more_horiz</span>
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -483,6 +512,47 @@ export default function QuotationsPage() {
               </div>
               
               <div className="flex items-center gap-3">
+                {(() => {
+                  const activeQuotation = quotations.find(q => q.id === viewerPdfUrl.id);
+                  if (!activeQuotation) return null;
+                  
+                  return (
+                    <div className="flex items-center gap-2 hidden lg:flex">
+                      <Link href={`/quotations/${activeQuotation.id}/edit`}>
+                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Edit">
+                          <span className="material-symbols-outlined text-[20px]">edit</span>
+                        </button>
+                      </Link>
+                      <Link href={`/quotations/new?copyFrom=${activeQuotation.id}`}>
+                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-blue-400/10 hover:text-blue-400 border border-transparent hover:border-blue-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Copy">
+                          <span className="material-symbols-outlined text-[20px]">content_copy</span>
+                        </button>
+                      </Link>
+                      <Link href={`/invoices/new?copyFromQuotation=${activeQuotation.id}`}>
+                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Convert to Invoice">
+                          <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+                        </button>
+                      </Link>
+                      <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Send">
+                        <span className="material-symbols-outlined text-[20px]">send</span>
+                      </button>
+                      <button 
+                        onClick={() => {
+                          closePdfViewer();
+                          setNotesModalData({
+                            id: activeQuotation.id,
+                            notes: activeQuotation.notes || '',
+                            followUpDate: activeQuotation.followUpDate ? new Date(activeQuotation.followUpDate).toISOString().split('T')[0] : ''
+                          });
+                        }}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-amber-400/10 hover:text-amber-400 border border-transparent hover:border-amber-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Notes & Reminder">
+                        <span className="material-symbols-outlined text-[20px]">sticky_note_2</span>
+                      </button>
+                      <div className="w-px h-6 bg-white/10 mx-1"></div>
+                    </div>
+                  );
+                })()}
+
                 <a 
                   href={viewerPdfUrl.url} 
                   download={viewerPdfUrl.title}
@@ -490,7 +560,7 @@ export default function QuotationsPage() {
                 >
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
                   <span className="material-symbols-outlined text-[18px] relative z-10">download</span>
-                  <span className="relative z-10 text-sm">Download</span>
+                  <span className="relative z-10 text-sm hidden sm:inline-block">Download</span>
                 </a>
                 <div className="w-px h-8 bg-white/10 mx-1"></div>
                 <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-error/10 hover:text-error border border-transparent hover:border-error/20 text-on-surface-variant transition-all cursor-pointer">

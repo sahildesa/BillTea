@@ -109,8 +109,19 @@ export class InvoiceRepository {
   }
 
   async deleteInvoice(id: string, companyId: string) {
-    return this.prisma.invoice.delete({
-      where: { id },
+    return this.prisma.$transaction(async (tx) => {
+      const deletedInvoice = await tx.invoice.delete({
+        where: { id },
+      });
+
+      if (deletedInvoice.linkedQuotationId) {
+        await tx.quotation.update({
+          where: { id: deletedInvoice.linkedQuotationId },
+          data: { status: 'SENT' },
+        });
+      }
+
+      return deletedInvoice;
     });
   }
 

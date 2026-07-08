@@ -283,11 +283,107 @@ export default function CreateInvoicePage() {
   const addItem = () => setItems([...items, { id: Math.random().toString(), productId: '', name: '', description: '', price: 0, originalPrice: 0, originalDescription: '', quantity: 1, discount: { type: 'PERCENTAGE', value: 0 }, tax: 0, image: '', sku: '', hsnCode: '' }]);
   const removeItem = (id: string) => { if (items.length > 1) setItems(items.filter(i => i.id !== id)); };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files).filter(f => ['application/pdf', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'].includes(f.type));
-      setAttachments([...attachments, ...newFiles]);
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1920;
+          const MAX_HEIGHT = 1080;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(file);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }, 'image/jpeg', 0.7);
+        };
+        img.onerror = () => resolve(file);
+      };
+      reader.onerror = () => resolve(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    
+    setError(''); // clear previous errors
+    const allowedTypes = [
+      'application/pdf', 
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    ];
+    const MAX_SIZE_MB = 5;
+    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+    
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    for (const file of Array.from(e.target.files)) {
+      const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+      if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/') && !isHeic) {
+        errors.push(`${file.name}: Invalid format. (PDF, Excel, Word, PPT or Images only)`);
+        continue;
+      }
+      if (file.size > MAX_SIZE_BYTES) {
+        errors.push(`${file.name}: Exceeds ${MAX_SIZE_MB}MB.`);
+        continue;
+      }
+      
+      try {
+        if (file.type.startsWith('image/') || isHeic) {
+          const compressed = await compressImage(file);
+          validFiles.push(compressed);
+        } else {
+          validFiles.push(file);
+        }
+      } catch (err) {
+        errors.push(`${file.name}: Compression failed.`);
+      }
     }
+
+    if (errors.length > 0) {
+      setError(`Attachment errors:\n• ${errors.join('\n• ')}`);
+    }
+    
+    if (validFiles.length > 0) {
+      setAttachments(prev => [...prev, ...validFiles]);
+    }
+    
+    e.target.value = ''; // reset input
   };
 
   const handleSave = async () => {
@@ -815,23 +911,68 @@ export default function CreateInvoicePage() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Attachment (Optional)</label>
-                  <div className="relative glass-input px-4 py-2 rounded-lg text-sm text-on-surface w-full font-semibold flex items-center justify-between overflow-hidden group cursor-pointer h-[42px]">
-                    <span className="truncate max-w-[80%] text-on-surface-variant group-hover:text-primary transition-colors">
-                      {paymentAttachment ? paymentAttachment.name : "Select PDF or Image..."}
-                    </span>
-                    <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px]">
-                      {paymentAttachment ? "check_circle" : "attach_file"}
-                    </span>
-                    <input 
-                      type="file" 
-                      accept=".pdf,image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) setPaymentAttachment(file);
-                      }} 
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                    />
-                  </div>
+                  {paymentAttachment ? (
+                    <div className="relative glass-input px-4 py-2 rounded-lg text-sm text-on-surface w-full font-semibold flex items-center justify-between overflow-hidden group h-[42px] bg-primary/5 border border-primary/20">
+                      <span className="truncate max-w-[80%] text-primary flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                        {paymentAttachment.name}
+                      </span>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setPaymentAttachment(null);
+                        }}
+                        className="material-symbols-outlined text-error/70 hover:text-error transition-colors text-[20px] cursor-pointer"
+                        title="Remove attachment"
+                      >
+                        close
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative glass-input px-4 py-2 rounded-lg text-sm text-on-surface w-full font-semibold flex items-center justify-between overflow-hidden group cursor-pointer h-[42px]">
+                      <span className="truncate max-w-[80%] text-on-surface-variant group-hover:text-primary transition-colors">
+                        Select PDF or Image...
+                      </span>
+                      <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px]">
+                        attach_file
+                      </span>
+                      <input 
+                        type="file" 
+                        accept=".pdf,image/jpeg,image/png,image/gif,image/webp,.heic,.heif"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+
+                          const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                          const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+                          if (!allowedTypes.includes(file.type) && !isHeic && !file.type.startsWith('image/')) {
+                            setError('Payment attachment must be a PDF or an Image.');
+                            e.target.value = '';
+                            return;
+                          }
+                          
+                          if (file.size > 5 * 1024 * 1024) {
+                            setError('Payment attachment must be less than 5MB.');
+                            e.target.value = '';
+                            return;
+                          }
+
+                          setError('');
+                          if (isHeic || file.type.startsWith('image/')) {
+                            try {
+                              const compressed = await compressImage(file);
+                              setPaymentAttachment(compressed);
+                            } catch (err) {
+                              setPaymentAttachment(file); // fallback
+                            }
+                          } else {
+                            setPaymentAttachment(file);
+                          }
+                        }} 
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -894,7 +1035,7 @@ export default function CreateInvoicePage() {
           <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Attachments</h3>
             <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center hover:bg-primary/5 transition-colors relative group cursor-pointer">
-              <input type="file" multiple accept=".pdf,.xlsx,.docx,.png,.jpg,.jpeg,.ppt,.pptx" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+              <input type="file" multiple accept=".pdf,.xlsx,.docx,.png,.jpg,.jpeg,.ppt,.pptx,.heic,.heif" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
               <span className="material-symbols-outlined text-primary text-[32px] mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
               <p className="text-sm font-bold text-on-surface">Click or drag files to attach</p>
               <p className="text-xs text-on-surface-variant mt-1">PDF, Excel, Word, PPT, Images</p>

@@ -5,16 +5,29 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+import { useTheme } from "../../hooks/useTheme";
 
 export default function TransactionHistoryHeader() {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
+      <Text
+        style={[
+          styles.title,
+          { color: colors.text },
+        ]}
+      >
         TRANSACTION HISTORY
       </Text>
 
       <TouchableOpacity activeOpacity={0.7}>
-        <Text style={styles.filter}>
+        <Text
+          style={[
+            styles.filter,
+            { color: colors.primary },
+          ]}
+        >
           Filter
         </Text>
       </TouchableOpacity>
@@ -31,7 +44,6 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: "#E0E8F0",
     fontSize: 14,
     fontWeight: "600",
     textTransform: "uppercase",
@@ -39,7 +51,6 @@ const styles = StyleSheet.create({
   },
 
   filter: {
-    color: "#7DD3FC",
     fontSize: 12,
     fontWeight: "600",
   },

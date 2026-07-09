@@ -7,18 +7,31 @@ import {
 } from "react-native";
 
 import InvoiceCard from "./InvoiceCard";
+import { useTheme } from "../../hooks/useTheme";
 
 export default function RecentReport() {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>
+        <Text
+          style={[
+            styles.title,
+            { color: colors.text },
+          ]}
+        >
           RECENT INVOICES
         </Text>
 
         <TouchableOpacity activeOpacity={0.8}>
-          <Text style={styles.viewAll}>
+          <Text
+            style={[
+              styles.viewAll,
+              { color: colors.primary },
+            ]}
+          >
             View All
           </Text>
         </TouchableOpacity>
@@ -65,19 +78,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-
     marginBottom: 18,
   },
 
-  title:{
-    color:"#F8FAFC",
-    fontSize:18,
-    fontWeight:"700",
-    letterSpacing:0.8,
-},
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+  },
 
   viewAll: {
-    color: "#7DD3FC",
     fontSize: 14,
     fontWeight: "600",
   },

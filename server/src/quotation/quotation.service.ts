@@ -20,6 +20,38 @@ export class QuotationService {
     private readonly pdfService: PdfService,
   ) {}
 
+  private async computeStatusForQuotations(quotations: any[]) {
+    if (quotations.length === 0) return quotations;
+    
+    const quotationIds = quotations.map(q => q.id);
+    const linkedInvoices = await this.prisma.invoice.findMany({
+      where: { linkedQuotationId: { in: quotationIds } },
+      select: { linkedQuotationId: true }
+    });
+    const linkedQuotationIds = new Set(linkedInvoices.map(i => i.linkedQuotationId));
+    const now = new Date();
+
+    return quotations.map(q => {
+      let computedStatus = q.status;
+      const isAccepted = linkedQuotationIds.has(q.id);
+
+      if (isAccepted) {
+        computedStatus = 'ACCEPTED';
+      } else {
+        if (computedStatus === 'ACCEPTED') {
+          computedStatus = 'SENT';
+        }
+        
+        const expiryDate = new Date(q.expiryDate);
+        if (expiryDate < now && computedStatus !== 'ACCEPTED') {
+          computedStatus = 'EXPIRED';
+        }
+      }
+      
+      return { ...q, status: computedStatus };
+    });
+  }
+
   async create(companyId: string, userId: string, dto: CreateQuotationDto) {
     if (!dto.items || dto.items.length === 0) {
       throw new BadRequestException('Quotation must have at least one item');
@@ -139,7 +171,8 @@ export class QuotationService {
     };
 
     const createdQuotation = await this.repository.createQuotation(quotationData, finalItems);
-    return QuotationMapper.toDto(createdQuotation);
+    const [computedQuotation] = await this.computeStatusForQuotations([createdQuotation]);
+    return QuotationMapper.toDto(computedQuotation);
   }
 
   async calculatePreview(companyId: string, userId: string, dto: CreateQuotationDto) {
@@ -218,12 +251,14 @@ export class QuotationService {
 
   async findAll(companyId: string, branchId?: string) {
     const quotations = await this.repository.findAll(companyId, branchId);
-    return quotations.map(q => QuotationMapper.toDto(q));
+    const computedQuotations = await this.computeStatusForQuotations(quotations);
+    return computedQuotations.map(q => QuotationMapper.toDto(q));
   }
 
   async findOne(id: string, companyId: string) {
     const quotation = await this.repository.findById(id, companyId);
-    return QuotationMapper.toDto(quotation);
+    const [computedQuotation] = await this.computeStatusForQuotations([quotation]);
+    return QuotationMapper.toDto(computedQuotation);
   }
 
   async update(id: string, companyId: string, userId: string, dto: UpdateQuotationDto) {
@@ -349,6 +384,7 @@ export class QuotationService {
       notes: dto.notes !== undefined ? dto.notes : existing.notes,
       followUpDate: dto.followUpDate !== undefined ? (dto.followUpDate ? new Date(dto.followUpDate) : null) : existing.followUpDate,
       termsAndConditions: dto.termsAndConditions !== undefined ? dto.termsAndConditions : existing.termsAndConditions,
+      status: dto.status !== undefined ? dto.status : existing.status,
       updatedById: userId,
     };
 
@@ -361,7 +397,8 @@ export class QuotationService {
     }
 
     const updated = await this.repository.updateQuotation(id, companyId, updateData, finalItems);
-    return QuotationMapper.toDto(updated);
+    const [computedQuotation] = await this.computeStatusForQuotations([updated]);
+    return QuotationMapper.toDto(computedQuotation);
   }
 
   async remove(id: string, companyId: string) {

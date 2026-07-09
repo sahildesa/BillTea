@@ -199,8 +199,9 @@ export default function QuotationsPage() {
     const customerName = q.customer?.customerName?.toLowerCase() || '';
     const companyName = q.customer?.companyName?.toLowerCase() || '';
     const quotationNumber = q.quotationNumber?.toLowerCase() || '';
+    const amount = q.totals?.grandTotal?.toString() || '';
     
-    return customerName.includes(query) || companyName.includes(query) || quotationNumber.includes(query);
+    return customerName.includes(query) || companyName.includes(query) || quotationNumber.includes(query) || amount.includes(query);
   });
 
   return (

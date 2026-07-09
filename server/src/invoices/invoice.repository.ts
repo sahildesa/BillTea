@@ -28,6 +28,14 @@ export class InvoiceRepository {
           payments: true,
         },
       });
+
+      if (data.linkedQuotationId) {
+        await tx.quotation.update({
+          where: { id: data.linkedQuotationId },
+          data: { status: 'ACCEPTED' },
+        });
+      }
+
       return invoice;
     });
   }
@@ -101,14 +109,54 @@ export class InvoiceRepository {
   }
 
   async deleteInvoice(id: string, companyId: string) {
-    return this.prisma.invoice.delete({
-      where: { id },
+    return this.prisma.$transaction(async (tx) => {
+      const deletedInvoice = await tx.invoice.delete({
+        where: { id },
+      });
+
+      if (deletedInvoice.linkedQuotationId) {
+        await tx.quotation.update({
+          where: { id: deletedInvoice.linkedQuotationId },
+          data: { status: 'SENT' },
+        });
+      }
+
+      return deletedInvoice;
     });
   }
 
   async createAttachment(data: any) {
     return this.prisma.invoiceAttachment.create({
       data
+    });
+  }
+
+  async addPayment(invoiceId: string, companyId: string, paymentData: any, invoiceUpdateData: any) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Update Invoice totals & status
+      const updatedInvoice = await tx.invoice.update({
+        where: { id: invoiceId, companyId },
+        data: invoiceUpdateData,
+      });
+
+      // 2. Create Payment
+      const payment = await tx.invoicePayment.create({
+        data: {
+          ...paymentData,
+          invoiceId,
+        },
+      });
+
+      return payment;
+    });
+  }
+
+  async updatePaymentAttachment(paymentId: string, invoiceId: string, filePath: string, originalName: string, mimeType: string, size: number) {
+    return this.prisma.invoicePayment.update({
+      where: { id: paymentId, invoiceId },
+      data: {
+        attachmentUrl: filePath,
+      }
     });
   }
 }

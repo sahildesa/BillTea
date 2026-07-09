@@ -68,6 +68,14 @@ export class CustomersService {
     const customers = await this.prisma.customer.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: {
+            invoices: true,
+            quotations: true,
+          },
+        },
+      },
     });
 
     return {

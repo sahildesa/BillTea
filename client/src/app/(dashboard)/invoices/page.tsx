@@ -18,6 +18,7 @@ interface Invoice {
   totals: {
     grandTotal: number;
   };
+  amountPaid: number;
 }
 
 export default function InvoicesPage() {
@@ -41,6 +42,7 @@ export default function InvoicesPage() {
   const [paymentAttachment, setPaymentAttachment] = useState<File | null>(null);
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
@@ -190,21 +192,19 @@ export default function InvoicesPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DRAFT': return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
-      case 'SENT': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
       case 'UNPAID': return 'bg-red-500/10 text-red-500 border-red-500/20';
       case 'PARTIAL': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
       case 'PAID': return 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20';
       case 'OVERDUE': return 'bg-red-500/10 text-red-500 border-red-500/20';
-      case 'CANCELLED': return 'bg-surface-container text-on-surface-variant/50 border-outline-variant/20';
       default: return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
     }
   };
 
   const handleOpenPaymentModal = (invoice: Invoice) => {
     setSelectedInvoiceForPayment(invoice);
+    const amountDue = Number((invoice.totals.grandTotal - invoice.amountPaid).toFixed(2));
     setPaymentForm({
-      amount: invoice.totals.grandTotal, // Default to full amount
+      amount: amountDue, // Default to due amount
       method: 'CASH',
       date: new Date().toISOString().split('T')[0],
       note: ''
@@ -219,6 +219,12 @@ export default function InvoicesPage() {
     if (!selectedInvoiceForPayment) return;
     if (paymentForm.amount <= 0) {
       setPaymentError('Payment amount must be greater than 0');
+      return;
+    }
+    const amountDue = Number((selectedInvoiceForPayment.totals.grandTotal - selectedInvoiceForPayment.amountPaid).toFixed(2));
+    const paymentAmount = Number(paymentForm.amount.toFixed(2));
+    if (paymentAmount > amountDue) {
+      setPaymentError(`Payment amount cannot exceed the due amount`);
       return;
     }
 
@@ -259,6 +265,18 @@ export default function InvoicesPage() {
       setIsSubmittingPayment(false);
     }
   };
+
+  const filteredInvoices = invoices.filter(invoice => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    
+    const nameMatch = invoice.customer?.customerName?.toLowerCase().includes(query) || 
+                      invoice.customer?.companyName?.toLowerCase().includes(query);
+    const amountMatch = invoice.totals?.grandTotal?.toString().includes(query);
+    const invoiceNumberMatch = invoice.invoiceNumber?.toLowerCase().includes(query);
+    
+    return nameMatch || amountMatch || invoiceNumberMatch;
+  });
 
   return (
     <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -304,7 +322,13 @@ export default function InvoicesPage() {
           </div>
           <div className="relative w-full sm:w-auto">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
-            <input className="glass-input pl-9 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder-on-surface-variant/50 w-full sm:w-72 focus:outline-none transition-all" placeholder="Search invoices..." type="text" />
+            <input 
+              className="glass-input pl-9 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder-on-surface-variant/50 w-full sm:w-72 focus:outline-none transition-all" 
+              placeholder="Search invoices..." 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
         
@@ -347,18 +371,18 @@ export default function InvoicesPage() {
                     </div>
                   </td>
                 </tr>
-              ) : invoices.length === 0 ? (
+              ) : filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
                       <span className="material-symbols-outlined text-[32px]">request_quote</span>
                     </div>
-                    <h3 className="text-lg font-bold text-on-surface">No invoices yet</h3>
-                    <p className="text-sm text-on-surface-variant mt-1">Create your first invoice for this branch.</p>
+                    <h3 className="text-lg font-bold text-on-surface">{searchQuery ? 'No matching invoices found' : 'No invoices yet'}</h3>
+                    <p className="text-sm text-on-surface-variant mt-1">{searchQuery ? 'Try adjusting your search filters.' : 'Create your first invoice for this branch.'}</p>
                   </td>
                 </tr>
               ) : (
-                invoices.map((invoice, index) => (
+                filteredInvoices.map((invoice, index) => (
                   <tr key={invoice.id} className="hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-6 py-4 font-semibold text-primary">{invoice.invoiceNumber}</td>
                     <td className="px-6 py-4 flex items-center gap-3">
@@ -379,7 +403,7 @@ export default function InvoicesPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 font-bold text-on-surface">
-                      ₹ {invoice.totals?.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
+                      ₹ {invoice.totals?.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                     </td>
                     <td className="px-6 py-4">
                       {index === 0 ? (
@@ -606,7 +630,8 @@ export default function InvoicesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Amount (₹)</label>
-                  <input type="number" step="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm({...paymentForm, amount: parseFloat(e.target.value) || 0})} className="glass-input px-4 py-2.5 rounded-lg text-sm font-bold text-on-surface w-full" />
+                  <input type="number" step="0.01" max={Number((selectedInvoiceForPayment.totals.grandTotal - selectedInvoiceForPayment.amountPaid).toFixed(2))} value={paymentForm.amount} onChange={(e) => setPaymentForm({...paymentForm, amount: parseFloat(e.target.value) || 0})} className="glass-input px-4 py-2.5 rounded-lg text-sm font-bold text-on-surface w-full" />
+                  <p className="text-[10px] text-on-surface-variant mt-1">Max: ₹{(selectedInvoiceForPayment.totals.grandTotal - selectedInvoiceForPayment.amountPaid).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Payment Date</label>

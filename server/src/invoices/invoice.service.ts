@@ -29,22 +29,20 @@ export class InvoiceService {
     return invoices.map(invoice => {
       let computedStatus = invoice.status;
       
-      if (computedStatus !== 'DRAFT' && computedStatus !== 'CANCELLED') {
-        const grandTotal = invoice.grandTotal || 0;
-        const amountPaid = invoice.amountPaid || 0;
-        const dueDate = new Date(invoice.dueDate);
-        
-        if (amountPaid === 0) {
-          computedStatus = 'UNPAID';
-        } else if (amountPaid > 0 && amountPaid < grandTotal) {
-          computedStatus = 'PARTIAL';
-        } else if (amountPaid >= grandTotal && grandTotal > 0) {
-          computedStatus = 'PAID';
-        }
-        
-        if (dueDate < now && computedStatus !== 'PAID') {
-          computedStatus = 'OVERDUE';
-        }
+      const grandTotal = invoice.grandTotal || 0;
+      const amountPaid = invoice.amountPaid || 0;
+      const dueDate = new Date(invoice.dueDate);
+      
+      if (amountPaid === 0) {
+        computedStatus = 'UNPAID';
+      } else if (amountPaid > 0 && amountPaid < grandTotal) {
+        computedStatus = 'PARTIAL';
+      } else if (amountPaid >= grandTotal && grandTotal > 0) {
+        computedStatus = 'PAID';
+      }
+      
+      if (dueDate < now && computedStatus !== 'PAID') {
+        computedStatus = 'OVERDUE';
       }
       
       return { ...invoice, status: computedStatus };
@@ -150,7 +148,16 @@ export class InvoiceService {
     let amountPaid = 0;
     let paymentData = [];
     if (dto.paymentConfiguration && dto.paymentConfiguration.addPayment) {
-      amountPaid = dto.paymentConfiguration.amount || calculation.grandTotal;
+      amountPaid = Number(Number(dto.paymentConfiguration.amount || calculation.grandTotal).toFixed(2));
+      const gTotal = Number(Number(calculation.grandTotal).toFixed(2));
+      
+      if (amountPaid <= 0) {
+        throw new BadRequestException('Payment amount must be greater than 0');
+      }
+      if (amountPaid > gTotal) {
+        throw new BadRequestException('Payment amount cannot exceed the invoice total');
+      }
+      
       paymentData.push({
         amount: amountPaid,
         method: dto.paymentConfiguration.method || 'CASH',
@@ -159,7 +166,7 @@ export class InvoiceService {
       });
     }
     
-    const amountDue = Math.max(0, calculation.grandTotal - amountPaid);
+    const amountDue = Number(Math.max(0, calculation.grandTotal - amountPaid).toFixed(2));
     
     let status = 'UNPAID';
     if (amountPaid >= calculation.grandTotal && calculation.grandTotal > 0) {
@@ -428,7 +435,7 @@ export class InvoiceService {
       updateData.grandTotal = calculation.grandTotal;
       
       const amountPaid = existing.amountPaid || 0;
-      updateData.amountDue = Math.max(0, calculation.grandTotal - amountPaid);
+      updateData.amountDue = Number(Math.max(0, calculation.grandTotal - amountPaid).toFixed(2));
       
       let status = existing.status;
       if (amountPaid >= calculation.grandTotal && calculation.grandTotal > 0) {
@@ -476,8 +483,17 @@ export class InvoiceService {
 
     if (!invoice) throw new NotFoundException('Invoice not found');
 
-    const newAmountPaid = (invoice.amountPaid || 0) + dto.amount;
-    const amountDue = Math.max(0, invoice.grandTotal - newAmountPaid);
+    const currentDue = Number((invoice.grandTotal - (invoice.amountPaid || 0)).toFixed(2));
+    const paymentAmount = Number(dto.amount.toFixed(2));
+    if (paymentAmount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than 0');
+    }
+    if (paymentAmount > currentDue) {
+      throw new BadRequestException('Payment amount cannot exceed the due amount');
+    }
+
+    const newAmountPaid = Number(((invoice.amountPaid || 0) + dto.amount).toFixed(2));
+    const amountDue = Math.max(0, Number((invoice.grandTotal - newAmountPaid).toFixed(2)));
     
     let status = invoice.status;
     if (newAmountPaid >= invoice.grandTotal && invoice.grandTotal > 0) {

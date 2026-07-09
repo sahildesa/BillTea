@@ -249,9 +249,14 @@ export class QuotationService {
     };
   }
 
-  async findAll(companyId: string, branchId?: string) {
+  async findAll(companyId: string, branchId?: string, withoutInvoice?: boolean) {
     const quotations = await this.repository.findAll(companyId, branchId);
-    const computedQuotations = await this.computeStatusForQuotations(quotations);
+    let computedQuotations = await this.computeStatusForQuotations(quotations);
+    
+    if (withoutInvoice) {
+      computedQuotations = computedQuotations.filter(q => q.status !== 'ACCEPTED');
+    }
+    
     return computedQuotations.map(q => QuotationMapper.toDto(q));
   }
 

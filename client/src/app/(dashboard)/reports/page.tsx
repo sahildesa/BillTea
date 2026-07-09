@@ -141,13 +141,10 @@ export default function ReportsPage() {
   // Get status color
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DRAFT': return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
-      case 'SENT': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
       case 'UNPAID': return 'bg-amber-500/10 text-amber-500 border-amber-500/20 text-error shadow-[0_0_10px_rgba(255,107,107,0.1)] border-error/20 bg-error/10'; // using the exact tailwind classes they had for Pending if it's UNPAID/Pending
       case 'PARTIAL': return 'bg-orange-500/10 text-orange-500 border-orange-500/20';
       case 'PAID': return 'border-secondary/20 bg-secondary/10 text-secondary shadow-[0_0_10px_rgba(136,180,204,0.1)]'; // using exact ones from static
       case 'OVERDUE': return 'bg-red-500/10 text-red-500 border-red-500/20';
-      case 'CANCELLED': return 'bg-surface-container text-on-surface-variant/50 border-outline-variant/20';
       default: return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
     }
   };

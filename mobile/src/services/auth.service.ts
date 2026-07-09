@@ -1,4 +1,5 @@
-import { apiClient, TOKEN_KEYS } from '../api/client';
+import { apiClient } from '../api/client';
+import { TOKEN_KEYS } from '../constants/keys';
 import * as ExpoSecureStore from 'expo-secure-store';
 
 export const authService = {

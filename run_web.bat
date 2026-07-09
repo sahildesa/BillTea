@@ -76,8 +76,23 @@ if %errorlevel% equ 0 (
     echo [*] Checking database migrations...
     cd server
     call npx prisma migrate deploy
+    if %errorlevel% neq 0 (
+        echo.
+        echo [ERROR] Database migration failed with code %errorlevel%.
+        echo Please resolve the migration issues and restart this script.
+        cd ..
+        pause
+        exit /b %errorlevel%
+    )
     echo [*] Ensuring default database records exist ^(seeding^)...
     call npm run prisma:seed
+    if %errorlevel% neq 0 (
+        echo.
+        echo [ERROR] Database seeding failed with code %errorlevel%.
+        cd ..
+        pause
+        exit /b %errorlevel%
+    )
     cd ..
     echo [SUCCESS] Database migrations and seeding applied.
     echo.

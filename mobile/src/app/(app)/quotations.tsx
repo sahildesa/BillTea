@@ -156,9 +156,11 @@ export default function QuotationsScreen() {
         const res = await apiClient.get(endpoint);
         if (!mounted) return;
 
-        if (res.status === 200 && res.data?.success) {
+        if (res.status === 200 && (res.data?.success || Array.isArray(res.data))) {
           const tabKey = activeTab.toLowerCase();
-          const list = Array.isArray(res.data[tabKey]) ? res.data[tabKey] : [];
+          const list = Array.isArray(res.data)
+            ? res.data
+            : (Array.isArray(res.data[tabKey]) ? res.data[tabKey] : []);
           if (activeTab === "Quotations") {
             setQuotations(list);
           } else if (activeTab === "Invoices") {

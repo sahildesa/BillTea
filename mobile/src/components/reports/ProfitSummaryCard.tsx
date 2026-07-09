@@ -5,57 +5,120 @@ import {
   TrendingDown,
   Landmark,
 } from "lucide-react-native";
+import { useTheme } from "../../hooks/useTheme";
 
 export default function ProfitSummaryCard() {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
       {/* Top Row */}
       <View style={styles.row}>
         {/* Total Income */}
-        <View style={[styles.card, styles.incomeCard]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.glassBorder,
+            },
+          ]}
+        >
           <View style={styles.titleRow}>
             <TrendingUp
               size={18}
-              color="#7DD3FC"
+              color={colors.primary}
               strokeWidth={2}
             />
-            <Text style={styles.label}>Total Income</Text>
+            <Text
+              style={[
+                styles.label,
+                { color: colors.textSecondary },
+              ]}
+            >
+              Total Income
+            </Text>
           </View>
 
-          <Text style={styles.incomeAmount}>
+          <Text
+            style={[
+              styles.incomeAmount,
+              { color: colors.primary },
+            ]}
+          >
             $542,200
           </Text>
         </View>
 
         {/* Expenses */}
-        <View style={[styles.card, styles.expenseCard]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.glassBorder,
+            },
+          ]}
+        >
           <View style={styles.titleRow}>
             <TrendingDown
               size={18}
-              color="#FF6B6B"
+              color={colors.error}
               strokeWidth={2}
             />
-            <Text style={styles.label}>Expenses</Text>
+            <Text
+              style={[
+                styles.label,
+                { color: colors.textSecondary },
+              ]}
+            >
+              Expenses
+            </Text>
           </View>
 
-          <Text style={styles.expenseAmount}>
+          <Text
+            style={[
+              styles.expenseAmount,
+              { color: colors.error },
+            ]}
+          >
             $124,400
           </Text>
         </View>
       </View>
 
       {/* Bottom Card */}
-      <View style={styles.profitCard}>
+      <View
+        style={[
+          styles.profitCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.glassBorder,
+          },
+        ]}
+      >
         <View style={styles.titleRow}>
           <Landmark
             size={18}
-            color="#C792EA"
+            color={colors.tertiary}
             strokeWidth={2}
           />
-          <Text style={styles.label}>Net Profit</Text>
+          <Text
+            style={[
+              styles.label,
+              { color: colors.textSecondary },
+            ]}
+          >
+            Net Profit
+          </Text>
         </View>
 
-        <Text style={styles.profitAmount}>
+        <Text
+          style={[
+            styles.profitAmount,
+            { color: colors.tertiary },
+          ]}
+        >
           $417,800
         </Text>
       </View>
@@ -77,26 +140,15 @@ const styles = StyleSheet.create({
 
   card: {
     width: "48%",
-    backgroundColor: "#111827",
     borderRadius: 22,
     paddingHorizontal: 20,
     paddingVertical: 20,
     borderWidth: 1,
   },
 
-  incomeCard: {
-    borderColor: "rgba(125,211,252,0.18)",
-  },
-
-  expenseCard: {
-    borderColor: "rgba(255,107,107,0.22)",
-  },
-
   profitCard: {
-    backgroundColor: "#111827",
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: "rgba(199,146,234,0.22)",
     paddingHorizontal: 20,
     paddingVertical: 22,
   },
@@ -108,26 +160,22 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    color: "#AAB4C5",
     fontSize: 17,
     marginLeft: 10,
     fontWeight: "500",
   },
 
   incomeAmount: {
-    color: "#7DD3FC",
     fontSize: 27,
     fontWeight: "700",
   },
 
   expenseAmount: {
-    color: "#FF6B6B",
     fontSize: 27,
     fontWeight: "700",
   },
 
   profitAmount: {
-    color: "#C792EA",
     fontSize: 28,
     fontWeight: "700",
   },

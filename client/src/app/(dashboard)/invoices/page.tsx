@@ -192,8 +192,8 @@ export default function InvoicesPage() {
     switch (status) {
       case 'DRAFT': return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
       case 'SENT': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-      case 'UNPAID': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
-      case 'PARTIAL': return 'bg-orange-500/10 text-orange-500 border-orange-500/20';
+      case 'UNPAID': return 'bg-red-500/10 text-red-500 border-red-500/20';
+      case 'PARTIAL': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
       case 'PAID': return 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20';
       case 'OVERDUE': return 'bg-red-500/10 text-red-500 border-red-500/20';
       case 'CANCELLED': return 'bg-surface-container text-on-surface-variant/50 border-outline-variant/20';

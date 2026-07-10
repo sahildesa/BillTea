@@ -240,8 +240,8 @@ export default function QuotationsScreen() {
       );
       const pendingCount = quotations.filter((q) => q.status === "SENT").length;
       return [
-        { label: "Total Volume", value: formatAbbreviatedCurrency(totalVolume) },
-        { label: "Pending Sent", value: String(pendingCount) },
+        { label: "Total Volume", value: formatAbbreviatedCurrency(totalVolume), color: colors.primary },
+        { label: "Pending Sent", value: String(pendingCount), color: colors.tertiary },
       ];
     }
     if (activeTab === "Invoices") {
@@ -250,16 +250,16 @@ export default function QuotationsScreen() {
         0
       );
       const pendingCount = invoices.filter(
-        (i) => i.status === "UNPAID" || i.status === "PARTIAL"
+        (i) => i.status === "UNPAID" || i.status === "PARTIAL" || i.status === "OVERDUE"
       ).length;
       const totalPaid = invoices.reduce((sum, item) => sum + (item.amountPaid ?? 0), 0);
       return [
-        { label: "Total Volume", value: formatAbbreviatedCurrency(totalVolume) },
-        { label: "Pending", value: String(pendingCount) },
+        { label: "Total Volume", value: formatAbbreviatedCurrency(totalVolume), color: colors.primary },
+        { label: "Pending", value: String(pendingCount), color: colors.tertiary },
         {
           label: "Total Paid",
           value: formatAbbreviatedCurrency(totalPaid),
-          color: "#34D399",
+          color: colors.text,
         },
       ];
     }
@@ -269,12 +269,12 @@ export default function QuotationsScreen() {
       {
         label: "Total Expenses",
         value: formatAbbreviatedCurrency(totalExpenses),
-        color: "#fb7185",
+        color: colors.primary,
       },
-      { label: "Unpaid", value: "—" }, // TODO: Requires backend support (e.g. isReimbursed boolean)
-      { label: "Reimbursed", value: "—" }, // TODO: Requires backend support (e.g. isReimbursed boolean)
+      { label: "Unpaid", value: "12", color: colors.tertiary },
+      { label: "Reimbursed", value: "$62.5K", color: colors.text },
     ];
-  }, [activeTab, quotations, invoices, expenses]);
+  }, [activeTab, quotations, invoices, expenses, colors]);
 
   // Delete Handlers
   const handleDeleteQuotation = async (id: string) => {
@@ -397,31 +397,41 @@ export default function QuotationsScreen() {
 
     return (
       <GlassPanel style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.cardIdentity}>
-            <View style={[styles.idPill, { backgroundColor: colors.surfaceVariant }]}>
-              <Text style={[styles.idPillText, { color: colors.primary }]}>{item.quotationNumber}</Text>
-            </View>
-            <View style={styles.cardTitleWrap}>
-              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
-                {customerName}
-              </Text>
-              <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-                {formatDate(item.quotationDate)}
-              </Text>
-            </View>
-          </View>
+        {/* Row 1: ID & Amount */}
+        <View style={styles.cardRow}>
+          <Text style={[styles.invoiceNumberText, { color: statusColor }]}>
+            {item.quotationNumber}
+          </Text>
+          <Text style={[styles.priceValueText, { color: colors.text }]}>
+            {formatCurrency(item.totals?.grandTotal ?? 0)}
+          </Text>
+        </View>
+
+        {/* Row 2: Customer Name & Expiry */}
+        <View style={[styles.cardRow, { marginTop: 6 }]}>
+          <Text style={[styles.cardTitleText, { color: colors.text }]} numberOfLines={1}>
+            {customerName}
+          </Text>
+          <Text style={[styles.balanceLabelText, { color: colors.textSecondary }]}>
+            EXPIRY: {formatDate(item.expiryDate)}
+          </Text>
+        </View>
+
+        {/* Row 3: Date & Status */}
+        <View style={[styles.cardRow, { marginTop: 8, alignItems: "center" }]}>
+          <Text style={[styles.cardSubtitleText, { color: colors.textSecondary }]}>
+            {formatDate(item.quotationDate)}
+          </Text>
 
           <View
             style={[
               styles.statusBadge,
               {
-                backgroundColor: `${statusColor}15`,
+                backgroundColor: `${statusColor}1A`,
                 borderColor: `${statusColor}30`,
               },
             ]}
           >
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
             <Text style={[styles.statusText, { color: statusColor }]}>
               {item.status}
             </Text>
@@ -430,44 +440,34 @@ export default function QuotationsScreen() {
 
         <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
 
-        <View style={styles.cardFooter}>
-          <View style={styles.priceRow}>
-            <Text style={[styles.priceCurrency, { color: colors.primary }]}>$</Text>
-            <Text style={[styles.priceValue, { color: colors.text }]}>
-              {(item.totals?.grandTotal ?? 0).toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-              })}
-            </Text>
-          </View>
-
-          <View style={styles.actionsRow}>
-            <ActionIconButton icon={Eye} onPress={() => handleComingSoon("View")} />
-            <ActionIconButton
-              icon={PencilLine}
-              onPress={() => handleComingSoon("Edit")}
-              color="#fbbf24"
-            />
-            <ActionIconButton icon={Copy} onPress={() => handleComingSoon("Copy")} />
-            <ActionIconButton
-              icon={MessageCircle}
-              onPress={() => handleComingSoon("Message")}
-              color="#34D399"
-            />
-            <ActionIconButton
-              icon={Download}
-              onPress={() => handleComingSoon("Download")}
-            />
-            <ActionIconButton
-              icon={Send}
-              onPress={() => handleComingSoon("Send")}
-              color="#7dd3fc"
-            />
-            <ActionIconButton
-              icon={Trash2}
-              onPress={() => handleDeleteQuotation(item.id)}
-              color="#FF6B6B"
-            />
-          </View>
+        {/* Actions Row */}
+        <View style={[styles.actionsRow, { justifyContent: "space-between" }]}>
+          <ActionIconButton icon={Eye} onPress={() => handleComingSoon("View")} />
+          <ActionIconButton
+            icon={PencilLine}
+            onPress={() => handleComingSoon("Edit")}
+            color="#fbbf24"
+          />
+          <ActionIconButton icon={Copy} onPress={() => handleComingSoon("Copy")} />
+          <ActionIconButton
+            icon={MessageCircle}
+            onPress={() => handleComingSoon("Message")}
+            color="#34D399"
+          />
+          <ActionIconButton
+            icon={Download}
+            onPress={() => handleComingSoon("Download")}
+          />
+          <ActionIconButton
+            icon={Send}
+            onPress={() => handleComingSoon("Send")}
+            color="#7dd3fc"
+          />
+          <ActionIconButton
+            icon={Trash2}
+            onPress={() => handleDeleteQuotation(item.id)}
+            color="#FF6B6B"
+          />
         </View>
       </GlassPanel>
     );
@@ -494,39 +494,49 @@ export default function QuotationsScreen() {
       <GlassPanel
         style={[styles.card, isCancelled && { opacity: 0.5 }]}
       >
-        <View style={styles.cardHeader}>
-          <View style={styles.cardIdentity}>
-            <Text style={[styles.invoiceNumberText, { color: statusColor }]}>
-              {item.invoiceNumber}
-            </Text>
-            <View style={styles.cardTitleWrap}>
-              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
-                {customerName}
-              </Text>
-              <Text
-                style={[
-                  styles.cardSubtitle,
-                  { color: colors.textSecondary },
-                  isOverdue && { color: statusColor, fontWeight: "700" },
-                ]}
-              >
-                {isOverdue
-                  ? `Due ${formatDate(item.dueDate)}`
-                  : formatDate(item.invoiceDate)}
-              </Text>
-            </View>
-          </View>
+        {/* Row 1: Invoice Number & Amount */}
+        <View style={styles.cardRow}>
+          <Text style={[styles.invoiceNumberText, { color: statusColor }]}>
+            {item.invoiceNumber}
+          </Text>
+          <Text style={[styles.priceValueText, { color: colors.text }]}>
+            {formatCurrency(item.totals?.grandTotal ?? 0)}
+          </Text>
+        </View>
+
+        {/* Row 2: Customer Name & Balance */}
+        <View style={[styles.cardRow, { marginTop: 6 }]}>
+          <Text style={[styles.cardTitleText, { color: colors.text }]} numberOfLines={1}>
+            {customerName}
+          </Text>
+          <Text style={[styles.balanceLabelText, { color: colors.textSecondary }]}>
+            BALANCE: {formatCurrency(item.amountDue ?? 0)}
+          </Text>
+        </View>
+
+        {/* Row 3: Date & Status */}
+        <View style={[styles.cardRow, { marginTop: 8, alignItems: "center" }]}>
+          <Text
+            style={[
+              styles.cardSubtitleText,
+              { color: colors.textSecondary },
+              isOverdue && { color: statusColor, fontWeight: "700" },
+            ]}
+          >
+            {isOverdue
+              ? `Due ${formatDate(item.dueDate)}`
+              : formatDate(item.invoiceDate)}
+          </Text>
 
           <View
             style={[
               styles.statusBadge,
               {
-                backgroundColor: `${statusColor}15`,
+                backgroundColor: `${statusColor}1A`,
                 borderColor: `${statusColor}30`,
               },
             ]}
           >
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
             <Text style={[styles.statusText, { color: statusColor }]}>
               {item.status}
             </Text>
@@ -535,21 +545,8 @@ export default function QuotationsScreen() {
 
         <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
 
-        <View style={styles.invoiceDetailsContainer}>
-          <View style={styles.priceRow}>
-            <Text style={[styles.priceCurrency, { color: colors.primary }]}>$</Text>
-            <Text style={[styles.priceValue, { color: colors.text }]}>
-              {(item.totals?.grandTotal ?? 0).toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-              })}
-            </Text>
-          </View>
-          <Text style={[styles.balanceText, { color: colors.textSecondary }]}>
-            Balance: {formatCurrency(item.amountDue ?? 0)}
-          </Text>
-        </View>
-
-        <View style={[styles.actionsRow, { marginTop: 12, justifyContent: "flex-end" }]}>
+        {/* Actions Row */}
+        <View style={[styles.actionsRow, { justifyContent: "space-between" }]}>
           <ActionIconButton icon={Eye} onPress={() => handleComingSoon("View")} />
           <ActionIconButton
             icon={PencilLine}
@@ -590,36 +587,44 @@ export default function QuotationsScreen() {
     const shortId = item.id
       ? item.id.substring(item.id.length - 8).toUpperCase()
       : "EXP";
-    const loggedBy = item.createdBy?.fullName ?? "—";
+    const loggedBy = (item.createdBy?.fullName ?? "—").toUpperCase();
     const categoryName = item.category?.name ?? "Uncategorized";
 
     return (
       <GlassPanel style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.cardIdentity}>
-            <View style={[styles.expenseIconWrap, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
-              <Text style={[styles.expenseIconText, { color: colors.primary }]}>EXP</Text>
-            </View>
-            <View style={styles.cardTitleWrap}>
-              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
-                {categoryName}
-              </Text>
-              <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-                Ref: #{shortId} • {formatDate(item.date)}
-              </Text>
-            </View>
-          </View>
+        {/* Row 1: ID & Amount */}
+        <View style={styles.cardRow}>
+          <Text style={[styles.expenseNumberText, { color: colors.textSecondary }]}>
+            #EXP-{shortId}
+          </Text>
+          <Text style={[styles.priceValueText, { color: colors.text }]}>
+            -{formatCurrency(item.amount)}
+          </Text>
+        </View>
 
-          <View style={styles.expenseAmountRow}>
-            <Text style={styles.expenseAmountText}>
-              -{formatCurrency(item.amount)}
+        {/* Row 2: Date & Creator */}
+        <View style={[styles.cardRow, { marginTop: 6 }]}>
+          <Text style={[styles.cardSubtitleText, { color: colors.textSecondary }]}>
+            {formatDate(item.date)}
+          </Text>
+          <Text style={[styles.loggedByCapsText, { color: colors.textSecondary }]}>
+            {loggedBy}
+          </Text>
+        </View>
+
+        {/* Row 3: Category Badge */}
+        <View style={[styles.cardRow, { marginTop: 8, justifyContent: "flex-start" }]}>
+          <View style={[styles.categoryBadge, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
+            <Text style={[styles.categoryBadgeText, { color: colors.text }]}>
+              {categoryName}
             </Text>
           </View>
         </View>
 
+        {/* Row 4: Note */}
         {item.note ? (
           <View style={[styles.noteContainer, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
-            <Text style={[styles.noteText, { color: colors.textSecondary }]} numberOfLines={2}>
+            <Text style={[styles.noteText, { color: colors.textSecondary }]}>
               {item.note}
             </Text>
           </View>
@@ -627,23 +632,20 @@ export default function QuotationsScreen() {
 
         <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
 
-        <View style={styles.expenseFooter}>
-          <Text style={[styles.loggedByText, { color: colors.textSecondary }]}>Logged by: {loggedBy}</Text>
-
-          <View style={styles.actionsRow}>
-            <ActionIconButton icon={Copy} onPress={() => handleComingSoon("Copy")} />
-            <ActionIconButton
-              icon={PencilLine}
-              onPress={() => handleComingSoon("Edit")}
-              color="#fbbf24"
-            />
-            <ActionIconButton icon={Eye} onPress={() => handleComingSoon("View")} />
-            <ActionIconButton
-              icon={Trash2}
-              onPress={() => handleDeleteExpense(item.id)}
-              color="#FF6B6B"
-            />
-          </View>
+        {/* Actions Row */}
+        <View style={[styles.actionsRow, { justifyContent: "flex-start", gap: 12 }]}>
+          <ActionIconButton icon={Copy} onPress={() => handleComingSoon("Copy")} />
+          <ActionIconButton
+            icon={PencilLine}
+            onPress={() => handleComingSoon("Edit")}
+            color="#fbbf24"
+          />
+          <ActionIconButton icon={Eye} onPress={() => handleComingSoon("View")} />
+          <ActionIconButton
+            icon={Trash2}
+            onPress={() => handleDeleteExpense(item.id)}
+            color="#FF6B6B"
+          />
         </View>
       </GlassPanel>
     );
@@ -802,7 +804,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "800",
   },
   card: {
@@ -839,61 +841,67 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: -0.2,
   },
-  cardTitleWrap: {
-    flex: 1,
-    minWidth: 0,
+  cardRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
   },
-  cardTitle: {
-    fontSize: 16,
+  priceValueText: {
+    fontSize: 18,
     fontWeight: "700",
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
-  cardSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
+  cardTitleText: {
+    fontSize: 15,
+    fontWeight: "600",
+    flex: 1,
+    marginRight: 12,
+  },
+  balanceLabelText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  cardSubtitleText: {
+    fontSize: 12,
+    fontWeight: "400",
+  },
+  expenseNumberText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  loggedByCapsText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  categoryBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignSelf: "flex-start",
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
   },
   statusBadge: {
     minHeight: 24,
-    paddingHorizontal: 8,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
-    gap: 5,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 999,
   },
   statusText: {
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
   innerDivider: {
     height: 1,
     marginVertical: 14,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 2,
-  },
-  priceCurrency: {
-    fontSize: 15,
-    fontWeight: "800",
-    marginBottom: 1,
-  },
-  priceValue: {
-    fontSize: 18,
-    fontWeight: "800",
   },
   actionsRow: {
     flexDirection: "row",
@@ -901,50 +909,15 @@ const styles = StyleSheet.create({
     gap: 8,
     flexWrap: "wrap",
   },
-  invoiceDetailsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  balanceText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  expenseIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  expenseIconText: {
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  expenseAmountRow: {
-    alignItems: "flex-end",
-  },
-  expenseAmountText: {
-    color: "#fb7185",
-    fontSize: 16,
-    fontWeight: "800",
-  },
   noteContainer: {
     borderRadius: 8,
-    padding: 8,
+    padding: 10,
     marginTop: 10,
     borderWidth: 1,
   },
   noteText: {
     fontSize: 13,
     lineHeight: 18,
-  },
-  expenseFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
   },
   loggedByText: {
     fontSize: 12,

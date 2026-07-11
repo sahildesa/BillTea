@@ -13,7 +13,11 @@ export default function ProfitReportPage() {
         {/* Header Section */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-on-surface mb-2">Profit Report</h1>
+           <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
+                <span className="text-on-surface">Profit </span>
+              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Report
+                </span>
+              </h1>
             <p className="text-on-surface-variant text-lg">Financial performance and net earnings analysis</p>
           </div>
           <div className="flex flex-wrap gap-3">

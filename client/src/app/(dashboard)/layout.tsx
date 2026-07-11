@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from '../../components/ThemeProvider';
 import { BranchProvider, useBranch } from '../../components/BranchProvider';
 import Link from 'next/link';
-import { isLoggedIn } from '../../lib/auth';
+import { isLoggedIn, logout } from '../../lib/auth';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { isDark, toggleTheme } = useTheme();
@@ -54,8 +54,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    logout();
     router.push('/');
   };
 

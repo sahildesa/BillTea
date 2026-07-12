@@ -63,23 +63,22 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-background text-on-surface font-body min-h-screen flex overflow-hidden antialiased transition-colors duration-300">
       {/* Sidebar */}
-      <aside className={`flex-shrink-0 border-outline-variant/30 glass-panel flex flex-col h-screen z-20 transition-[width] duration-300 ease-in-out overflow-hidden border-r ${
-        sidebarOpen 
-          ? 'w-56' 
+      <aside className={`flex-shrink-0 border-outline-variant/30 glass-panel flex flex-col h-screen z-20 transition-[width] duration-300 ease-in-out overflow-hidden border-r ${sidebarOpen
+          ? 'w-56'
           : 'w-[72px]'
-      }`}>
+        }`}>
         <div className="flex items-center gap-3 relative border-b border-outline-variant/10 p-4 h-20 shrink-0 overflow-hidden whitespace-nowrap">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
           <div className="size-10 shrink-0 rounded-full bg-cover bg-center border border-primary/20 shadow-[0_0_15px_rgba(125,211,252,0.1)] z-10" style={{ backgroundImage: "url('/images/logo.png')" }}></div>
           <div className={`z-10 flex-1 flex flex-col min-w-0 transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
             <h1 className="text-on-surface font-semibold text-lg tracking-wide leading-tight truncate">Indux Tech</h1>
-            
+
             <div className="relative mt-0.5 group w-auto inline-flex items-center">
               {isLoadingBranches ? (
                 <div className="text-primary text-[10px] uppercase tracking-wider font-semibold">Loading...</div>
               ) : (
                 <>
-                  <select 
+                  <select
                     value={selectedBranchId || ''}
                     onChange={(e) => setSelectedBranchId(e.target.value)}
                     className="appearance-none bg-transparent text-primary text-[10px] uppercase tracking-wider font-semibold cursor-pointer focus:outline-none pr-5 hover:text-primary-fixed transition-colors relative z-10 w-full"
@@ -113,7 +112,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           )}
         </nav>
         <div className="p-4 border-t border-outline-variant/30 shrink-0 overflow-hidden whitespace-nowrap">
-          <div 
+          <div
             onClick={handleLogout}
             title={!sidebarOpen ? 'Sign Out' : undefined}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg glass-button cursor-pointer active:scale-98 transition-all duration-300 hover:bg-error/10 hover:text-error hover:border-error/30 group"
@@ -129,30 +128,30 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         {/* Top Navigation */}
         <header className="h-20 flex-shrink-0 border-b border-outline-variant/30 glass-panel flex items-center justify-between px-8 z-10">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="p-2 group cursor-pointer active:scale-95 transition-all"
             >
               <span className="material-symbols-outlined text-on-surface">menu</span>
             </button>
             <h2 className="text-2xl font-semibold text-on-surface tracking-tight drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]">
-              {pathname === '/home' ? 'Dashboard' : 
+              {pathname === '/home' ? 'Dashboard' :
                 pathname.includes('/edit') ? `Edit ${pathname.split('/')[1].replace(/s$/, '').charAt(0).toUpperCase() + pathname.split('/')[1].replace(/s$/, '').slice(1)}` :
-                pathname.includes('/new') ? `New ${pathname.split('/')[1].replace(/s$/, '').charAt(0).toUpperCase() + pathname.split('/')[1].replace(/s$/, '').slice(1)}` :
-                pathname.split('/')[1].charAt(0).toUpperCase() + pathname.split('/')[1].slice(1)}
+                  pathname.includes('/new') ? `New ${pathname.split('/')[1].replace(/s$/, '').charAt(0).toUpperCase() + pathname.split('/')[1].replace(/s$/, '').slice(1)}` :
+                    pathname.split('/')[1].charAt(0).toUpperCase() + pathname.split('/')[1].slice(1)}
             </h2>
           </div>
           <div className="flex items-center gap-6">
-            <button 
+            <button
               onClick={toggleTheme}
-              className="h-10 w-10 rounded-full glass-button flex items-center justify-center group cursor-pointer" 
+              className="h-10 w-10 rounded-full glass-button flex items-center justify-center group cursor-pointer"
               title="Toggle Theme"
             >
               <span className="material-symbols-outlined select-none text-xl">
                 {isDark ? 'light_mode' : 'dark_mode'}
               </span>
             </button>
-            <Link href="/profile" className="p-1.5 glass-panel rounded-xl pl-2 pr-4 border border-outline-variant/30 hover:border-primary/45 hover:bg-surface-container-highest/20 transition-all cursor-pointer flex items-center gap-3">
+            <Link href="/settings/profile" className="p-1.5 glass-panel rounded-xl pl-2 pr-4 border border-outline-variant/30 hover:border-primary/45 hover:bg-surface-container-highest/20 transition-all cursor-pointer flex items-center gap-3">
               <div className="size-11 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0 overflow-hidden shadow-[0_0_10px_rgba(125,211,252,0.1)]">
                 <span className="material-symbols-outlined text-primary text-[28px] select-none">account_circle</span>
               </div>

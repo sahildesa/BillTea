@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useBranch } from '../../../components/BranchProvider';
 import { apiFetch } from '../../../lib/auth';
 
@@ -89,9 +90,9 @@ export default function SettingsPage() {
               Update your personal information, manage security settings, and change your password.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
+              <Link href="/settings/profile" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
                 <span className="material-symbols-outlined text-lg">settings</span> Manage
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -105,9 +106,9 @@ export default function SettingsPage() {
               Invite team members, assign roles, and manage access permissions across your organization.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+              <Link href="/settings/users" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
                 <span className="material-symbols-outlined text-lg">settings</span> Manage
-              </button>
+              </Link>
               <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
                 <span className="material-symbols-outlined text-lg">add</span> Create User
               </button>
@@ -123,9 +124,9 @@ export default function SettingsPage() {
               Company name, brand, logo, tax entries (company-wide). Maintain your professional presence and legal identification.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
+              <Link href="/settings/company" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
                 <span className="material-symbols-outlined text-lg">settings</span> Manage
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -139,9 +140,9 @@ export default function SettingsPage() {
               Button, navigation and table header colors. Personalize the Glacier interface to match your corporate visual identity.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
+              <Link href="/settings/theme" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
                 <span className="material-symbols-outlined text-lg">settings</span> Manage
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -155,9 +156,9 @@ export default function SettingsPage() {
               Invoice prefix, start number and terms & conditions. Standardize your billing cycle and financial documentation.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+              <Link href="/settings/invoice-settings" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
                 <span className="material-symbols-outlined text-lg">settings</span> Manage
-              </button>
+              </Link>
               <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
                 <span className="material-symbols-outlined text-lg">add</span> Create Invoice
               </button>
@@ -174,11 +175,9 @@ export default function SettingsPage() {
               Quotation prefix, start number and terms. Define how you present estimates and proposals to prospective clients.
             </p>
             <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setShowQuotationSettings(true)}
-                className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+              <Link href="/settings/quotation-settings" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
                 <span className="material-symbols-outlined text-lg">settings</span> Manage
-              </button>
+              </Link>
               <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
                 <span className="material-symbols-outlined text-lg">add</span> Create Quotation
               </button>
@@ -195,9 +194,9 @@ export default function SettingsPage() {
               View your current plan and subscription. Access tiered features and license limits. Managed by administrative roles.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 w-full justify-center cursor-pointer">
+              <Link href="/settings/subscription" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 w-full justify-center cursor-pointer">
                 <span className="material-symbols-outlined text-lg">settings</span> Manage
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -211,9 +210,9 @@ export default function SettingsPage() {
               Instance ID and access token for sending invoices and quotations via WhatsApp. Streamline client communication.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
+              <Link href="/settings/whatsapp" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
                 <span className="material-symbols-outlined text-lg">settings</span> Manage
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -227,9 +226,9 @@ export default function SettingsPage() {
               Contact, address, bank, UPI, signature (per branch). Create and manage multiple operational branches with unique financial profiles.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+              <Link href="/settings/branches" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
                 <span className="material-symbols-outlined text-lg">settings</span> Manage
-              </button>
+              </Link>
               <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
                 <span className="material-symbols-outlined text-lg">add</span> Add Branch
               </button>

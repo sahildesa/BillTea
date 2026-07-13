@@ -78,6 +78,7 @@ export default function EditInvoicePage() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [amountPaid, setAmountPaid] = useState(0);
   
   const errorRef = useRef<HTMLDivElement>(null);
 
@@ -105,6 +106,7 @@ export default function EditInvoicePage() {
       const data = await res.json();
 
       setInvoiceNumber(data.invoiceNumber);
+      setAmountPaid(data.amountPaid || 0);
 
       setFormData({
         customerId: data.customer?.id || '',
@@ -512,6 +514,19 @@ export default function EditInvoicePage() {
       setError('Please select a customer and add at least one item.');
       return;
     }
+    if (formData.paymentConfiguration?.addPayment) {
+      const paymentAmount = Number(Number(formData.paymentConfiguration.amount).toFixed(2));
+      const grandTotalDue = Number((Number(calculatedTotals?.grandTotal || 0) - amountPaid).toFixed(2));
+      if (paymentAmount <= 0) {
+        setError('Payment amount must be greater than 0.');
+        return;
+      }
+      if (paymentAmount > grandTotalDue) {
+        setError('Payment amount cannot exceed the grand total.');
+        return;
+      }
+    }
+
     try {
       setIsSaving(true); setError('');
 
@@ -938,7 +953,7 @@ export default function EditInvoicePage() {
                             <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider block mb-1">Item Total (Preview)</span>
                             <div className="text-xl font-bold text-primary relative inline-block self-end">
                               {isCalculating && <span className="absolute -left-4 top-1/2 -translate-y-1/2 flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span></span>}
-                              ₹ {(calcItem?.total ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              ₹ {(calcItem?.total ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                           </div>
                         </div>
@@ -978,18 +993,21 @@ export default function EditInvoicePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
                 <div>
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Payment Amount</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    max={calculatedTotals.grandTotal}
-                    value={formData.paymentConfiguration.amount} 
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      paymentConfiguration: { ...prev.paymentConfiguration, amount: parseFloat(e.target.value) || 0 } 
-                    }))} 
-                    className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" 
-                  />
-                  <p className="text-[10px] text-on-surface-variant mt-1">Max: ₹{calculatedTotals.grandTotal.toLocaleString('en-IN')}</p>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      min="0"
+                      max={Number((calculatedTotals.grandTotal - amountPaid).toFixed(2))}
+                      value={formData.paymentConfiguration.amount} 
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        paymentConfiguration: { ...prev.paymentConfiguration, amount: parseFloat(e.target.value) || 0 } 
+                      }))} 
+                      className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" 
+                    />
+                  </div>
+                  <p className="text-[10px] text-on-surface-variant mt-1">Max: ₹{(calculatedTotals.grandTotal - amountPaid).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Payment Method</label>
@@ -1119,21 +1137,21 @@ export default function EditInvoicePage() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center text-on-surface-variant">
                 <span>Subtotal</span>
-                <span className="font-semibold text-on-surface">₹ {calculatedTotals.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className="font-semibold text-on-surface">₹ {calculatedTotals.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between items-center text-on-surface-variant">
                 <span>Total Discount</span>
-                <span className="font-semibold text-error">- ₹ {calculatedTotals.discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className="font-semibold text-error">- ₹ {calculatedTotals.discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between items-center text-on-surface-variant">
                 <span>Total Tax</span>
-                <span className="font-semibold text-on-surface">₹ {calculatedTotals.taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className="font-semibold text-on-surface">₹ {calculatedTotals.taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="pt-4 mt-2 border-t border-primary/10 flex justify-between items-center">
                 <span className="font-bold text-on-surface text-base">Grand Total</span>
                 <div className="flex items-center gap-2">
                   {isCalculating && <span className="material-symbols-outlined animate-spin text-primary text-[16px]">refresh</span>}
-                  <span className="font-bold text-primary text-xl tracking-tight">₹ {calculatedTotals.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  <span className="font-bold text-primary text-xl tracking-tight">₹ {calculatedTotals.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
             </div>

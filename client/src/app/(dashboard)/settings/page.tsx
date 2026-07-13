@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useBranch } from '../../../components/BranchProvider';
 import { apiFetch } from '../../../lib/auth';
 
@@ -80,18 +81,42 @@ export default function SettingsPage() {
           </div>
         </header>
 
-        {/* Reference Visualization */}
-        <div className="mb-6 rounded-3xl overflow-hidden glass-panel h-48 relative border-none border border-primary/10">
-          <img alt="System Overview Visualization" className="w-full h-full object-cover opacity-40 mix-blend-overlay" src="/images/settings-overview.png" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
-          <div className="absolute bottom-6 left-8">
-            <span className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-1 block">Global Configuration</span>
-            <h2 className="text-xl font-semibold text-on-surface">Centralized Control Grid</h2>
-          </div>
-        </div>
-
         {/* Settings Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Update Profile */}
+          <div className="glass-panel p-8 rounded-2xl flex flex-col h-full group hover:border-primary/40 hover:shadow-[0_0_30px_rgba(125,211,252,0.1)] hover:-translate-y-1 transition-all duration-300 hover:bg-surface-container/70">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform bg-[rgba(125,211,252,0.1)] shadow-[0_0_15px_rgba(125,211,252,0.05)]">
+              <span className="material-symbols-outlined text-3xl">account_circle</span>
+            </div>
+            <h3 className="text-xl font-bold text-on-surface mb-3">Update Profile</h3>
+            <p className="text-on-surface-variant text-sm leading-relaxed mb-8 flex-grow">
+              Update your personal information, manage security settings, and change your password.
+            </p>
+            <div className="flex items-center gap-3">
+              <Link href="/settings/profile" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
+                <span className="material-symbols-outlined text-lg">settings</span> Manage
+              </Link>
+            </div>
+          </div>
+
+          {/* User Management */}
+          <div className="glass-panel p-8 rounded-2xl flex flex-col h-full group hover:border-primary/40 hover:shadow-[0_0_30px_rgba(125,211,252,0.1)] hover:-translate-y-1 transition-all duration-300 hover:bg-surface-container/70">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform bg-[rgba(125,211,252,0.1)] shadow-[0_0_15px_rgba(125,211,252,0.05)]">
+              <span className="material-symbols-outlined text-3xl">manage_accounts</span>
+            </div>
+            <h3 className="text-xl font-bold text-on-surface mb-3">User Management</h3>
+            <p className="text-on-surface-variant text-sm leading-relaxed mb-8 flex-grow">
+              Invite team members, assign roles, and manage access permissions across your organization.
+            </p>
+            <div className="flex items-center gap-3">
+              <Link href="/settings/users" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+                <span className="material-symbols-outlined text-lg">settings</span> Manage
+              </Link>
+              <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+                <span className="material-symbols-outlined text-lg">add</span> Create User
+              </button>
+            </div>
+          </div>
           {/* Company Settings */}
           <div className="glass-panel p-8 rounded-2xl flex flex-col h-full group hover:border-primary/40 hover:shadow-[0_0_30px_rgba(125,211,252,0.1)] hover:-translate-y-1 transition-all duration-300 hover:bg-surface-container/70">
             <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform bg-[rgba(125,211,252,0.1)] shadow-[0_0_15px_rgba(125,211,252,0.05)]">
@@ -102,12 +127,9 @@ export default function SettingsPage() {
               Company name, brand, logo, tax entries (company-wide). Maintain your professional presence and legal identification.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">visibility</span> View
-              </button>
-              <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">edit</span> Edit
-              </button>
+              <Link href="/settings/company" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
+                <span className="material-symbols-outlined text-lg">settings</span> Manage
+              </Link>
             </div>
           </div>
 
@@ -121,12 +143,9 @@ export default function SettingsPage() {
               Button, navigation and table header colors. Personalize the Glacier interface to match your corporate visual identity.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">visibility</span> View
-              </button>
-              <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">edit</span> Edit
-              </button>
+              <Link href="/settings/theme" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
+                <span className="material-symbols-outlined text-lg">settings</span> Manage
+              </Link>
             </div>
           </div>
 
@@ -140,11 +159,11 @@ export default function SettingsPage() {
               Invoice prefix, start number and terms & conditions. Standardize your billing cycle and financial documentation.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">visibility</span> View
-              </button>
-              <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">edit</span> Edit
+              <Link href="/settings/invoice-settings" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+                <span className="material-symbols-outlined text-lg">settings</span> Manage
+              </Link>
+              <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+                <span className="material-symbols-outlined text-lg">add</span> Create Invoice
               </button>
             </div>
           </div>
@@ -159,13 +178,11 @@ export default function SettingsPage() {
               Quotation prefix, start number and terms. Define how you present estimates and proposals to prospective clients.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">visibility</span> View
-              </button>
-              <button 
-                onClick={() => setShowQuotationSettings(true)}
-                className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">edit</span> Edit
+              <Link href="/settings/quotation-settings" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+                <span className="material-symbols-outlined text-lg">settings</span> Manage
+              </Link>
+              <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+                <span className="material-symbols-outlined text-lg">add</span> Create Quotation
               </button>
             </div>
           </div>
@@ -180,9 +197,9 @@ export default function SettingsPage() {
               View your current plan and subscription. Access tiered features and license limits. Managed by administrative roles.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 w-full justify-center cursor-pointer">
-                <span className="material-symbols-outlined text-lg">visibility</span> View Details
-              </button>
+              <Link href="/settings/subscription" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 w-full justify-center cursor-pointer">
+                <span className="material-symbols-outlined text-lg">settings</span> Manage
+              </Link>
             </div>
           </div>
 
@@ -196,34 +213,27 @@ export default function SettingsPage() {
               Instance ID and access token for sending invoices and quotations via WhatsApp. Streamline client communication.
             </p>
             <div className="flex items-center gap-3">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">visibility</span> View
-              </button>
-              <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">edit</span> Edit
-              </button>
+              <Link href="/settings/whatsapp" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer w-full justify-center">
+                <span className="material-symbols-outlined text-lg">settings</span> Manage
+              </Link>
             </div>
           </div>
 
-          {/* Branch Settings (Spans 3 on desktop) */}
-          <div className="glass-panel p-8 rounded-2xl flex flex-col md:flex-row md:items-center md:justify-between gap-8 md:col-span-2 lg:col-span-3 group hover:border-primary/40 hover:shadow-[0_0_30px_rgba(125,211,252,0.1)] hover:-translate-y-1 transition-all duration-300 hover:bg-surface-container/70">
-            <div className="flex flex-col md:flex-row md:items-center gap-8">
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform bg-[rgba(125,211,252,0.1)] shadow-[0_0_15px_rgba(125,211,252,0.05)]">
-                <span className="material-symbols-outlined text-4xl">store</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-on-surface mb-2">Branch Settings</h3>
-                <p className="text-on-surface-variant text-sm leading-relaxed max-w-2xl">
-                  Contact, address, bank, UPI, signature (per branch). Create and manage multiple operational branches with unique financial profiles.
-                </p>
-              </div>
+          {/* Branch Settings */}
+          <div className="glass-panel p-8 rounded-2xl flex flex-col h-full group hover:border-primary/40 hover:shadow-[0_0_30px_rgba(125,211,252,0.1)] hover:-translate-y-1 transition-all duration-300 hover:bg-surface-container/70">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform bg-[rgba(125,211,252,0.1)] shadow-[0_0_15px_rgba(125,211,252,0.05)]">
+              <span className="material-symbols-outlined text-3xl">store</span>
             </div>
-            <div className="flex flex-wrap items-center gap-4 shrink-0 mt-4 md:mt-0">
-              <button className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-8 py-3 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">list_alt</span> Manage Branches
-              </button>
-              <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-8 py-3 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer">
-                <span className="material-symbols-outlined text-lg">add_circle</span> Add Branch
+            <h3 className="text-xl font-bold text-on-surface mb-3">Branch Settings</h3>
+            <p className="text-on-surface-variant text-sm leading-relaxed mb-8 flex-grow">
+              Contact, address, bank, UPI, signature (per branch). Create and manage multiple operational branches with unique financial profiles.
+            </p>
+            <div className="flex items-center gap-3">
+              <Link href="/settings/branches" className="border border-[rgba(160,180,196,0.2)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(160,180,196,0.4)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+                <span className="material-symbols-outlined text-lg">settings</span> Manage
+              </Link>
+              <button className="bg-[rgba(125,211,252,0.15)] border border-[rgba(125,211,252,0.3)] hover:bg-[rgba(125,211,252,0.3)] hover:shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-all ease-in-out duration-300 px-3 py-2.5 rounded-lg text-sm font-medium text-primary flex items-center gap-2 cursor-pointer flex-1 justify-center whitespace-nowrap">
+                <span className="material-symbols-outlined text-lg">add</span> Add Branch
               </button>
             </div>
           </div>

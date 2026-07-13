@@ -34,6 +34,8 @@ export default function QuotationsPage() {
   const [viewerPdfUrl, setViewerPdfUrl] = useState<{url: string, title: string, id: string} | null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [isSendingId, setIsSendingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (selectedBranchId) {
@@ -108,6 +110,27 @@ export default function QuotationsPage() {
     }
   };
 
+  const handleSend = async (id: string) => {
+    try {
+      setIsSendingId(id);
+      const res = await apiFetch(`/quotations/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'SENT' }),
+      });
+      if (res.ok) {
+        fetchQuotations();
+      } else {
+        const errData = await res.json();
+        alert(errData.message || 'Failed to send quotation');
+      }
+    } catch (err: any) {
+      alert('Failed to send quotation');
+    } finally {
+      setIsSendingId(null);
+    }
+  };
+
   const handleDownloadPdf = async (id: string, quotationNumber: string) => {
     try {
       const res = await apiFetch(`/quotations/${id}/pdf`, {
@@ -162,13 +185,24 @@ export default function QuotationsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DRAFT': return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
+      case 'DRAFT': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
       case 'SENT': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
       case 'ACCEPTED': return 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20';
       case 'EXPIRED': return 'bg-red-500/10 text-red-500 border-red-500/20';
       default: return 'bg-surface-container text-on-surface-variant border-outline-variant/30';
     }
   };
+
+  const filteredQuotations = quotations.filter((q) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    const customerName = q.customer?.customerName?.toLowerCase() || '';
+    const companyName = q.customer?.companyName?.toLowerCase() || '';
+    const quotationNumber = q.quotationNumber?.toLowerCase() || '';
+    const amount = q.totals?.grandTotal?.toString() || '';
+    
+    return customerName.includes(query) || companyName.includes(query) || quotationNumber.includes(query) || amount.includes(query);
+  });
 
   return (
     <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -218,7 +252,13 @@ export default function QuotationsPage() {
           </div>
           <div className="relative w-full sm:w-auto">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
-            <input className="glass-input pl-9 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder-on-surface-variant/50 w-full sm:w-72 focus:outline-none transition-all" placeholder="Search quotations..." type="text" />
+            <input 
+              className="glass-input pl-9 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder-on-surface-variant/50 w-full sm:w-72 focus:outline-none transition-all" 
+              placeholder="Search quotations..." 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
         
@@ -261,7 +301,7 @@ export default function QuotationsPage() {
                     </div>
                   </td>
                 </tr>
-              ) : quotations.length === 0 ? (
+              ) : filteredQuotations.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
@@ -272,7 +312,7 @@ export default function QuotationsPage() {
                   </td>
                 </tr>
               ) : (
-                quotations.map((quotation, index) => (
+                filteredQuotations.map((quotation, index) => (
                   <tr key={quotation.id} className="hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-6 py-4 font-semibold text-primary">{quotation.quotationNumber}</td>
                     <td className="px-6 py-4 flex items-center gap-3">
@@ -316,8 +356,8 @@ export default function QuotationsPage() {
                               <span className="material-symbols-outlined text-[16px]">receipt_long</span>
                             </button>
                           </Link>
-                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
-                            <span className="material-symbols-outlined text-[16px]">send</span>
+                          <button onClick={() => handleSend(quotation.id)} disabled={isSendingId === quotation.id} className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer disabled:opacity-50" title="Send">
+                            {isSendingId === quotation.id ? <span className="material-symbols-outlined text-[16px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[16px]">send</span>}
                           </button>
                           <button 
                             onClick={() => handleDownloadPdf(quotation.id, quotation.quotationNumber)}
@@ -355,8 +395,8 @@ export default function QuotationsPage() {
                               <span className="material-symbols-outlined text-[16px]">receipt_long</span>
                             </button>
                           </Link>
-                          <button className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer" title="Send">
-                            <span className="material-symbols-outlined text-[16px]">send</span>
+                          <button onClick={() => handleSend(quotation.id)} disabled={isSendingId === quotation.id} className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer disabled:opacity-50" title="Send">
+                            {isSendingId === quotation.id ? <span className="material-symbols-outlined text-[16px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[16px]">send</span>}
                           </button>
                           <div className="w-px h-4 bg-primary/20 mx-1"></div>
                           <button 
@@ -377,7 +417,7 @@ export default function QuotationsPage() {
         {/* Pagination */}
         <div className="p-6 border-t border-primary/10 bg-surface-container/30 flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
-            <span className="text-sm text-on-surface-variant">Showing 1 to {quotations.length} entries</span>
+            <span className="text-sm text-on-surface-variant">Showing 1 to {filteredQuotations.length} entries</span>
             <div className="flex items-center gap-1">
               <button className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 cursor-pointer" disabled>
                 Previous
@@ -537,8 +577,8 @@ export default function QuotationsPage() {
                           <span className="material-symbols-outlined text-[20px]">receipt_long</span>
                         </button>
                       </Link>
-                      <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Send">
-                        <span className="material-symbols-outlined text-[20px]">send</span>
+                      <button onClick={() => handleSend(activeQuotation.id)} disabled={isSendingId === activeQuotation.id} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip disabled:opacity-50" title="Send">
+                        {isSendingId === activeQuotation.id ? <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[20px]">send</span>}
                       </button>
                       <button 
                         onClick={() => {

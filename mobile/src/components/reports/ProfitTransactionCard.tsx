@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
 } from "react-native";
+import { useTheme } from "../../hooks/useTheme";
 
 type Props = {
   title: string;
@@ -25,11 +26,19 @@ export default function ProfitTransactionCard({
   type,
 }: Props) {
   const income = type === "income";
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
+    >
       {/* Top */}
-
       <View style={styles.topRow}>
         <View style={styles.left}>
           <View
@@ -46,7 +55,7 @@ export default function ProfitTransactionCard({
                 {
                   color: income
                     ? "#22C55E"
-                    : "#EF4444",
+                    : colors.error,
                 },
               ]}
             >
@@ -55,11 +64,21 @@ export default function ProfitTransactionCard({
           </View>
 
           <View style={styles.info}>
-            <Text style={styles.title}>
+            <Text
+              style={[
+                styles.title,
+                { color: colors.text },
+              ]}
+            >
               {title}
             </Text>
 
-            <Text style={styles.invoice}>
+            <Text
+              style={[
+                styles.invoice,
+                { color: colors.textSecondary },
+              ]}
+            >
               {invoice}
             </Text>
           </View>
@@ -72,7 +91,7 @@ export default function ProfitTransactionCard({
               {
                 color: income
                   ? "#22C55E"
-                  : "#EF4444",
+                  : colors.error,
               },
             ]}
           >
@@ -80,27 +99,42 @@ export default function ProfitTransactionCard({
             {amount}
           </Text>
 
-          <Text style={styles.date}>
+          <Text
+            style={[
+              styles.date,
+              { color: colors.textSecondary },
+            ]}
+          >
             {date}
           </Text>
         </View>
       </View>
 
-      <View style={styles.divider} />
+      <View
+        style={[
+          styles.divider,
+          { backgroundColor: colors.border },
+        ]}
+      />
 
       {/* Bottom */}
-
       <View style={styles.bottomRow}>
         <Text
           numberOfLines={1}
-          style={styles.company}
+          style={[
+            styles.company,
+            { color: colors.text },
+          ]}
         >
           {company}
         </Text>
 
         <Text
           numberOfLines={1}
-          style={styles.category}
+          style={[
+            styles.category,
+            { color: colors.textSecondary },
+          ]}
         >
           {category}
         </Text>
@@ -108,12 +142,11 @@ export default function ProfitTransactionCard({
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#121A2A",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
     paddingHorizontal: 18,
     paddingVertical: 18,
     marginBottom: 16,
@@ -161,7 +194,6 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: "#F8FAFC",
     fontSize: 16,
     fontWeight: "600",
     letterSpacing: 0.2,
@@ -169,7 +201,6 @@ const styles = StyleSheet.create({
 
   invoice: {
     marginTop: 5,
-    color: "#94A3B8",
     fontSize: 13,
     fontWeight: "500",
   },
@@ -186,14 +217,12 @@ const styles = StyleSheet.create({
 
   date: {
     marginTop: 5,
-    color: "#94A3B8",
     fontSize: 12,
     fontWeight: "500",
   },
 
   divider: {
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.05)",
     marginVertical: 18,
   },
 
@@ -205,14 +234,12 @@ const styles = StyleSheet.create({
 
   company: {
     flex: 1,
-    color: "#E2E8F0",
     fontSize: 14,
     fontWeight: "500",
     marginRight: 12,
   },
 
   category: {
-    color: "#94A3B8",
     fontSize: 13,
     fontWeight: "500",
     textAlign: "right",

@@ -286,18 +286,7 @@ export default function QuotationConfigurationPage() {
                         Legal
                       </h3>
                     </div>
-                    <button
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-all hover:shadow-[0_0_10px_rgba(197,234,255,0.2)]"
-                      style={{
-                        backgroundColor: "rgba(197,234,255,0.1)",
-                        border: "1px solid rgba(197,234,255,0.2)",
-                        color: colors.primary,
-                      }}
-                    >
-                      <Icon name="auto_awesome" className="text-[16px]" />
-                      AI Generate
-                    </button>
-                  </div>
+                    </div>
                   <div className="space-y-2 relative z-10">
                     <FieldLabel>Terms &amp; Conditions</FieldLabel>
                     <textarea

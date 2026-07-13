@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { TOKEN_KEYS } from '../api/client';
+import { TOKEN_KEYS } from '../constants/keys';
 import { getStorageItemAsync, deleteStorageItemAsync } from '../utils/storage';
 
 export interface User {

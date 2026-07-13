@@ -21,6 +21,34 @@ export class InvoiceService {
     private readonly pdfService: PdfService,
   ) {}
 
+  private computeStatusForInvoices(invoices: any[]) {
+    if (invoices.length === 0) return invoices;
+    
+    const now = new Date();
+    
+    return invoices.map(invoice => {
+      let computedStatus = invoice.status;
+      
+      const grandTotal = invoice.grandTotal || 0;
+      const amountPaid = invoice.amountPaid || 0;
+      const dueDate = new Date(invoice.dueDate);
+      
+      if (amountPaid === 0) {
+        computedStatus = 'UNPAID';
+      } else if (amountPaid > 0 && amountPaid < grandTotal) {
+        computedStatus = 'PARTIAL';
+      } else if (amountPaid >= grandTotal && grandTotal > 0) {
+        computedStatus = 'PAID';
+      }
+      
+      if (dueDate < now && computedStatus !== 'PAID') {
+        computedStatus = 'OVERDUE';
+      }
+      
+      return { ...invoice, status: computedStatus };
+    });
+  }
+
   async create(companyId: string, userId: string, dto: CreateInvoiceDto) {
     if (!dto.items || dto.items.length === 0) {
       throw new BadRequestException('Invoice must have at least one item');
@@ -120,7 +148,16 @@ export class InvoiceService {
     let amountPaid = 0;
     let paymentData = [];
     if (dto.paymentConfiguration && dto.paymentConfiguration.addPayment) {
-      amountPaid = dto.paymentConfiguration.amount || calculation.grandTotal;
+      amountPaid = Number(Number(dto.paymentConfiguration.amount || calculation.grandTotal).toFixed(2));
+      const gTotal = Number(Number(calculation.grandTotal).toFixed(2));
+      
+      if (amountPaid <= 0) {
+        throw new BadRequestException('Payment amount must be greater than 0');
+      }
+      if (amountPaid > gTotal) {
+        throw new BadRequestException('Payment amount cannot exceed the invoice total');
+      }
+      
       paymentData.push({
         amount: amountPaid,
         method: dto.paymentConfiguration.method || 'CASH',
@@ -129,7 +166,7 @@ export class InvoiceService {
       });
     }
     
-    const amountDue = Math.max(0, calculation.grandTotal - amountPaid);
+    const amountDue = Number(Math.max(0, calculation.grandTotal - amountPaid).toFixed(2));
     
     let status = 'UNPAID';
     if (amountPaid >= calculation.grandTotal && calculation.grandTotal > 0) {
@@ -175,7 +212,8 @@ export class InvoiceService {
     };
 
     const createdInvoice = await this.repository.createInvoice(invoiceData, finalItems, paymentData);
-    return InvoiceMapper.toDto(createdInvoice);
+    const [computedInvoice] = this.computeStatusForInvoices([createdInvoice]);
+    return InvoiceMapper.toDto(computedInvoice);
   }
 
   async calculatePreview(companyId: string, userId: string, dto: CreateInvoiceDto) {
@@ -254,12 +292,14 @@ export class InvoiceService {
 
   async findAll(companyId: string, branchId?: string) {
     const invoices = await this.repository.findAll(companyId, branchId);
-    return invoices.map(q => InvoiceMapper.toDto(q));
+    const computedInvoices = this.computeStatusForInvoices(invoices);
+    return computedInvoices.map(q => InvoiceMapper.toDto(q));
   }
 
   async findOne(id: string, companyId: string) {
     const invoice = await this.repository.findById(id, companyId);
-    return InvoiceMapper.toDto(invoice);
+    const [computedInvoice] = this.computeStatusForInvoices([invoice]);
+    return InvoiceMapper.toDto(computedInvoice);
   }
 
   async update(id: string, companyId: string, userId: string, dto: UpdateInvoiceDto) {
@@ -395,7 +435,7 @@ export class InvoiceService {
       updateData.grandTotal = calculation.grandTotal;
       
       const amountPaid = existing.amountPaid || 0;
-      updateData.amountDue = Math.max(0, calculation.grandTotal - amountPaid);
+      updateData.amountDue = Number(Math.max(0, calculation.grandTotal - amountPaid).toFixed(2));
       
       let status = existing.status;
       if (amountPaid >= calculation.grandTotal && calculation.grandTotal > 0) {
@@ -412,7 +452,8 @@ export class InvoiceService {
     }
 
     const updated = await this.repository.updateInvoice(id, companyId, updateData, finalItems);
-    return InvoiceMapper.toDto(updated);
+    const [computedInvoice] = this.computeStatusForInvoices([updated]);
+    return InvoiceMapper.toDto(computedInvoice);
   }
 
   async remove(id: string, companyId: string) {
@@ -442,8 +483,17 @@ export class InvoiceService {
 
     if (!invoice) throw new NotFoundException('Invoice not found');
 
-    const newAmountPaid = (invoice.amountPaid || 0) + dto.amount;
-    const amountDue = Math.max(0, invoice.grandTotal - newAmountPaid);
+    const currentDue = Number((invoice.grandTotal - (invoice.amountPaid || 0)).toFixed(2));
+    const paymentAmount = Number(dto.amount.toFixed(2));
+    if (paymentAmount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than 0');
+    }
+    if (paymentAmount > currentDue) {
+      throw new BadRequestException('Payment amount cannot exceed the due amount');
+    }
+
+    const newAmountPaid = Number(((invoice.amountPaid || 0) + dto.amount).toFixed(2));
+    const amountDue = Math.max(0, Number((invoice.grandTotal - newAmountPaid).toFixed(2)));
     
     let status = invoice.status;
     if (newAmountPaid >= invoice.grandTotal && invoice.grandTotal > 0) {

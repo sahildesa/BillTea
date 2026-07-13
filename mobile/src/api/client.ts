@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { ENV } from '../config/env';
-import { getStorageItemAsync, setStorageItemAsync, deleteStorageItemAsync } from '../utils/storage';
+import { getStorageItemAsync, setStorageItemAsync } from '../utils/storage';
+import { TOKEN_KEYS } from '../constants/keys';
+import { useAuthStore } from '../store/authStore';
 
 export const apiClient = axios.create({
   baseURL: ENV.API_URL,
@@ -12,12 +14,6 @@ export const apiClient = axios.create({
 });
 
 console.log('API_URL is:', ENV.API_URL);
-
-// Keys for secure store
-export const TOKEN_KEYS = {
-  ACCESS: 'accessToken',
-  REFRESH: 'refreshToken',
-};
 
 // Add request interceptor for auth token
 apiClient.interceptors.request.use(
@@ -66,11 +62,8 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
-        // If refresh fails, we should logout the user (clear tokens)
-        await deleteStorageItemAsync(TOKEN_KEYS.ACCESS);
-        await deleteStorageItemAsync(TOKEN_KEYS.REFRESH);
-
-        // You might want to trigger a global event here so the UI can redirect to login
+        // If refresh fails, we should logout the user (clear tokens and update state)
+        await useAuthStore.getState().logout();
         console.error('Refresh token expired or invalid', refreshError);
       }
     }

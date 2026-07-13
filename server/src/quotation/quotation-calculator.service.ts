@@ -86,11 +86,17 @@ export class QuotationCalculatorService {
     const grandTotal = subtotalAfterDiscount + totalTax;
 
     return {
-      subtotal,
-      discountAmount: totalDiscount,
-      taxAmount: totalTax,
-      grandTotal,
-      items: calculatedItems
+      subtotal: Number(subtotal.toFixed(2)),
+      discountAmount: Number(totalDiscount.toFixed(2)),
+      taxAmount: Number(totalTax.toFixed(2)),
+      grandTotal: Number(grandTotal.toFixed(2)),
+      items: calculatedItems.map(item => ({
+        ...item,
+        subtotal: Number(item.subtotal.toFixed(2)),
+        discountAmount: Number(item.discountAmount.toFixed(2)),
+        taxAmount: Number(item.taxAmount.toFixed(2)),
+        total: Number(item.total.toFixed(2))
+      }))
     };
   }
 }

@@ -13,6 +13,9 @@ export default function AppLayout() {
       <Tabs.Screen name="dummy" />
       <Tabs.Screen name="reports" />
       <Tabs.Screen name="settings" />
+      <Tabs.Screen name="create-quotation" options={{ href: null } as any} />
+      <Tabs.Screen name="create-invoice" options={{ href: null } as any} />
+      <Tabs.Screen name="create-expense" options={{ href: null } as any} />
     </Tabs>
   );
 }

@@ -271,8 +271,12 @@ export default function ExpensesPage() {
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-[28px] font-bold text-on-surface tracking-tight">Expenses</h1>
-              <p className="text-on-surface-variant/70 text-sm mt-1">Track and manage your branch expenditures</p>
+               <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
+              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">
+              Expenses
+              </span>
+              </h1>
+              <p className="text-on-surface-variant text-lg">Track and manage your branch expenditures</p>
             </div>
             <button 
               onClick={openNewModal}

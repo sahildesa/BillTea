@@ -283,9 +283,10 @@ export default function InvoicesPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
         <div>
-          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">Invoices</h1>
-          <p className="text-on-surface-variant text-sm mt-1">Manage and track your invoices.</p>
-        </div>
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
+              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Invoices</span></h1>
+          <p className="text-on-surface-variant text-lg">Manage and track your invoices.</p>
+          </div>
         <Link href="/invoices/new">
           <button 
             disabled={!selectedBranchId}

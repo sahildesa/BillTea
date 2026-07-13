@@ -64,8 +64,11 @@ export default function SettingsPage() {
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-on-surface mb-3">Settings</h1>
-            <p className="text-on-surface-variant text-lg max-w-2xl leading-relaxed">
+             <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
+              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Settings
+                </span>
+              </h1>
+            <p className="text-on-surface-variant text-lg">
               Manage your company identity, theme preferences, invoice structures, and integration access points from a single command center.
             </p>
           </div>

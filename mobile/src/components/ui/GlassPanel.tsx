@@ -8,8 +8,8 @@ export function GlassPanel({ children, style, ...props }: ViewProps) {
   
   return (
     <View style={[styles.wrapper, { borderColor: colors.glassBorder }, style]} {...props}>
-      <BlurView intensity={isDark ? 40 : 60} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
-      <View style={[styles.overlay, { backgroundColor: colors.glassBackground }]} />
+      <BlurView intensity={isDark ? 40 : 60} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} pointerEvents="none" />
+      <View style={[styles.overlay, { backgroundColor: colors.glassBackground }]} pointerEvents="none" />
       <View style={styles.content}>
         {children}
       </View>

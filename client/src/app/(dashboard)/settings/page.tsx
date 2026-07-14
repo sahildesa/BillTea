@@ -183,9 +183,9 @@ export default function SettingsPage() {
                   <Link href="/settings/branches" className="flex-1 glass-button-icon py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 group-hover:border-primary/30 group-hover:text-primary transition-all">
                     <span className="material-symbols-outlined text-lg">settings</span> Manage
                   </Link>
-                  <button className="flex-1 bg-primary/10 border border-primary/30 hover:bg-primary/20 text-primary py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:shadow-[0_0_20px_rgba(125,211,252,0.2)]">
+                  <Link href="/settings/branches?action=create" className="flex-1 bg-primary/10 border border-primary/30 hover:bg-primary/20 text-primary py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:shadow-[0_0_20px_rgba(125,211,252,0.2)]">
                     <span className="material-symbols-outlined text-lg">add_location</span> Add
-                  </button>
+                  </Link>
                 </div>
               </div>
 

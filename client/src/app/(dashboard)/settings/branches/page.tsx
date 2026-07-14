@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { apiFetch } from "../../../../lib/auth";
 
-export default function BranchSettingsPage() {
+function BranchSettingsContent() {
+  const searchParams = useSearchParams();
   const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState("");
@@ -66,6 +68,12 @@ export default function BranchSettingsPage() {
   useEffect(() => {
     fetchBranches();
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get("action") === "create" && !loading) {
+      openCreateModal();
+    }
+  }, [searchParams, loading]);
 
   const filteredBranches = useMemo(() => {
     const value = search.toLowerCase().trim();
@@ -620,5 +628,13 @@ export default function BranchSettingsPage() {
       )}
 
     </div>
+  );
+}
+
+export default function BranchSettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-on-surface-variant flex items-center justify-center h-full"><span className="material-symbols-outlined animate-spin text-4xl">progress_activity</span></div>}>
+      <BranchSettingsContent />
+    </Suspense>
   );
 }

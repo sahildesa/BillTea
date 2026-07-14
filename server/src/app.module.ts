@@ -18,6 +18,8 @@ import { InvoiceModule } from './invoices/invoice.module';
 import { SubscriptionPlansModule } from './subscription-plans/subscription-plans.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+
 
 @Module({
   imports: [
@@ -43,6 +45,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ExpenseCategoriesModule,
     QuotationModule,
     InvoiceModule,
+    DashboardModule,
 
     // Subscription Management
     SubscriptionPlansModule,

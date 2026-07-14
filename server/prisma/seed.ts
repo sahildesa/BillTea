@@ -45,7 +45,11 @@ async function main() {
     phoneNumber: string,
     role: UserRole,
   ) => {
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [{ email }, { phoneNumber }],
+      },
+    });
     if (!existing) {
       const hashedPassword = await bcrypt.hash('Pass@123', 12);
       const user = await prisma.user.create({
@@ -157,7 +161,7 @@ async function main() {
       await prisma.quotation.create({
         data: {
           quotationNumber: q.quotationNumber,
-          sequenceNumber: 86 + idx,
+          sequenceNumber: Math.floor(Math.random() * 1000000) + idx,
           companyId: company.id,
           branchId: mainBranch.id,
           customerId: cust.id,
@@ -223,7 +227,7 @@ async function main() {
       await prisma.invoice.create({
         data: {
           invoiceNumber: inv.invoiceNumber,
-          sequenceNumber: 1 + idx,
+          sequenceNumber: Math.floor(Math.random() * 1000000) + idx,
           companyId: company.id,
           branchId: mainBranch.id,
           customerId: cust.id,
@@ -327,11 +331,86 @@ async function main() {
     }
   }
 
+  // 8.5 Generate daily dynamic data for the last 45 days
+  const today = new Date();
+  for (let i = 45; i >= 0; i--) {
+    const targetDate = new Date(today);
+    targetDate.setDate(targetDate.getDate() - i);
+    
+    const grandTotal = Math.floor(Math.random() * 50000) + 5000;
+    const isPaid = Math.random() > 0.3;
+    const custName = customerData[i % customerData.length].name;
+    const cust = seededCustomers[custName];
+    
+    // Seed Quotation
+    const qNum = `QUO-GEN-${i}`;
+    const existingQ = await prisma.quotation.findFirst({
+      where: { companyId: company.id, quotationNumber: qNum }
+    });
+    if (!existingQ) {
+      await prisma.quotation.create({
+        data: {
+          quotationNumber: qNum,
+          sequenceNumber: Math.floor(Math.random() * 1000000) + i,
+          companyId: company.id,
+          branchId: mainBranch.id,
+          customerId: cust.id,
+          customerSnapshot: { customerName: cust.customerName },
+          status: 'SENT',
+          quotationDate: targetDate,
+          expiryDate: new Date(targetDate.getTime() + 30 * 24 * 60 * 60 * 1000),
+          billingAddressSnapshot: {},
+          shippingAddressSnapshot: {},
+          discountConfiguration: {},
+          taxConfiguration: {},
+          subtotal: grandTotal,
+          grandTotal: grandTotal,
+          createdById: owner.id,
+        }
+      });
+    }
+
+    // Seed Invoice
+    const iNum = `INV-GEN-${i}`;
+    const existingI = await prisma.invoice.findFirst({
+      where: { companyId: company.id, invoiceNumber: iNum }
+    });
+    if (!existingI) {
+      await prisma.invoice.create({
+        data: {
+          invoiceNumber: iNum,
+          sequenceNumber: Math.floor(Math.random() * 1000000) + i,
+          companyId: company.id,
+          branchId: mainBranch.id,
+          customerId: cust.id,
+          customerSnapshot: { customerName: cust.customerName },
+          status: isPaid ? 'PAID' : 'UNPAID',
+          invoiceDate: targetDate,
+          dueDate: new Date(targetDate.getTime() + 14 * 24 * 60 * 60 * 1000),
+          billingAddressSnapshot: {},
+          shippingAddressSnapshot: {},
+          discountConfiguration: {},
+          taxConfiguration: {},
+          subtotal: grandTotal,
+          grandTotal: grandTotal,
+          amountPaid: isPaid ? grandTotal : 0,
+          amountDue: isPaid ? 0 : grandTotal,
+          createdById: owner.id,
+        }
+      });
+    }
+  }
+  console.log('✓ Seeded daily historical data for the last 45 days.');
+
   console.log('\nSeeding complete!')
 
   // ─── 9. Seed Super Admin ─────────────────────────────────────
   const superAdminEmail = 'superadmin@billtea.com';
-  const existingSuperAdmin = await prisma.user.findUnique({ where: { email: superAdminEmail } });
+  const existingSuperAdmin = await prisma.user.findFirst({
+    where: {
+      OR: [{ email: superAdminEmail }, { phoneNumber: '9000000001' }]
+    }
+  });
   if (!existingSuperAdmin) {
     const hashedPassword = await bcrypt.hash('SuperAdmin@123', 12);
     await prisma.user.create({

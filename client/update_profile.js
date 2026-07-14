@@ -1,170 +1,21 @@
-'use client';
+const fs = require('fs');
+const file = '/Users/aadesh/Sarang/billtea/client/src/app/(dashboard)/settings/profile/page.tsx';
+let content = fs.readFileSync(file, 'utf8');
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { apiFetch } from '../../../../lib/auth';
+content = content.replace(
+  "import { apiFetch } from '../../../../lib/auth';",
+  "import { useRouter } from 'next/navigation';\nimport { apiFetch } from '../../../../lib/auth';"
+);
 
-interface BranchInfo {
-  _id: string;
-  name: string;
-  isMainBranch: boolean;
-  city?: string;
-  state?: string;
-}
+content = content.replace(
+  "export default function ProfilePage() {\n  const [profile, setProfile] = useState<ProfileData | null>(null);",
+  "export default function ProfilePage() {\n  const router = useRouter();\n  const [profile, setProfile] = useState<ProfileData | null>(null);"
+);
 
-interface CompanyInfo {
-  id: string;
-  name: string;
-  logo: string;
-  identifiers: { label: string; value: string }[];
-}
+const splitStr = "  // Loading state";
+const parts = content.split(splitStr);
 
-interface ProfileData {
-  user: {
-    id: string;
-    fullName: string;
-    email: string;
-    phoneNumber: string;
-    profilePicture: string;
-    role: 'owner' | 'manager' | 'staff';
-    isActive: boolean;
-    lastLoginAt: string | null;
-    createdBy: { fullName: string; email: string } | null;
-    createdAt: string;
-  };
-  company: CompanyInfo | null;
-  branches: BranchInfo[];
-  allBranches: boolean;
-}
-
-export default function ProfilePage() {
-  const router = useRouter();
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  // Edit mode state
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ fullName: '', email: '', phoneNumber: '', profilePicture: '' });
-  const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
-
-
-
-  const fetchProfile = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const res = await apiFetch('/profile');
-      const data = await res.json();
-      if (data.success) {
-        setProfile(data);
-        setEditForm({
-          fullName: data.user.fullName,
-          email: data.user.email,
-          phoneNumber: data.user.phoneNumber,
-          profilePicture: data.user.profilePicture || '',
-        });
-      } else {
-        setError(data.message || 'Failed to load profile.');
-      }
-    } catch (err) {
-      setError('Failed to connect to server.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
-  const handleSaveProfile = async () => {
-    setSaving(true);
-    setSaveMessage({ type: '', text: '' });
-    try {
-      const res = await apiFetch('/profile', {
-        method: 'PUT',
-        body: JSON.stringify(editForm),
-      });
-      let data;
-      try {
-        data = await res.json();
-      } catch (e) {
-        if (res.status === 413) throw new Error('Payload too large.');
-        throw new Error('Invalid response from server.');
-      }
-
-      if (data.success) {
-        // Update localStorage with the new user data so sidebar reflects changes
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setSaveMessage({ type: 'success', text: 'Profile updated successfully!' });
-        setEditing(false);
-        await fetchProfile();
-      } else {
-        setSaveMessage({ type: 'error', text: data.message || 'Update failed.' });
-      }
-    } catch (err: any) {
-      setSaveMessage({ type: 'error', text: err.message || 'Failed to connect to server.' });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Optional: add max size validation (e.g., 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setSaveMessage({ type: 'error', text: 'Image must be less than 2MB.' });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64String = reader.result as string;
-      setSaving(true);
-      setSaveMessage({ type: '', text: '' });
-      try {
-        const res = await apiFetch('/profile', {
-          method: 'PUT',
-          body: JSON.stringify({ profilePicture: base64String }),
-        });
-        let data;
-        try {
-          data = await res.json();
-        } catch (e) {
-          if (res.status === 413) throw new Error('Image size is too large for the server to process.');
-          throw new Error('Invalid response from server.');
-        }
-
-        if (data.success) {
-          localStorage.setItem('user', JSON.stringify(data.user));
-          setSaveMessage({ type: 'success', text: 'Profile picture updated!' });
-          await fetchProfile();
-        } else {
-          setSaveMessage({ type: 'error', text: data.message || 'Update failed.' });
-        }
-      } catch (err: any) {
-        setSaveMessage({ type: 'error', text: err.message || 'Failed to connect to server.' });
-      } finally {
-        setSaving(false);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Never';
-    return new Date(dateStr).toLocaleString('en-IN', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
-  };
-
-  // Loading state
+const newUI = `
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-32 bg-background">
@@ -201,7 +52,7 @@ export default function ProfilePage() {
 
   return (
     <div className="flex-1 overflow-y-auto relative bg-background selection:bg-primary/30">
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{__html: \`
         @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
@@ -210,7 +61,7 @@ export default function ProfilePage() {
           opacity: 0;
           animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
-      `}} />
+      \`}} />
 
       {/* Decorative Background */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -242,11 +93,11 @@ export default function ProfilePage() {
 
         {/* Save message toast */}
         {saveMessage.text && (
-          <div className={`mb-10 p-5 rounded-2xl border flex items-start gap-4 animate-fade-slide-up ${saveMessage.type === 'success'
+          <div className={\`mb-10 p-5 rounded-2xl border flex items-start gap-4 animate-fade-slide-up \${saveMessage.type === 'success'
             ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
             : 'bg-red-500/10 border-red-500/20 text-red-500'
-            }`}>
-            <span className={`material-symbols-outlined mt-0.5 p-1 rounded-full ${saveMessage.type === 'success' ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>
+            }\`}>
+            <span className={\`material-symbols-outlined mt-0.5 p-1 rounded-full \${saveMessage.type === 'success' ? 'bg-emerald-500/20' : 'bg-red-500/20'}\`}>
               {saveMessage.type === 'success' ? 'check_circle' : 'error'}
             </span>
             <div>
@@ -539,3 +390,8 @@ export default function ProfilePage() {
     </div>
   );
 }
+`;
+
+content = parts[0] + splitStr + newUI;
+fs.writeFileSync(file, content);
+console.log('Update complete');

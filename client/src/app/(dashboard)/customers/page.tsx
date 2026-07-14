@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '../../../lib/auth';
 import { useBranch } from '../../../components/BranchProvider';
 
@@ -20,6 +20,12 @@ type Customer = {
     quotations: number;
   };
 };
+
+type SortDirection = 'asc' | 'desc';
+interface SortConfig {
+  key: string;
+  direction: SortDirection;
+}
 
 export default function CustomersPage() {
   const { selectedBranchId, isLoadingBranches } = useBranch();
@@ -41,6 +47,20 @@ export default function CustomersPage() {
     address: '',
     otherInfo: ''
   });
+
+  // ---- Table controls: search, sorting, pagination ----
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const stats = React.useMemo(() => {
+    const total = customers.length;
+    const active = customers.filter((c) => c.isActive).length;
+    const totalInvoices = customers.reduce((sum, c) => sum + (c._count?.invoices || 0), 0);
+    const totalQuotations = customers.reduce((sum, c) => sum + (c._count?.quotations || 0), 0);
+    return { total, active, totalInvoices, totalQuotations };
+  }, [customers]);
 
   useEffect(() => {
     if (!selectedBranchId) return;
@@ -154,6 +174,105 @@ export default function CustomersPage() {
     }
   };
 
+  // ---- Search ----
+  const filteredCustomers = useMemo(() => {
+    if (!searchQuery) return customers;
+    const query = searchQuery.toLowerCase();
+    return customers.filter((c) => {
+      const nameMatch = c.customerName?.toLowerCase().includes(query);
+      const companyMatch = c.companyName?.toLowerCase().includes(query);
+      const emailMatch = c.email?.toLowerCase().includes(query);
+      const mobileMatch = c.mobileNumber?.toLowerCase().includes(query);
+      const identifierMatch = c.businessLabelValue?.toLowerCase().includes(query);
+      return nameMatch || companyMatch || emailMatch || mobileMatch || identifierMatch;
+    });
+  }, [customers, searchQuery]);
+
+  // ---- Sorting ----
+  const handleSort = (key: string) => {
+    setCurrentPage(1);
+    setSortConfig((prev) => {
+      if (prev?.key === key && prev.direction === 'asc') {
+        return { key, direction: 'desc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string): string => {
+    if (sortConfig?.key !== key) return 'unfold_more';
+    return sortConfig.direction === 'asc' ? 'expand_less' : 'expand_more';
+  };
+
+  const sortValue = (row: Customer, key: string): string | number => {
+    switch (key) {
+      case 'customer': return row.customerName || '';
+      case 'contact': return row.email || row.mobileNumber || '';
+      case 'identifier': return row.businessLabelValue || '';
+      case 'invoices': return row._count?.invoices || 0;
+      case 'quotations': return row._count?.quotations || 0;
+      default: return '';
+    }
+  };
+
+  const sortedCustomers = useMemo(() => {
+    if (!sortConfig) return filteredCustomers;
+    return [...filteredCustomers].sort((a, b) => {
+      const aVal = sortValue(a, sortConfig.key);
+      const bVal = sortValue(b, sortConfig.key);
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortConfig.direction === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredCustomers, sortConfig]);
+
+  // ---- Pagination ----
+  const totalCount = sortedCustomers.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / entriesPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
+  const endIndex = Math.min(currentPage * entriesPerPage, totalCount);
+
+  const paginatedCustomers = useMemo(() => {
+    return sortedCustomers.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
+  }, [sortedCustomers, currentPage, entriesPerPage]);
+
+  const pageNumbers = useMemo(() => {
+    const maxButtons = 5;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    start = Math.max(1, end - maxButtons + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [totalPages, currentPage]);
+
+  const handleEntriesPerPageChange = (n: number) => {
+    setEntriesPerPage(n);
+    setCurrentPage(1);
+  };
+
+  const sortHeaderClass = (key: string) =>
+    `px-6 py-4 cursor-pointer hover:text-primary transition-colors group ${
+      sortConfig?.key === key ? 'text-primary' : ''
+    }`;
+
+  const sortIconClass = (key: string) =>
+    `material-symbols-outlined text-[12px] transition-opacity ${
+      sortConfig?.key === key ? 'opacity-100 text-primary' : 'opacity-50 group-hover:opacity-100'
+    }`;
+
   return (
     <>
       <div className="flex-1 overflow-y-auto p-8 z-0 relative">
@@ -181,22 +300,77 @@ export default function CustomersPage() {
         </button>
       </div>
 
+{/* Metrics Grid */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Customers</p>
+      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">group</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Active Customers</p>
+      <span className="material-symbols-outlined text-emerald-400 p-2 rounded-lg bg-emerald-400/10">task_alt</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.active}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">
+      {stats.total > 0 ? `${Math.round((stats.active / stats.total) * 100)}% of total` : 'no data yet'}
+    </p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
+      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.totalInvoices}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">across all customers</p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Quotations</p>
+      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">request_quote</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.totalQuotations}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">across all customers</p>
+  </div>
+</div>
+      
       {/* Main Content Glass Card */}
       <section className="glass-panel rounded-xl overflow-hidden mb-12 relative z-10 border border-primary/10 shadow-lg">
         {/* Table Controls */}
         <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
           <div className="flex items-center gap-3">
             <span className="text-sm text-on-surface-variant">Show</span>
-            <select className="glass-input text-sm px-3 py-1.5 rounded-lg text-on-surface focus:ring-0 cursor-pointer bg-surface-container-highest">
-              <option>10</option>
-              <option>25</option>
-              <option>50</option>
+            <select
+              value={entriesPerPage}
+              onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
+              className="glass-input text-sm px-3 py-1.5 rounded-lg text-on-surface focus:ring-0 cursor-pointer bg-surface-container-highest"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
             </select>
             <span className="text-sm text-on-surface-variant">entries</span>
           </div>
           <div className="relative w-full sm:w-80 group">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-sm">search</span>
-            <input className="glass-input w-full pl-10 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none transition-all" placeholder="Search customers..." type="text" />
+            <input
+              className="glass-input w-full pl-10 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none transition-all"
+              placeholder="Search customers..."
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
 
@@ -205,11 +379,31 @@ export default function CustomersPage() {
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="bg-surface-container-low/50 text-xs font-semibold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
-                <th className="px-6 py-4">Customer</th>
-                <th className="px-6 py-4">Contact</th>
-                <th className="px-6 py-4">Identifier</th>
-                <th className="px-6 py-4 text-center">Invoices</th>
-                <th className="px-6 py-4 text-center">Quotations</th>
+                <th className={sortHeaderClass('customer')} onClick={() => handleSort('customer')}>
+                  <div className="flex items-center gap-1">
+                    Customer <span className={sortIconClass('customer')}>{getSortIcon('customer')}</span>
+                  </div>
+                </th>
+                <th className={sortHeaderClass('contact')} onClick={() => handleSort('contact')}>
+                  <div className="flex items-center gap-1">
+                    Contact <span className={sortIconClass('contact')}>{getSortIcon('contact')}</span>
+                  </div>
+                </th>
+                <th className={sortHeaderClass('identifier')} onClick={() => handleSort('identifier')}>
+                  <div className="flex items-center gap-1">
+                    Identifier <span className={sortIconClass('identifier')}>{getSortIcon('identifier')}</span>
+                  </div>
+                </th>
+                <th className={`${sortHeaderClass('invoices')} text-center`} onClick={() => handleSort('invoices')}>
+                  <div className="flex items-center justify-center gap-1">
+                    Invoices <span className={sortIconClass('invoices')}>{getSortIcon('invoices')}</span>
+                  </div>
+                </th>
+                <th className={`${sortHeaderClass('quotations')} text-center`} onClick={() => handleSort('quotations')}>
+                  <div className="flex items-center justify-center gap-1">
+                    Quotations <span className={sortIconClass('quotations')}>{getSortIcon('quotations')}</span>
+                  </div>
+                </th>
                 <th className="px-6 py-4 text-right pr-8">Actions</th>
               </tr>
             </thead>
@@ -222,14 +416,14 @@ export default function CustomersPage() {
                     </div>
                   </td>
                 </tr>
-              ) : customers.length === 0 ? (
+              ) : paginatedCustomers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-on-surface-variant">
-                    No customers found for this branch. Create one to get started!
+                    {searchQuery ? 'No matching customers found.' : 'No customers found for this branch. Create one to get started!'}
                   </td>
                 </tr>
               ) : (
-                customers.map((customer) => (
+                paginatedCustomers.map((customer) => (
                   <tr key={customer.id} className="group hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
@@ -286,8 +480,39 @@ export default function CustomersPage() {
         {/* Pagination */}
         <div className="p-6 border-t border-primary/10 flex flex-col md:flex-row items-center justify-between gap-4 bg-surface-container/30">
           <span className="text-sm text-on-surface-variant/70">
-            Showing <span className="text-on-surface font-semibold">{customers.length > 0 ? 1 : 0}</span> to <span className="text-on-surface font-semibold">{customers.length}</span> of <span className="text-on-surface font-semibold">{customers.length}</span> entries
+            {totalCount === 0
+              ? 'Showing 0 entries'
+              : <>Showing <span className="text-on-surface font-semibold">{startIndex}</span> to <span className="text-on-surface font-semibold">{endIndex}</span> of <span className="text-on-surface font-semibold">{totalCount}</span> entries</>}
           </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              Previous
+            </button>
+            {pageNumbers.map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
+                  page === currentPage
+                    ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
+                    : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </section>
       </div>

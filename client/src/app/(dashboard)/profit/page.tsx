@@ -16,6 +16,13 @@ interface Expense {
   amount: number;
 }
 
+type SortDirection = 'asc' | 'desc';
+type SortKey = 'date' | 'income' | 'expense' | 'profit';
+interface SortConfig {
+  key: SortKey;
+  direction: SortDirection;
+}
+
 function formatDateInput(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -36,6 +43,12 @@ export default function ProfitReportPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+
+  // ---- Table controls: search, sorting, pagination ----
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [entriesPerPage, setEntriesPerPage] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const today = new Date();
@@ -174,7 +187,6 @@ export default function ProfitReportPage() {
   );
 
   const netProfit = totalIncome - totalExpense;
-  const totalEntries = groupedRows.length;
   const totalIncomeBar = totalIncome > 0 ? 100 : 0;
   const totalExpenseBar = totalIncome > 0
     ? Math.min((totalExpense / totalIncome) * 100, 100)
@@ -182,6 +194,111 @@ export default function ProfitReportPage() {
   const netProfitBar = totalIncome > 0
     ? Math.max(0, Math.min((netProfit / totalIncome) * 100, 100))
     : 0;
+
+  // ---- Search (by formatted date string) ----
+  const searchedRows = useMemo(() => {
+    if (!searchQuery) return groupedRows;
+    const query = searchQuery.toLowerCase();
+    return groupedRows.filter((row) => {
+      const formatted = new Date(row.date).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }).toLowerCase();
+      return formatted.includes(query);
+    });
+  }, [groupedRows, searchQuery]);
+
+  // ---- Sorting ----
+  const handleSort = (key: SortKey) => {
+    setCurrentPage(1);
+    setSortConfig((prev) => {
+      if (prev?.key === key && prev.direction === 'asc') {
+        return { key, direction: 'desc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: SortKey): string => {
+    if (sortConfig?.key !== key) return 'unfold_more';
+    return sortConfig.direction === 'asc' ? 'expand_less' : 'expand_more';
+  };
+
+  const sortValue = (row: { date: string; income: number; expense: number }, key: SortKey): number => {
+    switch (key) {
+      case 'date': return new Date(row.date).getTime();
+      case 'income': return row.income;
+      case 'expense': return row.expense;
+      case 'profit': return row.income - row.expense;
+      default: return 0;
+    }
+  };
+
+  const sortedRows = useMemo(() => {
+    if (!sortConfig) return searchedRows;
+    return [...searchedRows].sort((a, b) => {
+      const aVal = sortValue(a, sortConfig.key);
+      const bVal = sortValue(b, sortConfig.key);
+      return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchedRows, sortConfig]);
+
+  // ---- Pagination ----
+  const totalEntries = sortedRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalEntries / entriesPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, fromDate, toDate]);
+
+  const startIndex = totalEntries === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
+  const endIndex = Math.min(currentPage * entriesPerPage, totalEntries);
+
+  const paginatedRows = useMemo(() => {
+    return sortedRows.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
+  }, [sortedRows, currentPage, entriesPerPage]);
+
+  const pageNumbers = useMemo(() => {
+    const maxButtons = 5;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    start = Math.max(1, end - maxButtons + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [totalPages, currentPage]);
+
+  const handleEntriesPerPageChange = (n: number) => {
+    setEntriesPerPage(n);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilters = () => {
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    setFromDate(formatDateInput(firstDayOfMonth));
+    setToDate(formatDateInput(today));
+    setSearchQuery('');
+    setSortConfig(null);
+    setCurrentPage(1);
+  };
+
+  const sortHeaderClass = (key: SortKey, align: 'left' | 'right' = 'left') =>
+    `px-6 py-4 text-xs font-bold uppercase tracking-widest border-b border-outline/10 cursor-pointer hover:text-primary transition-colors group select-none ${
+      align === 'right' ? 'text-right' : ''
+    } ${sortConfig?.key === key ? 'text-primary' : 'text-on-surface-variant'}`;
+
+  const sortIconClass = (key: SortKey) =>
+    `material-symbols-outlined text-[12px] transition-opacity ${
+      sortConfig?.key === key ? 'opacity-100 text-primary' : 'opacity-50 group-hover:opacity-100'
+    }`;
 
   return (
     <div className="flex-1 overflow-y-auto p-8 z-0 relative overflow-x-hidden">
@@ -232,11 +349,11 @@ export default function ProfitReportPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button className="bg-primary/20 text-primary border border-primary/40 px-8 py-3 rounded-xl font-bold hover:bg-primary/30 active:scale-95 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(125,211,252,0.2)] cursor-pointer">
+              <button onClick={() => setCurrentPage(1)} className="bg-primary/20 text-primary border border-primary/40 px-8 py-3 rounded-xl font-bold hover:bg-primary/30 active:scale-95 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(125,211,252,0.2)] cursor-pointer">
                 <span className="material-symbols-outlined">filter_list</span>
                 Apply Filter
               </button>
-              <button className="glass-panel px-8 py-3 rounded-xl font-medium text-on-surface-variant hover:text-on-surface transition-all cursor-pointer">
+              <button onClick={handleResetFilters} className="glass-panel px-8 py-3 rounded-xl font-medium text-on-surface-variant hover:text-on-surface transition-all cursor-pointer">
                 Reset
               </button>
             </div>
@@ -306,17 +423,27 @@ export default function ProfitReportPage() {
               </div>
               <div className="flex items-center gap-2 text-sm text-on-surface-variant">
                 <span>Show</span>
-                <select className="bg-surface-container border border-outline/20 rounded px-2 py-1 text-xs focus:ring-0 focus:border-primary/50 cursor-pointer outline-none">
-                  <option>25</option>
-                  <option>50</option>
-                  <option>100</option>
+                <select
+                  value={entriesPerPage}
+                  onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
+                  className="bg-surface-container border border-outline/20 rounded px-2 py-1 text-xs focus:ring-0 focus:border-primary/50 cursor-pointer outline-none"
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
                 </select>
                 <span>entries</span>
               </div>
             </div>
             <div className="relative w-full sm:w-64">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
-              <input className="w-full bg-surface-container/50 border border-outline/20 rounded-xl pl-10 pr-4 py-2 text-sm text-on-surface focus:outline-none focus:border-primary/50 transition-all placeholder:text-on-surface-variant/50" placeholder="Search dates..." type="text" />
+              <input
+                className="w-full bg-surface-container/50 border border-outline/20 rounded-xl pl-10 pr-4 py-2 text-sm text-on-surface focus:outline-none focus:border-primary/50 transition-all placeholder:text-on-surface-variant/50"
+                placeholder="Search dates..."
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
           {/* Table Body */}
@@ -324,33 +451,57 @@ export default function ProfitReportPage() {
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead className="bg-surface-container/30">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant border-b border-outline/10">Date</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant border-b border-outline/10 text-right">Income (₹)</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant border-b border-outline/10 text-right">Expense (₹)</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant border-b border-outline/10 text-right">Profit (₹)</th>
+                  <th className={sortHeaderClass('date')} onClick={() => handleSort('date')}>
+                    <div className="flex items-center gap-1">
+                      Date <span className={sortIconClass('date')}>{getSortIcon('date')}</span>
+                    </div>
+                  </th>
+                  <th className={sortHeaderClass('income', 'right')} onClick={() => handleSort('income')}>
+                    <div className="flex items-center justify-end gap-1">
+                      Income (₹) <span className={sortIconClass('income')}>{getSortIcon('income')}</span>
+                    </div>
+                  </th>
+                  <th className={sortHeaderClass('expense', 'right')} onClick={() => handleSort('expense')}>
+                    <div className="flex items-center justify-end gap-1">
+                      Expense (₹) <span className={sortIconClass('expense')}>{getSortIcon('expense')}</span>
+                    </div>
+                  </th>
+                  <th className={sortHeaderClass('profit', 'right')} onClick={() => handleSort('profit')}>
+                    <div className="flex items-center justify-end gap-1">
+                      Profit (₹) <span className={sortIconClass('profit')}>{getSortIcon('profit')}</span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline/5 text-sm">
-                {groupedRows.map((row) => (
-                  <tr key={row.date} className="hover:bg-primary/5 transition-colors group cursor-pointer active:scale-[0.995]">
-                    <td className="px-6 py-5 font-medium text-on-surface">
-                      {new Date(row.date).toLocaleDateString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </td>
-                    <td className="px-6 py-5 font-bold text-primary text-right">
-                      ₹{formatCurrency(row.income)}
-                    </td>
-                    <td className="px-6 py-5 font-medium text-error text-right">
-                      ₹{formatCurrency(row.expense)}
-                    </td>
-                    <td className="px-6 py-5 font-bold text-on-surface text-right">
-                      ₹{formatCurrency(row.income - row.expense)}
+                {paginatedRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-8 text-center text-on-surface-variant">
+                      {searchQuery ? 'No matching dates found.' : 'No data for the selected date range.'}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  paginatedRows.map((row) => (
+                    <tr key={row.date} className="hover:bg-primary/5 transition-colors group cursor-pointer active:scale-[0.995]">
+                      <td className="px-6 py-5 font-medium text-on-surface">
+                        {new Date(row.date).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </td>
+                      <td className="px-6 py-5 font-bold text-primary text-right">
+                        ₹{formatCurrency(row.income)}
+                      </td>
+                      <td className="px-6 py-5 font-medium text-error text-right">
+                        ₹{formatCurrency(row.expense)}
+                      </td>
+                      <td className="px-6 py-5 font-bold text-on-surface text-right">
+                        ₹{formatCurrency(row.income - row.expense)}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
               <tfoot>
                 <tr className="bg-surface-container/50 border-t-2 border-primary/20">
@@ -364,13 +515,37 @@ export default function ProfitReportPage() {
           </div>
           {/* Pagination Footer */}
           <div className="p-6 border-t border-outline/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/10">
-            <p className="text-sm text-on-surface-variant">Showing {totalEntries ? 1 : 0} to {totalEntries} of {totalEntries} entries</p>
+            <p className="text-sm text-on-surface-variant">
+              {totalEntries === 0
+                ? 'Showing 0 entries'
+                : `Showing ${startIndex} to ${endIndex} of ${totalEntries} entries`}
+            </p>
             <div className="flex items-center gap-1">
-              <button className="p-2 rounded-lg text-on-surface-variant hover:bg-primary/10 transition-colors disabled:opacity-30 cursor-pointer" disabled={totalEntries === 0}>
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg text-on-surface-variant hover:bg-primary/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
                 <span className="material-symbols-outlined">chevron_left</span>
               </button>
-              <button className="w-10 h-10 rounded-lg bg-primary/20 border border-primary/40 text-primary font-bold shadow-[0_0_10px_rgba(125,211,252,0.2)] cursor-pointer">{totalEntries ? 1 : 0}</button>
-              <button className="p-2 rounded-lg text-on-surface-variant hover:bg-primary/10 transition-colors disabled:opacity-30 cursor-pointer" disabled={totalEntries === 0}>
+              {pageNumbers.map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg border font-bold transition-colors cursor-pointer ${
+                    page === currentPage
+                      ? 'bg-primary/20 border-primary/40 text-primary shadow-[0_0_10px_rgba(125,211,252,0.2)]'
+                      : 'border-transparent text-on-surface-variant hover:bg-primary/10 hover:text-on-surface'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg text-on-surface-variant hover:bg-primary/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
                 <span className="material-symbols-outlined">chevron_right</span>
               </button>
             </div>

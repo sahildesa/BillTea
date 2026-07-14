@@ -58,7 +58,8 @@ export default function SettingsPage() {
 
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
@@ -68,7 +69,7 @@ export default function SettingsPage() {
           animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
       `}} />
-      
+
       {/* Premium Background */}
       <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
         <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
@@ -77,7 +78,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
-        
+
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
           <div className="max-w-2xl">
@@ -98,7 +99,7 @@ export default function SettingsPage() {
 
         {/* Categories */}
         <div className="flex flex-col gap-12">
-          
+
           {/* Section 1: Account & Organization */}
           <section className="animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
             <h2 className="text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
@@ -129,7 +130,7 @@ export default function SettingsPage() {
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-tertiary group-hover:scale-110 transition-transform bg-tertiary/10 shadow-[0_0_15px_rgba(200,160,240,0.1)] border border-tertiary/20">
                   <span className="material-symbols-outlined text-3xl">manage_accounts</span>
                 </div>
-                <h3 className="text-xl font-bold text-on-surface mb-3">User Management</h3>
+                <h3 className="text-xl font-bold text-on-surface mb-3">Staff Management</h3>
                 <p className="text-on-surface-variant text-sm leading-relaxed mb-8 flex-grow">
                   Invite team members, assign roles, and manage access permissions across your organization.
                 </p>
@@ -152,7 +153,7 @@ export default function SettingsPage() {
               Business Identity
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              
+
               {/* Company Settings */}
               <div className="glass-panel p-8 rounded-3xl flex flex-col h-full group hover:border-secondary/40 hover:shadow-[0_20px_40px_-15px_rgba(136,180,204,0.15)] hover:-translate-y-1 transition-all duration-300">
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-secondary group-hover:scale-110 transition-transform bg-secondary/10 shadow-[0_0_15px_rgba(136,180,204,0.1)] border border-secondary/20">
@@ -214,7 +215,7 @@ export default function SettingsPage() {
               Billing & Integrations
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-              
+
               {/* Invoice Settings */}
               <div className="glass-panel p-8 rounded-3xl flex flex-col h-full group hover:border-emerald-500/40 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-bl-full -z-10 group-hover:bg-emerald-500/10 transition-colors"></div>
@@ -234,12 +235,12 @@ export default function SettingsPage() {
 
               {/* Quotation Settings */}
               <div className="glass-panel p-8 rounded-3xl flex flex-col h-full group hover:border-amber-500/40 hover:shadow-[0_20px_40px_-15px_rgba(245,158,11,0.15)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
-                 <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-bl-full -z-10 group-hover:bg-amber-500/10 transition-colors"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-bl-full -z-10 group-hover:bg-amber-500/10 transition-colors"></div>
                 <div className="flex justify-between items-start mb-6">
                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.1)] border border-amber-500/20">
                     <span className="material-symbols-outlined text-3xl">request_quote</span>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setShowQuotationSettings(true)}
                     className="p-2 rounded-xl text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 transition-colors tooltip tooltip-left"
                     data-tip="Quick Theme Setup"
@@ -280,19 +281,19 @@ export default function SettingsPage() {
               <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-[1px] rounded-3xl group hover:-translate-y-1 transition-all duration-300 shadow-xl">
                 <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-[23px] flex flex-col h-full relative overflow-hidden">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(125,211,252,0.15),_transparent_50%)]"></div>
-                  
+
                   <div className="flex justify-between items-start mb-6 relative z-10">
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-primary bg-primary/20 shadow-[0_0_20px_rgba(125,211,252,0.2)] border border-primary/30">
                       <span className="material-symbols-outlined text-3xl">workspace_premium</span>
                     </div>
                     <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full text-xs font-bold uppercase tracking-wider">Pro Tier</span>
                   </div>
-                  
+
                   <h3 className="text-xl font-bold text-white mb-3 relative z-10">Plan & Subscription</h3>
                   <p className="text-slate-400 text-sm leading-relaxed mb-8 flex-grow relative z-10">
                     View your current plan and subscription. Access tiered features and license limits.
                   </p>
-                  
+
                   <div className="flex items-center gap-3 relative z-10">
                     <Link href="/settings/subscription" className="w-full bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/20 text-white py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all">
                       <span className="material-symbols-outlined text-lg">upgrade</span> Manage Plan
@@ -311,22 +312,22 @@ export default function SettingsPage() {
       {showQuotationSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-fade-slide-up" style={{ animationDuration: '0.3s' }}>
           <div className="glass-elevated w-full max-w-lg p-8 rounded-3xl relative border border-primary/20 shadow-[0_0_50px_rgba(125,211,252,0.2)]">
-            <button 
+            <button
               onClick={() => setShowQuotationSettings(false)}
               className="absolute top-6 right-6 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high p-2 rounded-full transition-all"
             >
               <span className="material-symbols-outlined">close</span>
             </button>
-            
+
             <div className="flex items-center gap-4 mb-2">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                 <span className="material-symbols-outlined text-xl">palette</span>
               </div>
               <h2 className="text-2xl font-bold text-on-surface">Quotation Theme</h2>
             </div>
-            
+
             <p className="text-on-surface-variant text-sm mb-8">Personalize the appearance of your generated Quotation PDFs to match your brand identity.</p>
-            
+
             {isLoadingSettings ? (
               <div className="flex justify-center py-12">
                 <span className="material-symbols-outlined animate-spin text-primary text-4xl">progress_activity</span>
@@ -335,7 +336,7 @@ export default function SettingsPage() {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-bold text-on-surface mb-2">Layout Layout</label>
-                  <select 
+                  <select
                     value={quotationTheme}
                     onChange={(e) => setQuotationTheme(e.target.value)}
                     className="w-full bg-surface-container/50 border border-outline-variant/30 rounded-xl px-4 py-3.5 text-on-surface focus:outline-none focus:border-primary/60 focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer font-medium"
@@ -345,20 +346,20 @@ export default function SettingsPage() {
                     <option value="MINIMAL">Minimalist</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-bold text-on-surface mb-2">Brand Accent Color</label>
                   <div className="flex gap-3 items-center group">
                     <div className="relative w-14 h-14 rounded-xl overflow-hidden shadow-inner border border-outline-variant/50 cursor-pointer hover:scale-105 transition-transform">
-                      <input 
-                        type="color" 
+                      <input
+                        type="color"
                         value={themeColor}
                         onChange={(e) => setThemeColor(e.target.value)}
                         className="absolute inset-[-10px] w-[200%] h-[200%] cursor-pointer bg-transparent border-0 p-0"
                       />
                     </div>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={themeColor}
                       onChange={(e) => setThemeColor(e.target.value)}
                       className="flex-1 bg-surface-container/50 border border-outline-variant/30 rounded-xl px-4 py-3.5 text-on-surface focus:outline-none focus:border-primary/60 focus:ring-4 focus:ring-primary/10 transition-all uppercase font-mono tracking-wider font-semibold"
@@ -366,7 +367,7 @@ export default function SettingsPage() {
                     />
                   </div>
                 </div>
-                
+
                 {/* Live Preview Sample */}
                 <div className="mt-8 p-6 border border-outline-variant/30 rounded-2xl bg-surface-container/30 relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: themeColor }}></div>
@@ -378,15 +379,15 @@ export default function SettingsPage() {
                     Sample block reflecting your selected accent color.
                   </div>
                 </div>
-                
+
                 <div className="pt-6 mt-6 flex justify-end gap-3 border-t border-outline-variant/20">
-                  <button 
+                  <button
                     onClick={() => setShowQuotationSettings(false)}
                     className="px-6 py-3 rounded-xl text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-colors"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={handleSaveQuotationSettings}
                     disabled={isSaving}
                     className="bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-xl text-sm font-bold transition-all shadow-[0_8px_20px_rgba(3,105,161,0.3)] hover:shadow-[0_12px_25px_rgba(3,105,161,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:-translate-y-0.5"

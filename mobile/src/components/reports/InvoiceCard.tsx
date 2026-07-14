@@ -31,20 +31,35 @@ export default function InvoiceCard({
   return (
     <GlassPanel style={styles.card}>
       {/* Top */}
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          { borderBottomColor: colors.border },
+        ]}
+      >
         <View style={styles.left}>
           <FileText
             size={18}
-            color="#A0B4C4"
+            color={colors.textSecondary}
             strokeWidth={2}
           />
 
-          <Text style={[styles.invoice, { color: colors.text }]}>
+          <Text
+            style={[
+              styles.invoice,
+              { color: colors.text },
+            ]}
+          >
             {invoice}
           </Text>
         </View>
 
-        <Text style={[styles.date, { color: colors.textSecondary }]}>
+        <Text
+          style={[
+            styles.date,
+            { color: colors.textSecondary },
+          ]}
+        >
           {date}
         </Text>
       </View>
@@ -52,24 +67,49 @@ export default function InvoiceCard({
       {/* Bottom */}
       <View style={styles.bottom}>
         <View>
-          <Text style={[styles.company, { color: colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.company,
+              { color: colors.textSecondary },
+            ]}
+          >
             {company}
           </Text>
 
           <View style={styles.row}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.label,
+                { color: colors.textSecondary },
+              ]}
+            >
               Total:
             </Text>
 
-            <Text style={[styles.total, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.total,
+                { color: colors.text },
+              ]}
+            >
               {total}
             </Text>
 
-            <Text style={[styles.separator, { color: colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.separator,
+                { color: colors.textSecondary },
+              ]}
+            >
               |
             </Text>
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.label,
+                { color: colors.textSecondary },
+              ]}
+            >
               Paid:
             </Text>
 
@@ -79,7 +119,7 @@ export default function InvoiceCard({
                 {
                   color: isPaid
                     ? "#34D399"
-                    : "#94A3B8",
+                    : colors.textSecondary,
                 },
               ]}
             >
@@ -102,7 +142,7 @@ export default function InvoiceCard({
               {
                 color: isPaid
                   ? "#34D399"
-                  : "#FF6B6B",
+                  : colors.error,
               },
             ]}
           >
@@ -122,29 +162,20 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: "row",
-
     justifyContent: "space-between",
-
     alignItems: "center",
-
     paddingBottom: 12,
-
     borderBottomWidth: 1,
-
-    borderBottomColor: "rgba(125,211,252,0.10)",
   },
 
   left: {
     flexDirection: "row",
-
     alignItems: "center",
   },
 
   invoice: {
     marginLeft: 8,
-
     fontWeight: "600",
-
     fontSize: 14,
   },
 
@@ -154,27 +185,20 @@ const styles = StyleSheet.create({
 
   bottom: {
     flexDirection: "row",
-
     justifyContent: "space-between",
-
     alignItems: "flex-start",
-
     marginTop: 14,
   },
 
   company: {
     fontWeight: "500",
-
     fontSize: 15,
-
     marginBottom: 6,
   },
 
   row: {
     flexDirection: "row",
-
     alignItems: "center",
-
     flexWrap: "wrap",
   },
 
@@ -184,45 +208,35 @@ const styles = StyleSheet.create({
 
   total: {
     fontSize: 12,
-
     fontWeight: "600",
-
     marginLeft: 3,
   },
 
   separator: {
     marginHorizontal: 8,
-
     opacity: 0.35,
   },
 
   badge: {
     paddingHorizontal: 10,
-
     paddingVertical: 5,
-
     borderRadius: 6,
-
     borderWidth: 1,
   },
 
   paidBadge: {
     backgroundColor: "rgba(52,211,153,0.10)",
-
     borderColor: "rgba(52,211,153,0.20)",
   },
 
   pendingBadge: {
     backgroundColor: "rgba(255,107,107,0.10)",
-
     borderColor: "rgba(255,107,107,0.20)",
   },
 
   badgeText: {
     fontSize: 10,
-
     fontWeight: "700",
-
     letterSpacing: 1,
   },
 });

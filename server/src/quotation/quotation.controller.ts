@@ -56,8 +56,13 @@ export class QuotationController {
   @Get()
     @ApiOperation({ summary: 'Find All' })
     @ApiResponse({ status: 200, description: 'Successful operation.' })
-  findAll(@CurrentUser() user: any, @Query('branchId') branchId?: string) {
-    return this.quotationService.findAll(user.companyId, branchId);
+  findAll(
+    @CurrentUser() user: any, 
+    @Query('branchId') branchId?: string,
+    @Query('withoutInvoice') withoutInvoice?: string
+  ) {
+    const isWithoutInvoice = withoutInvoice === 'true';
+    return this.quotationService.findAll(user.companyId, branchId, isWithoutInvoice);
   }
 
   @Get(':id')

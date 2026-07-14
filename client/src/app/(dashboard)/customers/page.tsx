@@ -164,10 +164,12 @@ export default function CustomersPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 relative z-10">
         <div className="space-y-1">
-          <h1 className="text-3xl font-headline font-bold tracking-tight text-on-surface">
+         <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
+              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">
             Customers
+            </span>
           </h1>
-          <p className="text-on-surface-variant/80 text-sm font-body">Manage your business connections and relationship data.</p>
+          <p className="text-on-surface-variant text-lg">Manage your business connections and relationship data.</p>
         </div>
         <button
           onClick={handleOpenCreateModal}

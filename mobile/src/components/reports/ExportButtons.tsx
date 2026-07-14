@@ -10,56 +10,97 @@ import {
   FileSpreadsheet,
   FileText,
 } from "lucide-react-native";
+import { useTheme } from "../../hooks/useTheme";
 
 export default function ExportButtons() {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
+      <Text
+        style={[
+          styles.title,
+          { color: colors.text },
+        ]}
+      >
         EXPORT REPORT
       </Text>
 
       <View style={styles.row}>
         <TouchableOpacity
           activeOpacity={0.85}
-          style={styles.button}
+          style={[
+            styles.button,
+            {
+              backgroundColor: colors.glassBackground,
+              borderColor: colors.border,
+            },
+          ]}
         >
           <Table2
             size={22}
-            color="#7DD3FC"
+            color={colors.primary}
             strokeWidth={2}
           />
 
-          <Text style={styles.buttonText}>
+          <Text
+            style={[
+              styles.buttonText,
+              { color: colors.textSecondary },
+            ]}
+          >
             Excel
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.85}
-          style={styles.button}
+          style={[
+            styles.button,
+            {
+              backgroundColor: colors.glassBackground,
+              borderColor: colors.border,
+            },
+          ]}
         >
           <FileSpreadsheet
             size={22}
-            color="#7DD3FC"
+            color={colors.primary}
             strokeWidth={2}
           />
 
-          <Text style={styles.buttonText}>
+          <Text
+            style={[
+              styles.buttonText,
+              { color: colors.textSecondary },
+            ]}
+          >
             CSV
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.85}
-          style={styles.button}
+          style={[
+            styles.button,
+            {
+              backgroundColor: colors.glassBackground,
+              borderColor: colors.border,
+            },
+          ]}
         >
           <FileText
             size={22}
-            color="#7DD3FC"
+            color={colors.primary}
             strokeWidth={2}
           />
 
-          <Text style={styles.buttonText}>
+          <Text
+            style={[
+              styles.buttonText,
+              { color: colors.textSecondary },
+            ]}
+          >
             PDF
           </Text>
         </TouchableOpacity>
@@ -74,7 +115,6 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: "#E0E8F0",
     fontSize: 14,
     fontWeight: "600",
     textTransform: "uppercase",
@@ -90,21 +130,14 @@ const styles = StyleSheet.create({
   button: {
     width: "31%",
     paddingVertical: 14,
-
     alignItems: "center",
     justifyContent: "center",
-
-    backgroundColor: "rgba(15,21,36,0.60)",
-
     borderRadius: 14,
-
     borderWidth: 1,
-    borderColor: "rgba(125,211,252,0.10)",
   },
 
   buttonText: {
     marginTop: 8,
-    color: "#A0B4C4",
     fontSize: 10,
     fontWeight: "500",
   },

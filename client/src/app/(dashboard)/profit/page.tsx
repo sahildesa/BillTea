@@ -1,8 +1,188 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { apiFetch } from '@/lib/auth';
+import { useBranch } from '@/components/BranchProvider';
+
+interface Invoice {
+  invoiceDate: string;
+  totals: {
+    grandTotal: number;
+  };
+}
+
+interface Expense {
+  date: string;
+  amount: number;
+}
+
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatCurrency(value: number) {
+  return value.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
 export default function ProfitReportPage() {
+  const { selectedBranchId } = useBranch();
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+  useEffect(() => {
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    setFromDate(formatDateInput(firstDayOfMonth));
+    setToDate(formatDateInput(today));
+  }, []);
+
+  useEffect(() => {
+    if (!selectedBranchId) {
+      setInvoices([]);
+      setExpenses([]);
+      return;
+    }
+
+    let mounted = true;
+
+    async function loadData() {
+      try {
+        const [invoicesRes, expensesRes] = await Promise.all([
+          apiFetch(`/invoices?branchId=${selectedBranchId}`),
+          apiFetch(`/expenses?branchId=${selectedBranchId}`),
+        ]);
+
+        if (!mounted) return;
+
+        if (invoicesRes.ok) {
+          const data = await invoicesRes.json();
+          setInvoices(Array.isArray(data) ? data : []);
+        } else {
+          setInvoices([]);
+        }
+
+        if (expensesRes.ok) {
+          const data = await expensesRes.json();
+          setExpenses(Array.isArray(data) ? data : []);
+        } else {
+          setExpenses([]);
+        }
+      } catch (err) {
+        if (mounted) {
+          setInvoices([]);
+          setExpenses([]);
+        }
+      } finally {
+        // no-op; data updates above drive the UI
+      }
+    }
+
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedBranchId]);
+
+  const filteredInvoices = useMemo(() => {
+    if (!fromDate && !toDate) return invoices;
+
+    return invoices.filter((invoice) => {
+      const invoiceDate = new Date(invoice.invoiceDate);
+      invoiceDate.setHours(0, 0, 0, 0);
+
+      if (fromDate) {
+        const from = new Date(fromDate);
+        from.setHours(0, 0, 0, 0);
+        if (invoiceDate < from) return false;
+      }
+
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(0, 0, 0, 0);
+        if (invoiceDate > to) return false;
+      }
+
+      return true;
+    });
+  }, [fromDate, invoices, toDate]);
+
+  const filteredExpenses = useMemo(() => {
+    if (!fromDate && !toDate) return expenses;
+
+    return expenses.filter((expense) => {
+      const expenseDate = new Date(expense.date);
+      expenseDate.setHours(0, 0, 0, 0);
+
+      if (fromDate) {
+        const from = new Date(fromDate);
+        from.setHours(0, 0, 0, 0);
+        if (expenseDate < from) return false;
+      }
+
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(0, 0, 0, 0);
+        if (expenseDate > to) return false;
+      }
+
+      return true;
+    });
+  }, [expenses, fromDate, toDate]);
+
+  const groupedRows = useMemo(() => {
+    const rows = new Map<
+      string,
+      { date: string; income: number; expense: number }
+    >();
+
+    filteredInvoices.forEach((invoice) => {
+      const key = new Date(invoice.invoiceDate).toISOString().split('T')[0];
+      const existing = rows.get(key) || { date: key, income: 0, expense: 0 };
+      existing.income += invoice.totals?.grandTotal || 0;
+      rows.set(key, existing);
+    });
+
+    filteredExpenses.forEach((expense) => {
+      const key = new Date(expense.date).toISOString().split('T')[0];
+      const existing = rows.get(key) || { date: key, income: 0, expense: 0 };
+      existing.expense += expense.amount || 0;
+      rows.set(key, existing);
+    });
+
+    return Array.from(rows.values()).sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+  }, [filteredExpenses, filteredInvoices]);
+
+  const totalIncome = useMemo(
+    () => filteredInvoices.reduce((sum, invoice) => sum + (invoice.totals?.grandTotal || 0), 0),
+    [filteredInvoices],
+  );
+
+  const totalExpense = useMemo(
+    () => filteredExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0),
+    [filteredExpenses],
+  );
+
+  const netProfit = totalIncome - totalExpense;
+  const totalEntries = groupedRows.length;
+  const totalIncomeBar = totalIncome > 0 ? 100 : 0;
+  const totalExpenseBar = totalIncome > 0
+    ? Math.min((totalExpense / totalIncome) * 100, 100)
+    : 0;
+  const netProfitBar = totalIncome > 0
+    ? Math.max(0, Math.min((netProfit / totalIncome) * 100, 100))
+    : 0;
+
   return (
     <div className="flex-1 overflow-y-auto p-8 z-0 relative overflow-x-hidden">
       {/* Background Ambient Effects */}
@@ -13,7 +193,11 @@ export default function ProfitReportPage() {
         {/* Header Section */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-on-surface mb-2">Profit Report</h1>
+           <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
+                <span className="text-on-surface">Profit </span>
+              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Report
+                </span>
+              </h1>
             <p className="text-on-surface-variant text-lg">Financial performance and net earnings analysis</p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -37,14 +221,14 @@ export default function ProfitReportPage() {
           <div className="flex flex-wrap items-end gap-6">
             <div className="flex-1 min-w-[200px]">
               <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">From Date</label>
-              <div className="relative">
-                <input className="w-full bg-surface-container/50 border border-outline/20 rounded-xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" type="date" defaultValue="2026-05-22" />
+            <div className="relative">
+                <input className="w-full bg-surface-container/50 border border-outline/20 rounded-xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               </div>
             </div>
             <div className="flex-1 min-w-[200px]">
               <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">To Date</label>
               <div className="relative">
-                <input className="w-full bg-surface-container/50 border border-outline/20 rounded-xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" type="date" defaultValue="2026-06-22" />
+                <input className="w-full bg-surface-container/50 border border-outline/20 rounded-xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               </div>
             </div>
             <div className="flex gap-3">
@@ -71,10 +255,10 @@ export default function ProfitReportPage() {
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                 <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
               </div>
-              <h3 className="text-3xl font-bold text-on-surface tracking-tight">₹19,400.00</h3>
+              <h3 className="text-3xl font-bold text-on-surface tracking-tight">₹{formatCurrency(totalIncome)}</h3>
             </div>
             <div className="mt-4 h-1 w-full bg-primary/5 rounded-full overflow-hidden">
-              <div className="h-full bg-primary w-[70%] opacity-40"></div>
+              <div className="h-full bg-primary opacity-40" style={{ width: `${totalIncomeBar}%` }}></div>
             </div>
           </div>
           {/* Total Expense */}
@@ -87,10 +271,10 @@ export default function ProfitReportPage() {
               <div className="w-12 h-12 rounded-xl bg-error/10 flex items-center justify-center border border-error/20">
                 <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
               </div>
-              <h3 className="text-3xl font-bold text-on-surface tracking-tight">₹0.00</h3>
+              <h3 className="text-3xl font-bold text-on-surface tracking-tight">₹{formatCurrency(totalExpense)}</h3>
             </div>
             <div className="mt-4 h-1 w-full bg-error/5 rounded-full overflow-hidden">
-              <div className="h-full bg-error w-[5%] opacity-40"></div>
+              <div className="h-full bg-error opacity-40" style={{ width: `${totalExpenseBar}%` }}></div>
             </div>
           </div>
           {/* Net Profit */}
@@ -103,10 +287,10 @@ export default function ProfitReportPage() {
               <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/40">
                 <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
               </div>
-              <h3 className="text-3xl font-bold text-primary tracking-tight">₹19,400.00</h3>
+              <h3 className="text-3xl font-bold text-primary tracking-tight">₹{formatCurrency(netProfit)}</h3>
             </div>
             <div className="mt-4 h-1 w-full bg-primary/10 rounded-full overflow-hidden">
-              <div className="h-full bg-primary w-full"></div>
+              <div className="h-full bg-primary" style={{ width: `${netProfitBar}%` }}></div>
             </div>
           </div>
         </section>
@@ -147,33 +331,46 @@ export default function ProfitReportPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline/5 text-sm">
-                <tr className="hover:bg-primary/5 transition-colors group cursor-pointer active:scale-[0.995]">
-                  <td className="px-6 py-5 font-medium text-on-surface">18 Jun 2026</td>
-                  <td className="px-6 py-5 font-bold text-primary text-right">19,400.00</td>
-                  <td className="px-6 py-5 font-medium text-error text-right">0.00</td>
-                  <td className="px-6 py-5 font-bold text-on-surface text-right">19,400.00</td>
-                </tr>
-                {/* Repeat rows could go here */}
+                {groupedRows.map((row) => (
+                  <tr key={row.date} className="hover:bg-primary/5 transition-colors group cursor-pointer active:scale-[0.995]">
+                    <td className="px-6 py-5 font-medium text-on-surface">
+                      {new Date(row.date).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </td>
+                    <td className="px-6 py-5 font-bold text-primary text-right">
+                      ₹{formatCurrency(row.income)}
+                    </td>
+                    <td className="px-6 py-5 font-medium text-error text-right">
+                      ₹{formatCurrency(row.expense)}
+                    </td>
+                    <td className="px-6 py-5 font-bold text-on-surface text-right">
+                      ₹{formatCurrency(row.income - row.expense)}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
               <tfoot>
                 <tr className="bg-surface-container/50 border-t-2 border-primary/20">
                   <td className="px-6 py-5 text-sm font-black uppercase tracking-wider text-on-surface">TOTAL:</td>
-                  <td className="px-6 py-5 text-lg font-black text-primary text-right">₹19,400.00</td>
-                  <td className="px-6 py-5 text-lg font-black text-error text-right">₹0.00</td>
-                  <td className="px-6 py-5 text-lg font-black text-on-surface text-right">₹19,400.00</td>
+                  <td className="px-6 py-5 text-lg font-black text-primary text-right">₹{formatCurrency(totalIncome)}</td>
+                  <td className="px-6 py-5 text-lg font-black text-error text-right">₹{formatCurrency(totalExpense)}</td>
+                  <td className="px-6 py-5 text-lg font-black text-on-surface text-right">₹{formatCurrency(netProfit)}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
           {/* Pagination Footer */}
           <div className="p-6 border-t border-outline/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/10">
-            <p className="text-sm text-on-surface-variant">Showing 1 to 1 of 1 entries</p>
+            <p className="text-sm text-on-surface-variant">Showing {totalEntries ? 1 : 0} to {totalEntries} of {totalEntries} entries</p>
             <div className="flex items-center gap-1">
-              <button className="p-2 rounded-lg text-on-surface-variant hover:bg-primary/10 transition-colors disabled:opacity-30 cursor-pointer" disabled>
+              <button className="p-2 rounded-lg text-on-surface-variant hover:bg-primary/10 transition-colors disabled:opacity-30 cursor-pointer" disabled={totalEntries === 0}>
                 <span className="material-symbols-outlined">chevron_left</span>
               </button>
-              <button className="w-10 h-10 rounded-lg bg-primary/20 border border-primary/40 text-primary font-bold shadow-[0_0_10px_rgba(125,211,252,0.2)] cursor-pointer">1</button>
-              <button className="p-2 rounded-lg text-on-surface-variant hover:bg-primary/10 transition-colors disabled:opacity-30 cursor-pointer" disabled>
+              <button className="w-10 h-10 rounded-lg bg-primary/20 border border-primary/40 text-primary font-bold shadow-[0_0_10px_rgba(125,211,252,0.2)] cursor-pointer">{totalEntries ? 1 : 0}</button>
+              <button className="p-2 rounded-lg text-on-surface-variant hover:bg-primary/10 transition-colors disabled:opacity-30 cursor-pointer" disabled={totalEntries === 0}>
                 <span className="material-symbols-outlined">chevron_right</span>
               </button>
             </div>

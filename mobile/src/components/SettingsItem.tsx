@@ -70,9 +70,9 @@ export default function SettingsItem({
         >
           {/* Glassmorphism Blur background */}
           {Platform.OS === 'ios' ? (
-            <BlurView intensity={isDark ? 24 : 40} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+            <BlurView intensity={isDark ? 24 : 40} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} pointerEvents="none" />
           ) : (
-            <View style={StyleSheet.absoluteFill} />
+            <View style={StyleSheet.absoluteFill} pointerEvents="none" />
           )}
         
         <View style={[styles.cardContent, { borderColor }]}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { apiFetch, API_BASE } from '@/lib/auth';
 import { useBranch } from '@/components/BranchProvider';
 
@@ -22,6 +22,13 @@ interface Expense {
   attachment: string;
   createdBy: { fullName: string } | null;
   createdAt: string;
+}
+
+type SortDirection = 'asc' | 'desc';
+type SortKey = 'date' | 'amount' | 'paymentMethod' | 'category';
+interface SortConfig {
+  key: SortKey;
+  direction: SortDirection;
 }
 
 export default function ExpensesPage() {
@@ -62,6 +69,12 @@ export default function ExpensesPage() {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // ---- Table controls: search, sorting, pagination ----
+  const [tableSearchQuery, setTableSearchQuery] = useState('');
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (selectedBranchId) {
@@ -264,6 +277,125 @@ export default function ExpensesPage() {
 
   const filteredCategories = categories.filter(c => c.name.toLowerCase().includes(categorySearch.toLowerCase()));
 
+  const stats = useMemo(() => {
+    const total = expenses.length;
+    const totalAmount = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+    const now = new Date();
+    const thisMonthAmount = expenses
+      .filter((e) => {
+        const d = new Date(e.date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      })
+      .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+    const categoryTotals: Record<string, number> = {};
+    expenses.forEach((e) => {
+      const name = e.category?.name || 'Uncategorized';
+      categoryTotals[name] = (categoryTotals[name] || 0) + (e.amount || 0);
+    });
+    const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+
+    return { total, totalAmount, thisMonthAmount, topCategory };
+  }, [expenses]);
+
+  // ---- Table search ----
+  const filteredExpenses = useMemo(() => {
+    if (!tableSearchQuery) return expenses;
+    const query = tableSearchQuery.toLowerCase();
+    return expenses.filter((e) => {
+      const categoryMatch = e.category?.name?.toLowerCase().includes(query);
+      const noteMatch = e.note?.toLowerCase().includes(query);
+      const methodMatch = e.paymentMethod?.toLowerCase().includes(query);
+      const amountMatch = e.amount?.toString().includes(query);
+      return categoryMatch || noteMatch || methodMatch || amountMatch;
+    });
+  }, [expenses, tableSearchQuery]);
+
+  // ---- Sorting ----
+  const handleSort = (key: SortKey) => {
+    setCurrentPage(1);
+    setSortConfig((prev) => {
+      if (prev?.key === key && prev.direction === 'asc') {
+        return { key, direction: 'desc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: SortKey): string => {
+    if (sortConfig?.key !== key) return 'unfold_more';
+    return sortConfig.direction === 'asc' ? 'expand_less' : 'expand_more';
+  };
+
+  const sortValue = (e: Expense, key: SortKey): string | number => {
+    switch (key) {
+      case 'date': return new Date(e.date).getTime() || 0;
+      case 'amount': return e.amount || 0;
+      case 'paymentMethod': return e.paymentMethod || '';
+      case 'category': return e.category?.name || '';
+      default: return '';
+    }
+  };
+
+  const sortedExpenses = useMemo(() => {
+    if (!sortConfig) return filteredExpenses;
+    return [...filteredExpenses].sort((a, b) => {
+      const aVal = sortValue(a, sortConfig.key);
+      const bVal = sortValue(b, sortConfig.key);
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortConfig.direction === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredExpenses, sortConfig]);
+
+  // ---- Pagination ----
+  const totalCount = sortedExpenses.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / entriesPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [tableSearchQuery]);
+
+  const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
+  const endIndex = Math.min(currentPage * entriesPerPage, totalCount);
+
+  const paginatedExpenses = useMemo(() => {
+    return sortedExpenses.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
+  }, [sortedExpenses, currentPage, entriesPerPage]);
+
+  const pageNumbers = useMemo(() => {
+    const maxButtons = 5;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    start = Math.max(1, end - maxButtons + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [totalPages, currentPage]);
+
+  const handleEntriesPerPageChange = (n: number) => {
+    setEntriesPerPage(n);
+    setCurrentPage(1);
+  };
+
+  const sortHeaderClass = (key: SortKey) =>
+    `px-6 py-4 cursor-pointer hover:text-primary transition-colors group select-none ${
+      sortConfig?.key === key ? 'text-primary' : ''
+    }`;
+
+  const sortIconClass = (key: SortKey) =>
+    `material-symbols-outlined text-[12px] transition-opacity ${
+      sortConfig?.key === key ? 'opacity-100 text-primary' : 'opacity-50 group-hover:opacity-100'
+    }`;
+
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-theme(spacing.16))] bg-background overflow-hidden relative">
       <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
@@ -289,14 +421,88 @@ export default function ExpensesPage() {
             </button>
           </div>
 
+          {/* Metrics Grid */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Expenses</p>
+      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Spent</p>
+      <span className="material-symbols-outlined text-red-500 p-2 rounded-lg bg-red-500/10">payments</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">
+      ₹ {stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+    </p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">all time</p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">This Month</p>
+      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">calendar_month</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">
+      ₹ {stats.thisMonthAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+    </p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">spent so far</p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Top Category</p>
+      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">category</span>
+    </div>
+    <p className="text-2xl font-bold text-on-surface tracking-tight truncate">
+      {stats.topCategory ? stats.topCategory[0] : '—'}
+    </p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">
+      {stats.topCategory ? `₹ ${stats.topCategory[1].toLocaleString('en-IN', { maximumFractionDigits: 0 })} spent` : 'no data yet'}
+    </p>
+  </div>
+</div>
+
           {/* Table Container */}
           <div className="bg-surface rounded-3xl shadow-sm border border-outline-variant/30 overflow-hidden flex flex-col">
             <div className="p-4 md:p-6 border-b border-outline-variant/30 bg-surface-container-lowest/50 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
                 <div className="flex items-center gap-2 bg-surface-container-low px-4 py-2.5 rounded-xl border border-outline-variant/30 flex-1 md:flex-none">
                   <span className="material-symbols-outlined text-on-surface-variant/50 text-[20px]">storefront</span>
                   <span className="text-sm font-semibold text-on-surface">Branch Expenses</span>
                 </div>
+                <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+                  <span>Show</span>
+                  <select
+                    value={entriesPerPage}
+                    onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
+                    className="bg-surface-container-low border border-outline-variant/30 rounded-lg px-2 py-1.5 text-xs focus:ring-0 focus:border-primary cursor-pointer outline-none"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                  <span>entries</span>
+                </div>
+              </div>
+              <div className="relative w-full md:w-72 group">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[20px] group-focus-within:text-primary transition-colors">search</span>
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary transition-all"
+                  placeholder="Search expenses..."
+                  type="text"
+                  value={tableSearchQuery}
+                  onChange={(e) => setTableSearchQuery(e.target.value)}
+                />
               </div>
             </div>
 
@@ -305,10 +511,26 @@ export default function ExpensesPage() {
               <table className="w-full table-fixed text-left border-collapse whitespace-nowrap">
                 <thead>
                   <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
-                    <th className="px-6 py-4 w-1/6">Date</th>
-                    <th className="px-6 py-4 text-left w-1/6">Amount</th>
-                    <th className="px-6 py-4 w-1/6">Payment Method</th>
-                    <th className="px-6 py-4 w-[25%]">Category & Note</th>
+                    <th className={`${sortHeaderClass('date')} w-1/6`} onClick={() => handleSort('date')}>
+                      <div className="flex items-center gap-1">
+                        Date <span className={sortIconClass('date')}>{getSortIcon('date')}</span>
+                      </div>
+                    </th>
+                    <th className={`${sortHeaderClass('amount')} text-left w-1/6`} onClick={() => handleSort('amount')}>
+                      <div className="flex items-center gap-1">
+                        Amount <span className={sortIconClass('amount')}>{getSortIcon('amount')}</span>
+                      </div>
+                    </th>
+                    <th className={`${sortHeaderClass('paymentMethod')} w-1/6`} onClick={() => handleSort('paymentMethod')}>
+                      <div className="flex items-center gap-1">
+                        Payment Method <span className={sortIconClass('paymentMethod')}>{getSortIcon('paymentMethod')}</span>
+                      </div>
+                    </th>
+                    <th className={`${sortHeaderClass('category')} w-[25%]`} onClick={() => handleSort('category')}>
+                      <div className="flex items-center gap-1">
+                        Category & Note <span className={sortIconClass('category')}>{getSortIcon('category')}</span>
+                      </div>
+                    </th>
                     <th className="px-6 py-4 text-center w-1/6">Attachment</th>
                     <th className="px-6 py-4 text-right pr-8 w-1/6">Actions</th>
                   </tr>
@@ -322,18 +544,18 @@ export default function ExpensesPage() {
                         </div>
                       </td>
                     </tr>
-                  ) : expenses.length === 0 ? (
+                  ) : paginatedExpenses.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
                           <span className="material-symbols-outlined text-[32px]">receipt_long</span>
                         </div>
-                        <h3 className="text-lg font-bold text-on-surface">No expenses yet</h3>
-                        <p className="text-sm text-on-surface-variant mt-1">Start tracking your branch expenditures.</p>
+                        <h3 className="text-lg font-bold text-on-surface">{tableSearchQuery ? 'No matching expenses found' : 'No expenses yet'}</h3>
+                        <p className="text-sm text-on-surface-variant mt-1">{tableSearchQuery ? 'Try adjusting your search.' : 'Start tracking your branch expenditures.'}</p>
                       </td>
                     </tr>
                   ) : (
-                    expenses.map((expense) => (
+                    paginatedExpenses.map((expense) => (
                       <tr key={expense.id} className="group hover:bg-surface-container-highest/50 transition-all duration-300">
                         <td className="px-6 py-4">
                           <div className="text-[14px] font-medium text-on-surface">
@@ -395,6 +617,44 @@ export default function ExpensesPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination Footer */}
+            <div className="p-6 border-t border-outline-variant/30 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest/50">
+              <p className="text-sm text-on-surface-variant">
+                {totalCount === 0
+                  ? 'Showing 0 entries'
+                  : `Showing ${startIndex} to ${endIndex} of ${totalCount} entries`}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Previous
+                </button>
+                {pageNumbers.map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
+                      page === currentPage
+                        ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
+                        : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </div>

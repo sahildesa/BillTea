@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/auth';
 import { useBranch } from '@/components/BranchProvider';
@@ -21,6 +21,12 @@ interface Invoice {
   amountPaid: number;
 }
 
+type SortDirection = 'asc' | 'desc';
+interface SortConfig {
+  key: string;
+  direction: SortDirection;
+}
+
 export default function InvoicesPage() {
   const { selectedBranchId, isLoadingBranches } = useBranch();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -39,10 +45,28 @@ export default function InvoicesPage() {
     date: new Date().toISOString().split('T')[0],
     note: ''
   });
+
+  // ---- Sorting + Pagination state (inlined, no external hook needed) ----
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const stats = React.useMemo(() => {
+    const total = invoices.length;
+    const unpaid = invoices.filter((i) => i.status === 'UNPAID' || i.status === 'OVERDUE').length;
+    const paid = invoices.filter((i) => i.status === 'PAID').length;
+    const totalBilled = invoices.reduce((sum, i) => sum + (i.totals?.grandTotal || 0), 0);
+    const totalOutstanding = invoices.reduce(
+      (sum, i) => sum + Math.max((i.totals?.grandTotal || 0) - (i.amountPaid || 0), 0),
+      0
+    );
+    return { total, unpaid, paid, totalBilled, totalOutstanding };
+  }, [invoices]);
+
   const [paymentAttachment, setPaymentAttachment] = useState<File | null>(null);
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
 
   const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
@@ -78,7 +102,7 @@ export default function InvoicesPage() {
             return;
           }
           ctx.drawImage(img, 0, 0, width, height);
-          
+
           canvas.toBlob((blob) => {
             if (!blob) {
               resolve(file);
@@ -143,11 +167,11 @@ export default function InvoicesPage() {
       const res = await apiFetch(`/invoices/${id}/pdf`, {
         method: 'GET',
       });
-      
+
       if (!res.ok) {
         throw new Error('Failed to download PDF');
       }
-      
+
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -168,11 +192,11 @@ export default function InvoicesPage() {
       const res = await apiFetch(`/invoices/${id}/pdf`, {
         method: 'GET',
       });
-      
+
       if (!res.ok) {
         throw new Error('Failed to load PDF preview');
       }
-      
+
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       setViewerPdfUrl({ url, title: `Invoice-${invoiceNumber}.pdf`, id });
@@ -231,13 +255,13 @@ export default function InvoicesPage() {
     try {
       setIsSubmittingPayment(true);
       setPaymentError('');
-      
+
       const res = await apiFetch(`/invoices/${selectedInvoiceForPayment.id}/payments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(paymentForm)
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Failed to add payment');
@@ -249,7 +273,7 @@ export default function InvoicesPage() {
       if (paymentAttachment && data.id) {
         const formData = new FormData();
         formData.append('file', paymentAttachment);
-        
+
         await apiFetch(`/invoices/${selectedInvoiceForPayment.id}/payments/${data.id}/attachment`, {
           method: 'POST',
           body: formData,
@@ -269,14 +293,109 @@ export default function InvoicesPage() {
   const filteredInvoices = invoices.filter(invoice => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-    
-    const nameMatch = invoice.customer?.customerName?.toLowerCase().includes(query) || 
+
+    const nameMatch = invoice.customer?.customerName?.toLowerCase().includes(query) ||
                       invoice.customer?.companyName?.toLowerCase().includes(query);
     const amountMatch = invoice.totals?.grandTotal?.toString().includes(query);
     const invoiceNumberMatch = invoice.invoiceNumber?.toLowerCase().includes(query);
-    
+
     return nameMatch || amountMatch || invoiceNumberMatch;
   });
+
+  // The "most recent" invoice is the one you're allowed to delete/fully-edit inline.
+  // Derived from actual invoice dates (not row position), so it stays correct
+  // no matter how the table is sorted or paginated.
+  const mostRecentInvoiceId = useMemo(() => {
+    if (invoices.length === 0) return null;
+    return invoices.reduce((latest, inv) =>
+      new Date(inv.invoiceDate) > new Date(latest.invoiceDate) ? inv : latest
+    ).id;
+  }, [invoices]);
+
+  // ---- Sorting ----
+  const handleSort = (key: string) => {
+    setCurrentPage(1);
+    setSortConfig((prev) => {
+      if (prev?.key === key && prev.direction === 'asc') {
+        return { key, direction: 'desc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string): string => {
+    if (sortConfig?.key !== key) return 'unfold_more';
+    return sortConfig.direction === 'asc' ? 'expand_less' : 'expand_more';
+  };
+
+  const sortValue = (row: Invoice, key: string): string | number => {
+    switch (key) {
+      case 'invoiceNumber': return row.invoiceNumber || '';
+      case 'customer': return row.customer?.customerName || '';
+      case 'date': return new Date(row.invoiceDate).getTime() || 0;
+      case 'amount': return row.totals?.grandTotal || 0;
+      default: return '';
+    }
+  };
+
+  const sortedInvoices = useMemo(() => {
+    if (!sortConfig) return filteredInvoices;
+    return [...filteredInvoices].sort((a, b) => {
+      const aVal = sortValue(a, sortConfig.key);
+      const bVal = sortValue(b, sortConfig.key);
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortConfig.direction === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredInvoices, sortConfig]);
+
+  // ---- Pagination ----
+  const totalCount = sortedInvoices.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / entriesPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  // Reset to page 1 whenever the search query changes.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
+  const endIndex = Math.min(currentPage * entriesPerPage, totalCount);
+
+  const paginatedInvoices = useMemo(() => {
+    return sortedInvoices.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
+  }, [sortedInvoices, currentPage, entriesPerPage]);
+
+  const pageNumbers = useMemo(() => {
+    const maxButtons = 5;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    start = Math.max(1, end - maxButtons + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [totalPages, currentPage]);
+
+  const handleEntriesPerPageChange = (n: number) => {
+    setEntriesPerPage(n);
+    setCurrentPage(1);
+  };
+
+  const sortHeaderClass = (key: string) =>
+    `px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group ${
+      sortConfig?.key === key ? 'text-primary' : ''
+    }`;
+
+  const sortIconClass = (key: string) =>
+    `material-symbols-outlined text-[12px] transition-opacity ${
+      sortConfig?.key === key ? 'opacity-100 text-primary' : 'opacity-50 group-hover:opacity-100'
+    }`;
 
   return (
     <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -288,7 +407,7 @@ export default function InvoicesPage() {
           <p className="text-on-surface-variant text-lg">Manage and track your invoices.</p>
           </div>
         <Link href="/invoices/new">
-          <button 
+          <button
             disabled={!selectedBranchId}
             className="glass-button-primary rounded-lg py-2.5 px-5 flex items-center gap-2 text-sm font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -305,57 +424,110 @@ export default function InvoicesPage() {
         </div>
       )}
 
+     {/* Metrics Grid */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
+      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Unpaid / Overdue</p>
+      <span className="material-symbols-outlined text-red-500 p-2 rounded-lg bg-red-500/10">error_outline</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.unpaid}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">
+      {stats.total > 0 ? `${Math.round((stats.unpaid / stats.total) * 100)}% of total` : 'no data yet'}
+    </p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Billed</p>
+      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">payments</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">
+      ₹ {stats.totalBilled.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+    </p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">across all invoices</p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Outstanding</p>
+      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">account_balance_wallet</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">
+      ₹ {stats.totalOutstanding.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+    </p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">yet to be collected</p>
+  </div>
+</div>
+
       {/* Glassmorphic Data Table Container */}
       <div className="glass-panel rounded-xl overflow-hidden shadow-lg border border-primary/10 relative z-10">
         {/* Glow Accent */}
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
-        
+
         {/* Table Controls */}
         <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
           <div className="flex items-center gap-3 text-sm text-on-surface-variant">
             <span>Show</span>
-            <select className="glass-input rounded-md py-1.5 px-3 text-on-surface focus:ring-0 focus:border-primary/50 text-sm cursor-pointer appearance-none pr-8 relative bg-surface-container-highest">
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
+            <select
+              value={entriesPerPage}
+              onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
+              className="glass-input rounded-md py-1.5 px-3 text-on-surface focus:ring-0 focus:border-primary/50 text-sm cursor-pointer appearance-none pr-8 relative bg-surface-container-highest"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
             </select>
             <span>entries</span>
           </div>
           <div className="relative w-full sm:w-auto">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
-            <input 
-              className="glass-input pl-9 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder-on-surface-variant/50 w-full sm:w-72 focus:outline-none transition-all" 
-              placeholder="Search invoices..." 
-              type="text" 
+            <input
+              className="glass-input pl-9 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder-on-surface-variant/50 w-full sm:w-72 focus:outline-none transition-all"
+              placeholder="Search invoices..."
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
-        
+
         {/* The Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
               <tr>
-                <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
+                <th className={sortHeaderClass('invoiceNumber')} scope="col" onClick={() => handleSort('invoiceNumber')}>
                   <div className="flex items-center gap-1">
-                    Invoice Number <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
+                    Invoice Number <span className={sortIconClass('invoiceNumber')}>{getSortIcon('invoiceNumber')}</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
+                <th className={sortHeaderClass('customer')} scope="col" onClick={() => handleSort('customer')}>
                   <div className="flex items-center gap-1">
-                    Customer <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
+                    Customer <span className={sortIconClass('customer')}>{getSortIcon('customer')}</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
+                <th className={sortHeaderClass('date')} scope="col" onClick={() => handleSort('date')}>
                   <div className="flex items-center gap-1">
-                    Date & Status <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
+                    Date & Status <span className={sortIconClass('date')}>{getSortIcon('date')}</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
+                <th className={sortHeaderClass('amount')} scope="col" onClick={() => handleSort('amount')}>
                   <div className="flex items-center gap-1">
-                    Total Amount <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
+                    Total Amount <span className={sortIconClass('amount')}>{getSortIcon('amount')}</span>
                   </div>
                 </th>
                 <th className="px-6 py-4 font-semibold tracking-wider text-right pr-8" scope="col">
@@ -372,7 +544,7 @@ export default function InvoicesPage() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredInvoices.length === 0 ? (
+              ) : paginatedInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
@@ -383,7 +555,9 @@ export default function InvoicesPage() {
                   </td>
                 </tr>
               ) : (
-                filteredInvoices.map((invoice, index) => (
+                paginatedInvoices.map((invoice) => {
+                  const isMostRecent = invoice.id === mostRecentInvoiceId;
+                  return (
                   <tr key={invoice.id} className="hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-6 py-4 font-semibold text-primary">{invoice.invoiceNumber}</td>
                     <td className="px-6 py-4 flex items-center gap-3">
@@ -407,7 +581,7 @@ export default function InvoicesPage() {
                       ₹ {invoice.totals?.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                     </td>
                     <td className="px-6 py-4">
-                      {index === 0 ? (
+                      {isMostRecent ? (
                         openActionId === invoice.id ? (
                           <div className="flex items-center justify-end gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
                             <button onClick={() => handleViewPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer" title="View">
@@ -431,7 +605,7 @@ export default function InvoicesPage() {
                               <span className="material-symbols-outlined text-[16px]">delete</span>
                             </button>
                             <div className="w-px h-4 bg-primary/20 mx-1"></div>
-                            <button 
+                            <button
                               onClick={() => setOpenActionId(null)}
                               className="glass-button-icon p-1 rounded-md transition-all hover:text-on-surface-variant hover:bg-surface-container-highest tooltip cursor-pointer" title="Close">
                               <span className="material-symbols-outlined text-[16px]">close</span>
@@ -454,7 +628,7 @@ export default function InvoicesPage() {
                               <span className="material-symbols-outlined text-[16px]">send</span>
                             </button>
                             <div className="w-px h-4 bg-primary/20 mx-1"></div>
-                            <button 
+                            <button
                               onClick={() => setOpenActionId(invoice.id)}
                               className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:bg-primary/10 tooltip cursor-pointer" title="More Actions">
                               <span className="material-symbols-outlined text-[16px]">more_horiz</span>
@@ -484,24 +658,47 @@ export default function InvoicesPage() {
                       )}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
-        
+
         {/* Pagination */}
         <div className="p-6 border-t border-primary/10 bg-surface-container/30 flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
-            <span className="text-sm text-on-surface-variant">Showing 1 to {invoices.length} entries</span>
+            <span className="text-sm text-on-surface-variant">
+              {totalCount === 0
+                ? 'Showing 0 entries'
+                : `Showing ${startIndex} to ${endIndex} of ${totalCount} entries`}
+            </span>
             <div className="flex items-center gap-1">
-              <button className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 cursor-pointer" disabled>
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
                 Previous
               </button>
-              <button className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)] cursor-pointer">
-                1
-              </button>
-              <button className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 cursor-pointer" disabled>
+              {pageNumbers.map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
+                    page === currentPage
+                      ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
+                      : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
                 Next
               </button>
             </div>
@@ -514,11 +711,11 @@ export default function InvoicesPage() {
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-8">
           <div className="absolute inset-0 bg-background/60 backdrop-blur-xl transition-opacity" onClick={closePdfViewer}></div>
           <div className="bg-surface/80 backdrop-blur-2xl rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] w-full max-w-6xl overflow-hidden relative z-10 flex flex-col h-[90vh] animate-in zoom-in-95 fade-in duration-300 border border-white/10">
-            
+
             {/* Premium Toolbar */}
             <div className="px-6 py-4 bg-gradient-to-r from-surface-container/50 to-surface-container/10 flex items-center justify-between border-b border-white/10 relative">
               <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
-              
+
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
                   <span className="material-symbols-outlined text-[24px]">picture_as_pdf</span>
@@ -528,12 +725,12 @@ export default function InvoicesPage() {
                   <p className="text-sm text-on-surface-variant font-medium mt-0.5">{viewerPdfUrl.title}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 {(() => {
                   const activeInvoice = invoices.find(q => q.id === viewerPdfUrl.id);
                   if (!activeInvoice) return null;
-                  
+
                   return (
                     <div className="flex items-center gap-2 hidden lg:flex">
                       <Link href={`/invoices/${activeInvoice.id}/edit`}>
@@ -553,8 +750,8 @@ export default function InvoicesPage() {
                   );
                 })()}
 
-                <a 
-                  href={viewerPdfUrl.url} 
+                <a
+                  href={viewerPdfUrl.url}
                   download={viewerPdfUrl.title}
                   className="group relative inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:translate-y-0"
                 >
@@ -568,7 +765,7 @@ export default function InvoicesPage() {
                 </button>
               </div>
             </div>
-            
+
             {/* Content Area with sophisticated framing */}
             <div className="flex-1 bg-black/40 p-2 sm:p-6 flex items-center justify-center overflow-hidden">
               {isLoadingPdf ? (
@@ -585,8 +782,8 @@ export default function InvoicesPage() {
                 </div>
               ) : (
                 <div className="w-full h-full max-w-[800px] bg-white rounded-xl shadow-2xl overflow-hidden relative border border-white/20">
-                  <iframe 
-                    src={viewerPdfUrl.url} 
+                  <iframe
+                    src={viewerPdfUrl.url}
                     className="w-full h-full border-none"
                     title="PDF Viewer"
                   />
@@ -602,7 +799,7 @@ export default function InvoicesPage() {
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-8">
           <div className="absolute inset-0 bg-background/60 backdrop-blur-md transition-opacity" onClick={() => setPaymentModalOpen(false)}></div>
           <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden relative z-10 flex flex-col animate-in zoom-in-95 fade-in duration-200 border border-outline-variant/20">
-            
+
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-outline-variant/10 flex items-center justify-between bg-surface-container-low/50">
               <div className="flex items-center gap-3">
@@ -618,7 +815,7 @@ export default function InvoicesPage() {
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
-            
+
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto max-h-[70vh] custom-scrollbar space-y-5">
               {paymentError && (
@@ -646,8 +843,8 @@ export default function InvoicesPage() {
                         key={method}
                         onClick={() => setPaymentForm({...paymentForm, method})}
                         className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${
-                          paymentForm.method === method 
-                            ? 'bg-primary/20 text-primary border-primary/50' 
+                          paymentForm.method === method
+                            ? 'bg-primary/20 text-primary border-primary/50'
                             : 'bg-surface-container border-transparent text-on-surface-variant hover:bg-surface-container-highest'
                         }`}
                       >
@@ -660,7 +857,7 @@ export default function InvoicesPage() {
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Transaction Note / Reference</label>
                   <input type="text" placeholder="e.g. UPI Ref #12345678" value={paymentForm.note} onChange={(e) => setPaymentForm({...paymentForm, note: e.target.value})} className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full" />
                 </div>
-                
+
                 <div className="col-span-2">
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Payment Proof (Optional)</label>
                   {paymentAttachment ? (
@@ -684,8 +881,8 @@ export default function InvoicesPage() {
                     <div className="border-2 border-dashed border-outline-variant/30 rounded-xl p-4 text-center hover:bg-surface-container-highest transition-colors relative group cursor-pointer">
                       <span className="material-symbols-outlined text-on-surface-variant text-[24px] mb-1 group-hover:text-primary transition-colors">upload_file</span>
                       <p className="text-sm font-semibold text-on-surface-variant group-hover:text-primary transition-colors">Attach Receipt</p>
-                      <input 
-                        type="file" 
+                      <input
+                        type="file"
                         accept=".pdf,image/jpeg,image/png,image/gif,image/webp,.heic,.heif"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
@@ -693,13 +890,13 @@ export default function InvoicesPage() {
 
                           const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
                           const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
-                          
+
                           if (!allowedTypes.includes(file.type) && !isHeic && !file.type.startsWith('image/')) {
                             setPaymentError('Attachment must be a PDF or an Image.');
                             e.target.value = '';
                             return;
                           }
-                          
+
                           if (file.size > 5 * 1024 * 1024) {
                             setPaymentError('Attachment must be less than 5MB.');
                             e.target.value = '';
@@ -717,7 +914,7 @@ export default function InvoicesPage() {
                           } else {
                             setPaymentAttachment(file);
                           }
-                        }} 
+                        }}
                         className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                       />
                     </div>
@@ -736,7 +933,7 @@ export default function InvoicesPage() {
                 Save Payment
               </button>
             </div>
-            
+
           </div>
         </div>
       )}

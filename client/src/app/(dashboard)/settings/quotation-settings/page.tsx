@@ -2,55 +2,7 @@
 
 import React, { useState } from "react";
 
-// ---- Design tokens (mirrors the original tailwind.config extend) ----
-const colors = {
-  background: "#081326",
-  surface: "#081326",
-  surfaceDim: "#081326",
-  surfaceBright: "#2f394e",
-  surfaceContainerLowest: "#040e21",
-  surfaceContainerLow: "#111b2f",
-  surfaceContainer: "#151f33",
-  surfaceContainerHigh: "#202a3e",
-  surfaceContainerHighest: "#2b354a",
-  surfaceVariant: "#2b354a",
-  onSurface: "#d8e2fd",
-  onSurfaceVariant: "#bec8ce",
-  inverseSurface: "#d8e2fd",
-  inverseOnSurface: "#263045",
-  primary: "#c5eaff",
-  onPrimary: "#003547",
-  primaryContainer: "#7dd3fc",
-  onPrimaryContainer: "#005b78",
-  primaryFixed: "#c0e8ff",
-  primaryFixedDim: "#7bd1fa",
-  onPrimaryFixed: "#001e2b",
-  onPrimaryFixedVariant: "#004d66",
-  secondary: "#a0cde5",
-  onSecondary: "#003548",
-  secondaryContainer: "#1f4e63",
-  onSecondaryContainer: "#92bed7",
-  secondaryFixed: "#c0e8ff",
-  secondaryFixedDim: "#a0cde5",
-  onSecondaryFixed: "#001e2b",
-  onSecondaryFixedVariant: "#1c4c60",
-  tertiary: "#f1ddff",
-  onTertiary: "#411e65",
-  tertiaryContainer: "#ddbaff",
-  onTertiaryContainer: "#66438b",
-  tertiaryFixed: "#f0dbff",
-  tertiaryFixedDim: "#dcb8ff",
-  onTertiaryFixed: "#2b024f",
-  onTertiaryFixedVariant: "#59367d",
-  error: "#ffb4ab",
-  onError: "#690005",
-  errorContainer: "#93000a",
-  onErrorContainer: "#ffdad6",
-  outline: "#899298",
-  outlineVariant: "#3f484e",
-  surfaceTint: "#7bd1fa",
-  inversePrimary: "#006686",
-};
+// Removed hardcoded colors, using global Tailwind theme variables instead
 
 // ---- Toggle switch (custom, matches .toggle-checkbox / .toggle-label) ----
 function Toggle({
@@ -67,23 +19,17 @@ function Toggle({
       <input
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0.5 transition-all duration-300"
+        className={`absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0.5 transition-all duration-300 ${checked ? 'border-primary' : 'border-outline-variant'}`}
         style={{
           left: checked ? "auto" : "2px",
           right: checked ? "2px" : "auto",
-          borderColor: checked ? colors.primary : "#d1d5db",
         }}
         id={id}
         name={id}
         type="checkbox"
       />
       <label
-        className="block overflow-hidden h-6 rounded-full border cursor-pointer transition-colors duration-300"
-        style={{
-          backgroundColor: checked ? "rgba(197, 234, 255, 0.2)" : colors.surfaceVariant,
-          borderColor: checked ? colors.primary : colors.outlineVariant,
-          boxShadow: checked ? "0 0 8px rgba(197,234,255,0.4)" : "none",
-        }}
+        className={`block overflow-hidden h-6 rounded-full border cursor-pointer transition-colors duration-300 ${checked ? 'bg-primary/20 border-primary shadow-[0_0_8px_var(--color-primary)]' : 'bg-surface-variant border-outline-variant'}`}
         htmlFor={id}
       />
     </div>
@@ -137,12 +83,10 @@ export default function QuotationConfigurationPage() {
     // With h-screen + overflow-hidden, the outer box is a true fixed viewport frame, and the
     // <main> below becomes the only scrollable region, so it scrolls all the way to its real end.
     <div
-      className="flex h-screen overflow-hidden"
+      className="flex h-screen overflow-hidden bg-background text-on-surface"
       style={{
-        color: colors.onSurface,
-        backgroundColor: "#1a2438",
         backgroundImage:
-          "radial-gradient(at 0% 0%, rgba(197,234,255,0.05) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(197,234,255,0.03) 0px, transparent 50%)",
+          "radial-gradient(at 0% 0%, color-mix(in srgb, var(--primary) 5%, transparent) 0px, transparent 50%), radial-gradient(at 100% 100%, color-mix(in srgb, var(--primary) 3%, transparent) 0px, transparent 50%)",
       }}
     >
       {/* SideNavBar placeholder — original mock left this empty */}
@@ -163,28 +107,24 @@ export default function QuotationConfigurationPage() {
             {/* Page Header */}
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-1">
-                <Icon name="settings" className="text-[rgba(197,234,255,0.7)]" />
-                <span
-                  className="text-sm tracking-wider uppercase"
-                  style={{ color: colors.onSurfaceVariant }}
-                >
+                <Icon name="settings" className="text-primary/70" />
+                <span className="text-sm tracking-wider uppercase text-on-surface-variant">
                   Settings
                 </span>
                 <Icon
                   name="chevron_right"
-                  className="text-sm"
-                  style={{ color: "rgba(190,200,206,0.5)" } as React.CSSProperties}
+                  className="text-sm text-on-surface-variant/50"
                 />
-                <span className="text-sm" style={{ color: colors.primary }}>
+                <span className="text-sm text-primary">
                   Quotation
                 </span>
               </div>
-                <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
-                <span className="text-on-surface">Quatation </span>
-              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Settings
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
+                <span className="text-on-surface">Quotation </span>
+                <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Settings
                 </span>
               </h1>
-            <p className="text-on-surface-variant text-lg">
+              <p className="text-on-surface-variant text-lg">
                 Configure default behaviors, display preferences, and legal
                 messaging for all newly generated quotes.
               </p>
@@ -203,18 +143,16 @@ export default function QuotationConfigurationPage() {
                       <div className="relative">
                         <Icon
                           name="tag"
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-sm"
-                          style={{ color: "rgba(197,234,255,0.5)" } as React.CSSProperties}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-primary/50"
                         />
                         <input
-                          className="w-full pl-9 pr-4 py-3 rounded-lg font-mono focus:ring-0 focus:outline-none"
-                          style={inputStyle}
+                          className="w-full pl-9 pr-4 py-3 rounded-lg font-mono focus:ring-0 focus:outline-none glass-input"
                           type="text"
                           value={prefix}
                           onChange={(e) => setPrefix(e.target.value)}
                         />
                       </div>
-                      <p className="text-[12px]" style={{ color: "rgba(190,200,206,0.7)" }}>
+                      <p className="text-[12px] text-on-surface-variant/70">
                         Appears before the quotation number (e.g., QT-001).
                       </p>
                     </div>
@@ -223,18 +161,16 @@ export default function QuotationConfigurationPage() {
                       <div className="relative">
                         <Icon
                           name="numbers"
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-sm"
-                          style={{ color: "rgba(197,234,255,0.5)" } as React.CSSProperties}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-primary/50"
                         />
                         <input
-                          className="w-full pl-9 pr-4 py-3 rounded-lg font-mono focus:ring-0 focus:outline-none"
-                          style={inputStyle}
+                          className="w-full pl-9 pr-4 py-3 rounded-lg font-mono focus:ring-0 focus:outline-none glass-input"
                           type="number"
                           value={startingNumber}
                           onChange={(e) => setStartingNumber(e.target.value)}
                         />
                       </div>
-                      <p className="text-[12px]" style={{ color: "rgba(190,200,206,0.7)" }}>
+                      <p className="text-[12px] text-on-surface-variant/70">
                         The next generated quotation will use this number.
                       </p>
                     </div>
@@ -248,8 +184,7 @@ export default function QuotationConfigurationPage() {
                     <div className="space-y-2">
                       <FieldLabel>Top Message (Header)</FieldLabel>
                       <textarea
-                        className="w-full p-4 rounded-lg resize-none focus:ring-0 focus:outline-none"
-                        style={textareaStyle}
+                        className="w-full p-4 rounded-lg resize-none focus:ring-0 focus:outline-none glass-input"
                         placeholder="Thank you for your inquiry. Please find our quotation attached below..."
                         rows={3}
                         value={topMessage}
@@ -259,8 +194,7 @@ export default function QuotationConfigurationPage() {
                     <div className="space-y-2">
                       <FieldLabel>Bottom Message (Footer)</FieldLabel>
                       <textarea
-                        className="w-full p-4 rounded-lg resize-none focus:ring-0 focus:outline-none"
-                        style={textareaStyle}
+                        className="w-full p-4 rounded-lg resize-none focus:ring-0 focus:outline-none glass-input"
                         placeholder="We appreciate your business..."
                         rows={3}
                         value={bottomMessage}
@@ -272,26 +206,19 @@ export default function QuotationConfigurationPage() {
 
                 {/* Legal Panel */}
                 <GlassPanel className="relative overflow-hidden group">
-                  <div className="absolute -top-24 -right-24 w-48 h-48 bg-[rgba(197,234,255,0.05)] rounded-full blur-3xl group-hover:bg-[rgba(197,234,255,0.1)] transition-colors duration-500" />
-                  <div
-                    className="flex items-center justify-between pb-4 mb-4 relative z-10"
-                    style={{ borderBottom: "1px solid rgba(197,234,255,0.1)" }}
-                  >
+                  <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-500" />
+                  <div className="flex items-center justify-between pb-4 mb-4 relative z-10 border-b border-primary/10">
                     <div className="flex items-center gap-2">
-                      <Icon name="gavel" style={{ color: colors.primary }} />
-                      <h3
-                        className="font-semibold text-xl"
-                        style={{ color: colors.onSurface }}
-                      >
+                      <Icon name="gavel" className="text-primary" />
+                      <h3 className="font-semibold text-xl text-on-surface">
                         Legal
                       </h3>
                     </div>
-                    </div>
+                  </div>
                   <div className="space-y-2 relative z-10">
                     <FieldLabel>Terms &amp; Conditions</FieldLabel>
                     <textarea
-                      className="w-full p-4 rounded-lg text-sm font-mono leading-relaxed focus:ring-0 focus:outline-none"
-                      style={textareaStyle}
+                      className="w-full p-4 rounded-lg text-sm font-mono leading-relaxed focus:ring-0 focus:outline-none glass-input"
                       rows={6}
                       value={terms}
                       onChange={(e) => setTerms(e.target.value)}
@@ -308,7 +235,7 @@ export default function QuotationConfigurationPage() {
                   <div className="space-y-6">
                     <PreferenceRow
                       title="Show HSN Code"
-                      description="Display Harmonized System Nomenclature codes for items."
+                      description="Display HSN codes for items."
                       checked={hsn}
                       onChange={setHsn}
                       id="toggle_hsn"
@@ -339,32 +266,20 @@ export default function QuotationConfigurationPage() {
 
                 {/* Status Summary Panel */}
                 <GlassPanel className="relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-[rgba(160,205,229,0.05)] rounded-full blur-2xl -mr-10 -mt-10" />
-                  <h3
-                    className="font-semibold text-lg mb-4 relative z-10"
-                    style={{ color: colors.onSurface }}
-                  >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full blur-2xl -mr-10 -mt-10" />
+                  <h3 className="font-semibold text-lg mb-4 relative z-10 text-on-surface">
                     Configuration Status
                   </h3>
                   <div className="space-y-4 relative z-10">
-                    <div
-                      className="flex items-center justify-between p-3 rounded-lg"
-                      style={{
-                        backgroundColor: "rgba(8,19,38,0.5)",
-                        border: "1px solid rgba(63,72,78,0.3)",
-                      }}
-                    >
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-surface-container/50 border border-outline-variant/30">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
-                        <span className="text-sm" style={{ color: colors.onSurface }}>
+                        <span className="text-sm text-on-surface">
                           Auto-Sync Enabled
                         </span>
                       </div>
                     </div>
-                    <p
-                      className="text-xs leading-relaxed"
-                      style={{ color: "rgba(190,200,206,0.7)" }}
-                    >
+                    <p className="text-xs leading-relaxed text-on-surface-variant/70">
                       Changes made here are applied instantly to all newly
                       generated draft quotations. Existing finalized quotes
                       remain unaffected.
@@ -375,26 +290,11 @@ export default function QuotationConfigurationPage() {
             </div>
 
             {/* Action Bar */}
-            <div
-              className="pt-6 flex justify-end gap-4 mt-8"
-              style={{ borderTop: "1px solid rgba(197,234,255,0.1)" }}
-            >
-              <button
-                className="px-6 py-3 rounded-lg font-medium text-sm transition-colors hover:bg-[rgba(43,53,74,0.5)]"
-                style={{ color: colors.onSurfaceVariant }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = colors.onSurface)}
-                onMouseLeave={(e) => (e.currentTarget.style.color = colors.onSurfaceVariant)}
-              >
+            <div className="pt-6 flex justify-end gap-4 mt-8 border-t border-primary/10">
+              <button className="px-6 py-3 rounded-lg font-medium text-sm transition-colors text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50">
                 Discard Changes
               </button>
-              <button
-                className="px-8 py-3 rounded-lg font-medium text-sm transition-all hover:shadow-[0_0_15px_rgba(197,234,255,0.25)] relative overflow-hidden group"
-                style={{
-                  backgroundColor: "rgba(197,234,255,0.2)",
-                  border: "1px solid rgba(197,234,255,0.4)",
-                  color: colors.primary,
-                }}
-              >
+              <button className="px-8 py-3 rounded-lg font-medium text-sm transition-all relative overflow-hidden group glass-button-primary btn-login-glow">
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                 Save Configuration
               </button>
@@ -428,19 +328,6 @@ export default function QuotationConfigurationPage() {
   );
 }
 
-// ---- Shared style objects ----
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "rgba(17,27,47,0.4)",
-  border: "1px solid rgba(197,234,255,0.1)",
-  color: colors.onSurface,
-};
-
-const textareaStyle: React.CSSProperties = {
-  backgroundColor: "rgba(17,27,47,0.4)",
-  border: "1px solid rgba(197,234,255,0.1)",
-  color: colors.onSurface,
-};
-
 // ---- Reusable pieces ----
 function GlassPanel({
   children,
@@ -450,15 +337,7 @@ function GlassPanel({
   className?: string;
 }) {
   return (
-    <section
-      className={`rounded-xl p-6 ${className}`}
-      style={{
-        backgroundColor: "rgba(26,36,56,0.6)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        border: "1px solid rgba(197,234,255,0.1)",
-      }}
-    >
+    <section className={`rounded-xl p-6 glass-panel ${className}`}>
       {children}
     </section>
   );
@@ -466,12 +345,9 @@ function GlassPanel({
 
 function PanelHeader({ icon, title }: { icon: string; title: string }) {
   return (
-    <div
-      className="flex items-center gap-2 pb-4 mb-4"
-      style={{ borderBottom: "1px solid rgba(197,234,255,0.1)" }}
-    >
-      <Icon name={icon} style={{ color: colors.primary }} />
-      <h3 className="font-semibold text-xl" style={{ color: colors.onSurface }}>
+    <div className="flex items-center gap-2 pb-4 mb-4 border-b border-primary/10">
+      <Icon name={icon} className="text-primary" />
+      <h3 className="font-semibold text-xl text-on-surface">
         {title}
       </h3>
     </div>
@@ -480,10 +356,7 @@ function PanelHeader({ icon, title }: { icon: string; title: string }) {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label
-      className="block text-sm font-medium"
-      style={{ color: colors.onSurfaceVariant }}
-    >
+    <label className="block text-sm font-medium text-on-surface-variant">
       {children}
     </label>
   );
@@ -505,10 +378,10 @@ function PreferenceRow({
   return (
     <div className="flex items-start justify-between">
       <div className="pr-4">
-        <h4 className="text-sm font-medium" style={{ color: colors.onSurface }}>
+        <h4 className="text-sm font-medium text-on-surface">
           {title}
         </h4>
-        <p className="text-[12px] mt-1" style={{ color: colors.onSurfaceVariant }}>
+        <p className="text-[12px] mt-1 text-on-surface-variant">
           {description}
         </p>
       </div>

@@ -350,27 +350,53 @@ export default function QuotationsPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
-        <div>
-           <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
-              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">
-         Quotations
-         </span>
-         </h1>
-           <p className="text-on-surface-variant text-lg">Manage and track your customer quotes.</p>
+    <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+      `}} />
+
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+            <span className="material-symbols-outlined text-[14px]">request_quote</span>
+            Quotations Management
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+            <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+              Quotations
+            </span>
+          </h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed">
+            Manage and track your customer quotes. Create new quotations, monitor their status, and convert them into invoices.
+          </p>
         </div>
         <Link href="/quotations/new">
           <button 
             disabled={!selectedBranchId}
-            className="glass-button-primary rounded-lg py-2.5 px-5 flex items-center gap-2 text-sm font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="group relative h-14 px-8 rounded-2xl bg-primary text-on-primary font-bold flex items-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-            Create Quotation
+            <div className="absolute inset-0 w-full h-full bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
+            <span className="material-symbols-outlined">add</span>
+            <span>Create Quotation</span>
           </button>
         </Link>
-      </div>
+      </header>
 
       {error && (
         <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3 relative z-10">
@@ -380,76 +406,79 @@ export default function QuotationsPage() {
       )}
 
       {/* Metrics Grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Quotations</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">request_quote</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
-  </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Quotations</p>
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">request_quote</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{stats.total}</p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">for this branch</p>
+        </div>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Draft</p>
-      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">edit_note</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.draft}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">not yet sent</p>
-  </div>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Draft</p>
+            <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">edit_note</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{stats.draft}</p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">not yet sent</p>
+        </div>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Accepted</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">task_alt</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.accepted}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">
-      {stats.total > 0 ? `${Math.round((stats.accepted / stats.total) * 100)}% win rate` : 'no data yet'}
-    </p>
-  </div>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-emerald-500/40 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Accepted</p>
+            <span className="material-symbols-outlined text-emerald-500 p-2 rounded-lg bg-emerald-500/10">task_alt</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{stats.accepted}</p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">
+            {stats.total > 0 ? `${Math.round((stats.accepted / stats.total) * 100)}% win rate` : 'no data yet'}
+          </p>
+        </div>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Value</p>
-      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">payments</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">
-      ₹ {stats.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-    </p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">across all quotations</p>
-  </div>
-</div>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-secondary/5 rounded-full blur-2xl group-hover:bg-secondary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Value</p>
+            <span className="material-symbols-outlined text-secondary p-2 rounded-lg bg-secondary/10">payments</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">
+            ₹ {stats.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">across all quotations</p>
+        </div>
+      </div>
 
       {/* Glassmorphic Data Table Container */}
-      <div className="glass-panel rounded-xl overflow-hidden shadow-lg border border-primary/10 relative z-10">
+      <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.3s' }}>
         {/* Glow Accent */}
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
         
         {/* Table Controls */}
-        <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
-          <div className="flex items-center gap-3 text-sm text-on-surface-variant">
+        <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
+          <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant">
             <span>Show</span>
-            <select
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              className="glass-input rounded-md py-1.5 px-3 text-on-surface focus:ring-0 focus:border-primary/50 text-sm cursor-pointer appearance-none pr-8 relative bg-surface-container-highest"
-            >
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-            </select>
+            <div className="relative">
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="bg-surface-container border border-outline-variant/30 rounded-xl py-2 pl-4 pr-10 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm cursor-pointer appearance-none hover:bg-surface-container-high transition-colors font-semibold"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+            </div>
             <span>entries</span>
           </div>
           <div className="relative w-full sm:w-auto">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
             <input 
-              className="glass-input pl-9 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder-on-surface-variant/50 w-full sm:w-72 focus:outline-none transition-all" 
+              className="w-full sm:w-80 bg-surface-container border border-outline-variant/30 pl-11 pr-4 py-2.5 rounded-xl text-sm font-medium text-on-surface placeholder-on-surface-variant/60 focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all" 
               placeholder="Search quotations..." 
               type="text" 
               value={searchQuery}
@@ -483,12 +512,12 @@ export default function QuotationsPage() {
                 </tr>
               ) : paginatedQuotations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
-                      <span className="material-symbols-outlined text-[32px]">request_quote</span>
+                  <td colSpan={5} className="px-6 py-24 text-center">
+                    <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
+                      <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-60">request_quote</span>
                     </div>
-                    <h3 className="text-lg font-bold text-on-surface">{searchQuery ? 'No matching quotations found' : 'No quotations yet'}</h3>
-                    <p className="text-sm text-on-surface-variant mt-1">{searchQuery ? 'Try adjusting your search filters.' : 'Create your first quotation for this branch.'}</p>
+                    <h3 className="text-2xl text-on-surface font-bold mb-3">{searchQuery ? 'No matching quotations found' : 'No quotations yet'}</h3>
+                    <p className="text-on-surface-variant max-w-md mx-auto text-lg">{searchQuery ? 'Try adjusting your search filters.' : 'Create your first quotation for this branch.'}</p>
                   </td>
                 </tr>
               ) : (
@@ -598,7 +627,7 @@ export default function QuotationsPage() {
         </div>
         
         {/* Pagination */}
-        <div className="p-6 border-t border-primary/10 bg-surface-container/30 flex flex-col gap-4">
+        <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
             <span className="text-sm text-on-surface-variant">
               {totalItems === 0 ? 'Showing 0 entries' : `Showing ${startIndex} to ${endIndex} of ${totalItems} entries`}
@@ -645,10 +674,10 @@ export default function QuotationsPage() {
 
       {/* Delete Confirmation Modal */}
       {quotationToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="glass-panel rounded-2xl p-6 max-w-md w-full shadow-2xl border border-error/20 relative animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-background/80 backdrop-blur-md animate-fade-slide-up" style={{ animationDuration: '0.3s' }}>
+          <div className="bg-surface w-full max-w-md rounded-[2rem] p-8 shadow-2xl shadow-error/10 border border-outline-variant/20 relative overflow-hidden">
             {/* Glow effect */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-error/50 to-transparent rounded-t-2xl"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-error/50 to-transparent"></div>
             
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center shrink-0 border border-error/20">
@@ -689,9 +718,9 @@ export default function QuotationsPage() {
 
       {/* Notes & Reminder Modal */}
       {notesModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="glass-panel rounded-2xl p-6 max-w-md w-full shadow-2xl border border-primary/20 relative animate-in fade-in zoom-in duration-200">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent rounded-t-2xl"></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-background/80 backdrop-blur-md animate-fade-slide-up" style={{ animationDuration: '0.3s' }}>
+          <div className="bg-surface w-full max-w-md rounded-[2rem] p-8 shadow-2xl shadow-primary/10 border border-outline-variant/20 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
             <div className="flex flex-col gap-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-headline font-bold text-on-surface">Notes & Reminder</h3>
@@ -836,6 +865,17 @@ export default function QuotationsPage() {
           </div>
         </div>
       )}
+
+      {/* Footer Decoration */}
+      <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-8">
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+        <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+          BillTea Dashboard • Quotations
+        </p>
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+      </footer>
+
+      </div>
     </div>
   );
 }

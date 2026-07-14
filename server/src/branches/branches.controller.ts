@@ -1,6 +1,9 @@
 import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { BranchesService } from './branches.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SubscriptionGuard } from '../common/guards/subscription.guard';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireSubscription } from '../common/decorators/subscription.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -9,7 +12,7 @@ import { UpdateBranchDto } from './dto/update-branch.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
 @Controller('branches')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, FeatureGuard)
 @ApiTags('Branches')
 @ApiBearerAuth()
 export class BranchesController {
@@ -18,8 +21,9 @@ export class BranchesController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles('OWNER')
-    @ApiOperation({ summary: 'Create' })
-    @ApiResponse({ status: 201, description: 'Created successfully.' })
+  @RequireSubscription('branch')
+  @ApiOperation({ summary: 'Create' })
+  @ApiResponse({ status: 201, description: 'Created successfully.' })
   async create(
     @CurrentUser('companyId') companyId: string | null,
     @Body() dto: CreateBranchDto,

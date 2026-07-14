@@ -8,10 +8,13 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { AddPaymentDto } from './dto/add-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SubscriptionGuard } from '../common/guards/subscription.guard';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireSubscription } from '../common/decorators/subscription.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, FeatureGuard)
 @Controller('invoices')
 @ApiTags('Invoice')
 @ApiBearerAuth()
@@ -48,8 +51,9 @@ export class InvoiceController {
   }
 
   @Post()
-    @ApiOperation({ summary: 'Create' })
-    @ApiResponse({ status: 201, description: 'Created successfully.' })
+  @RequireSubscription('invoice')
+  @ApiOperation({ summary: 'Create' })
+  @ApiResponse({ status: 201, description: 'Created successfully.' })
   create(@CurrentUser() user: any, @Body() createInvoiceDto: CreateInvoiceDto) {
     return this.invoiceService.create(user.companyId, user.sub, createInvoiceDto);
   }

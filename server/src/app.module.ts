@@ -15,6 +15,9 @@ import { ExpensesModule } from './expenses/expenses.module';
 import { ExpenseCategoriesModule } from './expense-categories/expense-categories.module';
 import { QuotationModule } from './quotation/quotation.module';
 import { InvoiceModule } from './invoices/invoice.module';
+import { SubscriptionPlansModule } from './subscription-plans/subscription-plans.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -40,6 +43,11 @@ import { InvoiceModule } from './invoices/invoice.module';
     ExpenseCategoriesModule,
     QuotationModule,
     InvoiceModule,
+
+    // Subscription Management
+    SubscriptionPlansModule,
+    SubscriptionsModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
 })

@@ -9,6 +9,7 @@ import { QuotationMapper } from './quotation.mapper';
 import { generateExpiryDate } from './quotation.utils';
 import { QUOTATION_CONSTANTS } from './quotation.constants';
 import { PdfService } from './pdf.service';
+import { UsageService } from '../subscriptions/usage.service';
 
 @Injectable()
 export class QuotationService {
@@ -18,6 +19,7 @@ export class QuotationService {
     private readonly calculatorService: QuotationCalculatorService,
     private readonly prisma: PrismaService,
     private readonly pdfService: PdfService,
+    private readonly usageService: UsageService,
   ) {}
 
   private async computeStatusForQuotations(quotations: any[]) {
@@ -171,6 +173,10 @@ export class QuotationService {
     };
 
     const createdQuotation = await this.repository.createQuotation(quotationData, finalItems);
+    
+    // Increment usage
+    await this.usageService.incrementQuotationUsage(companyId);
+    
     const [computedQuotation] = await this.computeStatusForQuotations([createdQuotation]);
     return QuotationMapper.toDto(computedQuotation);
   }

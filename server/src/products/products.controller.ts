@@ -3,12 +3,15 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SubscriptionGuard } from '../common/guards/subscription.guard';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireSubscription } from '../common/decorators/subscription.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Express } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, FeatureGuard)
 @Controller('products')
 @ApiTags('Products')
 @ApiBearerAuth()
@@ -16,9 +19,10 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
+  @RequireSubscription('product')
   @UseInterceptors(FileInterceptor('image'))
-    @ApiOperation({ summary: 'Create' })
-    @ApiResponse({ status: 201, description: 'Created successfully.' })
+  @ApiOperation({ summary: 'Create' })
+  @ApiResponse({ status: 201, description: 'Created successfully.' })
   create(
     @CurrentUser() user: any,
     @Body() createProductDto: CreateProductDto,

@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { UsageService } from '../subscriptions/usage.service';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private usageService: UsageService,
+  ) {}
 
   async create(companyId: string, userId: string, createProductDto: CreateProductDto, imagePath: string) {
     // Verify branch belongs to company
@@ -25,6 +29,9 @@ export class ProductsService {
         image: imagePath,
       },
     });
+
+    // Increment usage
+    await this.usageService.incrementProductUsage(companyId);
 
     return { success: true, product };
   }

@@ -327,7 +327,161 @@ async function main() {
     }
   }
 
-  console.log('\nSeeding complete!');
+  console.log('\nSeeding complete!')
+
+  // ─── 9. Seed Super Admin ─────────────────────────────────────
+  const superAdminEmail = 'superadmin@billtea.com';
+  const existingSuperAdmin = await prisma.user.findUnique({ where: { email: superAdminEmail } });
+  if (!existingSuperAdmin) {
+    const hashedPassword = await bcrypt.hash('SuperAdmin@123', 12);
+    await prisma.user.create({
+      data: {
+        fullName: 'BillTea Super Admin',
+        email: superAdminEmail,
+        phoneNumber: '9000000001',
+        password: hashedPassword,
+        role: 'SUPER_ADMIN',
+        companyId: null,
+      },
+    });
+    console.log('✓ Seeded SUPER_ADMIN: superadmin@billtea.com | Password: SuperAdmin@123');
+  } else {
+    console.log('✓ Super Admin already exists.');
+  }
+
+  // ─── 10. Seed Subscription Plans ─────────────────────────────
+  const plansToSeed = [
+    {
+      name: 'Trial Plan',
+      rank: 'TRIAL' as const,
+      description: 'Try BillTea free for 30 days with limited features.',
+      displayOrder: 1,
+      price: 0,
+      billingCycle: 'MONTHLY' as const,
+      quotationLimit: 10,
+      invoiceLimit: 10,
+      customerLimit: 5,
+      productLimit: 10,
+      branchLimit: 1,
+      staffLimit: 2,
+      whatsappMessageLimit: 5,
+      customQuotationThemes: false,
+      customInvoiceThemes: false,
+      whatsappIntegration: false,
+      isRecommended: false,
+    },
+    {
+      name: 'Bronze Plan',
+      rank: 'BRONZE' as const,
+      description: 'Great for small businesses getting started with professional billing.',
+      displayOrder: 2,
+      price: 499,
+      billingCycle: 'MONTHLY' as const,
+      quotationLimit: 100,
+      invoiceLimit: 100,
+      customerLimit: 50,
+      productLimit: 100,
+      branchLimit: 2,
+      staffLimit: 5,
+      whatsappMessageLimit: 50,
+      customQuotationThemes: false,
+      customInvoiceThemes: false,
+      whatsappIntegration: true,
+      isRecommended: false,
+    },
+    {
+      name: 'Silver Plan',
+      rank: 'SILVER' as const,
+      description: 'Perfect for growing businesses that need more power and customization.',
+      displayOrder: 3,
+      price: 999,
+      billingCycle: 'MONTHLY' as const,
+      quotationLimit: 500,
+      invoiceLimit: 500,
+      customerLimit: 200,
+      productLimit: 500,
+      branchLimit: 5,
+      staffLimit: 15,
+      whatsappMessageLimit: 200,
+      customQuotationThemes: true,
+      customInvoiceThemes: true,
+      whatsappIntegration: true,
+      isRecommended: true,
+    },
+    {
+      name: 'Gold Plan',
+      rank: 'GOLD' as const,
+      description: 'Unlimited everything. For enterprises that demand the best.',
+      displayOrder: 4,
+      price: 1999,
+      billingCycle: 'MONTHLY' as const,
+      quotationLimit: 0,
+      invoiceLimit: 0,
+      customerLimit: 0,
+      productLimit: 0,
+      branchLimit: 0,
+      staffLimit: 0,
+      whatsappMessageLimit: 0,
+      customQuotationThemes: true,
+      customInvoiceThemes: true,
+      whatsappIntegration: true,
+      isRecommended: false,
+    },
+  ];
+
+  for (const planData of plansToSeed) {
+    const existingPlan = await prisma.subscriptionPlan.findFirst({
+      where: { name: planData.name, isDeleted: false },
+    });
+    if (!existingPlan) {
+      await prisma.subscriptionPlan.create({ data: planData });
+      console.log(`✓ Subscription plan "${planData.name}" created.`);
+    } else {
+      console.log(`✓ Subscription plan "${planData.name}" already exists.`);
+    }
+  }
+
+  // ─── 11. Auto-assign Trial plan to Indux Tech ────────────────
+  const trialPlan = await prisma.subscriptionPlan.findFirst({
+    where: { rank: 'TRIAL', isActive: true, isDeleted: false },
+  });
+
+  if (trialPlan && company) {
+    const existingSub = await prisma.companySubscription.findUnique({
+      where: { companyId: company.id },
+    });
+
+    if (!existingSub) {
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 1);
+
+      await prisma.companySubscription.create({
+        data: {
+          companyId: company.id,
+          planId: trialPlan.id,
+          status: 'TRIAL',
+          startDate: new Date(),
+          expiryDate,
+        },
+      });
+      console.log('✓ Trial subscription assigned to Indux Tech.');
+    } else {
+      console.log('✓ Indux Tech subscription already exists.');
+    }
+
+    // Create usage record
+    const existingUsage = await prisma.companyUsage.findUnique({
+      where: { companyId: company.id },
+    });
+    if (!existingUsage) {
+      await prisma.companyUsage.create({
+        data: { companyId: company.id },
+      });
+      console.log('✓ Usage tracker created for Indux Tech.');
+    }
+  }
+
+  console.log('\n🎉 Full seeding complete!');
 }
 
 main()

@@ -50,10 +50,6 @@ enum NotificationType {
   PLAN_DOWNGRADED
 }
 
-enum SignatureType {
-  TEXT
-  IMAGE
-}
 
 enum QuotationStatus {
   DRAFT
@@ -150,7 +146,6 @@ model Branch {
   accountNumber     String            @default("")
   ifscCode          String            @default("")
   upiId             String            @default("")
-  signatureType     SignatureType     @default(TEXT)
   signatureValue    String            @default("")
   tax               Int               @default(0)
   taxLabel          String            @default("")

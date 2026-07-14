@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { BranchesService } from './branches.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SubscriptionGuard } from '../common/guards/subscription.guard';
@@ -34,8 +34,11 @@ export class BranchesController {
   @Get()
     @ApiOperation({ summary: 'Find All' })
     @ApiResponse({ status: 200, description: 'Successful operation.' })
-  async findAll(@CurrentUser('companyId') companyId: string | null) {
-    return this.branchesService.findAll(companyId);
+  async findAll(
+    @CurrentUser('companyId') companyId: string | null,
+    @Query('all') all?: string
+  ) {
+    return this.branchesService.findAll(companyId, all === 'true');
   }
 
   @Put(':id')

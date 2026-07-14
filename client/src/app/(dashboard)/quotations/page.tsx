@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/auth';
 import { useBranch } from '@/components/BranchProvider';
@@ -22,6 +22,14 @@ interface Quotation {
   };
 }
 
+type SortDirection = 'asc' | 'desc';
+type SortKey = 'quotationNumber' | 'customer' | 'quotationDate' | 'grandTotal' | '';
+
+interface SortConfig {
+  key: SortKey;
+  direction: SortDirection;
+}
+
 export default function QuotationsPage() {
   const { selectedBranchId, isLoadingBranches } = useBranch();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
@@ -37,6 +45,13 @@ export default function QuotationsPage() {
   const [isSendingId, setIsSendingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // ---- Sorting state (asc <-> desc toggle, same as Invoices/Customers/Products) ----
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+
+  // ---- Pagination state ----
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   useEffect(() => {
     if (selectedBranchId) {
       fetchQuotations();
@@ -45,6 +60,15 @@ export default function QuotationsPage() {
       setLoading(false);
     }
   }, [selectedBranchId]);
+
+  const stats = React.useMemo(() => {
+    const total = quotations.length;
+    const draft = quotations.filter((q) => q.status === 'DRAFT').length;
+    const sent = quotations.filter((q) => q.status === 'SENT').length;
+    const accepted = quotations.filter((q) => q.status === 'ACCEPTED').length;
+    const totalValue = quotations.reduce((sum, q) => sum + (q.totals?.grandTotal || 0), 0);
+    return { total, draft, sent, accepted, totalValue };
+  }, [quotations]);
 
   const fetchQuotations = async () => {
     if (!selectedBranchId) return;
@@ -136,11 +160,11 @@ export default function QuotationsPage() {
       const res = await apiFetch(`/quotations/${id}/pdf`, {
         method: 'GET',
       });
-      
+
       if (!res.ok) {
         throw new Error('Failed to download PDF');
       }
-      
+
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -161,11 +185,11 @@ export default function QuotationsPage() {
       const res = await apiFetch(`/quotations/${id}/pdf`, {
         method: 'GET',
       });
-      
+
       if (!res.ok) {
         throw new Error('Failed to load PDF preview');
       }
-      
+
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       setViewerPdfUrl({ url, title: `Quotation-${quotationNumber}.pdf`, id });
@@ -193,6 +217,7 @@ export default function QuotationsPage() {
     }
   };
 
+  // ---- Search / filter ----
   const filteredQuotations = quotations.filter((q) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
@@ -200,9 +225,129 @@ export default function QuotationsPage() {
     const companyName = q.customer?.companyName?.toLowerCase() || '';
     const quotationNumber = q.quotationNumber?.toLowerCase() || '';
     const amount = q.totals?.grandTotal?.toString() || '';
-    
+
     return customerName.includes(query) || companyName.includes(query) || quotationNumber.includes(query) || amount.includes(query);
   });
+
+  // The "most recent" quotation is the one you're allowed to delete.
+  // Derived from actual quotationDate (not row position/index), so it stays
+  // correct no matter how the table is sorted or paginated.
+  const mostRecentQuotationId = useMemo(() => {
+    if (quotations.length === 0) return null;
+    return quotations.reduce((latest, q) =>
+      new Date(q.quotationDate) > new Date(latest.quotationDate) ? q : latest
+    ).id;
+  }, [quotations]);
+
+  // ---- Sort click handler: asc <-> desc toggle (consistent with other pages) ----
+  const requestSort = useCallback((key: SortKey) => {
+    if (!key) return;
+    setCurrentPage(1);
+    setSortConfig((prev) => {
+      if (prev?.key === key && prev.direction === 'asc') {
+        return { key, direction: 'desc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  }, []);
+
+  // ---- Apply sort ----
+  const sortedQuotations = useMemo(() => {
+    if (!sortConfig) return filteredQuotations;
+
+    const getValue = (q: Quotation): any => {
+      switch (sortConfig.key) {
+        case 'quotationNumber': return q.quotationNumber || '';
+        case 'customer': return q.customer?.customerName || '';
+        case 'quotationDate': return q.quotationDate ? new Date(q.quotationDate).getTime() : 0;
+        case 'grandTotal': return q.totals?.grandTotal ?? 0;
+        default: return '';
+      }
+    };
+
+    return [...filteredQuotations].sort((a, b) => {
+      let aVal = getValue(a);
+      let bVal = getValue(b);
+      if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+      if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+
+      let comparison = 0;
+      if (aVal < bVal) comparison = -1;
+      else if (aVal > bVal) comparison = 1;
+
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredQuotations, sortConfig]);
+
+  // ---- Apply pagination ----
+  const totalItems = sortedQuotations.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  // Reset to page 1 whenever the search query changes.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const paginatedQuotations = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedQuotations.slice(start, start + pageSize);
+  }, [sortedQuotations, currentPage, pageSize]);
+
+  const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endIndex = Math.min(currentPage * pageSize, totalItems);
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+  };
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  };
+
+  const getPageNumbers = (): (number | string)[] => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+      return pages;
+    }
+    if (currentPage <= 4) {
+      pages.push(1, 2, 3, 4, 5, '...', totalPages);
+    } else if (currentPage >= totalPages - 3) {
+      pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    } else {
+      pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+    }
+    return pages;
+  };
+
+  // ---- Small helper to render a sortable header cell (icons aligned with Invoices/Customers/Products) ----
+  const renderSortableHeader = (label: string, key: SortKey, align: 'left' | 'right' = 'left') => {
+    const isActive = sortConfig?.key === key;
+    const icon = !isActive ? 'unfold_more' : sortConfig!.direction === 'asc' ? 'expand_less' : 'expand_more';
+    const ariaSort = isActive ? (sortConfig!.direction === 'asc' ? 'ascending' : 'descending') : 'none';
+
+    return (
+      <th
+        className={`px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group select-none ${isActive ? 'text-primary' : ''}`}
+        scope="col"
+        role="columnheader"
+        aria-sort={ariaSort as React.AriaAttributes['aria-sort']}
+        onClick={() => requestSort(key)}
+      >
+        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}>
+          {label}
+          <span className={`material-symbols-outlined text-[12px] transition-opacity ${isActive ? 'opacity-100 text-primary' : 'opacity-50 group-hover:opacity-100'}`}>
+            {icon}
+          </span>
+        </div>
+      </th>
+    );
+  };
 
   return (
     <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -234,6 +379,53 @@ export default function QuotationsPage() {
         </div>
       )}
 
+      {/* Metrics Grid */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Quotations</p>
+      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">request_quote</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Draft</p>
+      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">edit_note</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.draft}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">not yet sent</p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Accepted</p>
+      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">task_alt</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.accepted}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">
+      {stats.total > 0 ? `${Math.round((stats.accepted / stats.total) * 100)}% win rate` : 'no data yet'}
+    </p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Value</p>
+      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">payments</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">
+      ₹ {stats.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+    </p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">across all quotations</p>
+  </div>
+</div>
+
       {/* Glassmorphic Data Table Container */}
       <div className="glass-panel rounded-xl overflow-hidden shadow-lg border border-primary/10 relative z-10">
         {/* Glow Accent */}
@@ -243,7 +435,11 @@ export default function QuotationsPage() {
         <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
           <div className="flex items-center gap-3 text-sm text-on-surface-variant">
             <span>Show</span>
-            <select className="glass-input rounded-md py-1.5 px-3 text-on-surface focus:ring-0 focus:border-primary/50 text-sm cursor-pointer appearance-none pr-8 relative bg-surface-container-highest">
+            <select
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              className="glass-input rounded-md py-1.5 px-3 text-on-surface focus:ring-0 focus:border-primary/50 text-sm cursor-pointer appearance-none pr-8 relative bg-surface-container-highest"
+            >
               <option value="10">10</option>
               <option value="25">25</option>
               <option value="50">50</option>
@@ -267,26 +463,10 @@ export default function QuotationsPage() {
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
               <tr>
-                <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
-                  <div className="flex items-center gap-1">
-                    Quotation Number <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
-                  </div>
-                </th>
-                <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
-                  <div className="flex items-center gap-1">
-                    Customer <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
-                  </div>
-                </th>
-                <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
-                  <div className="flex items-center gap-1">
-                    Date & Status <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
-                  </div>
-                </th>
-                <th className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group" scope="col">
-                  <div className="flex items-center gap-1">
-                    Total Amount <span className="material-symbols-outlined text-[12px] opacity-50 group-hover:opacity-100">unfold_more</span>
-                  </div>
-                </th>
+                {renderSortableHeader('Quotation Number', 'quotationNumber')}
+                {renderSortableHeader('Customer', 'customer')}
+                {renderSortableHeader('Date & Status', 'quotationDate')}
+                {renderSortableHeader('Total Amount', 'grandTotal')}
                 <th className="px-6 py-4 font-semibold tracking-wider text-right pr-8" scope="col">
                   Action
                 </th>
@@ -301,18 +481,20 @@ export default function QuotationsPage() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredQuotations.length === 0 ? (
+              ) : paginatedQuotations.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
                       <span className="material-symbols-outlined text-[32px]">request_quote</span>
                     </div>
-                    <h3 className="text-lg font-bold text-on-surface">No quotations yet</h3>
-                    <p className="text-sm text-on-surface-variant mt-1">Create your first quotation for this branch.</p>
+                    <h3 className="text-lg font-bold text-on-surface">{searchQuery ? 'No matching quotations found' : 'No quotations yet'}</h3>
+                    <p className="text-sm text-on-surface-variant mt-1">{searchQuery ? 'Try adjusting your search filters.' : 'Create your first quotation for this branch.'}</p>
                   </td>
                 </tr>
               ) : (
-                filteredQuotations.map((quotation, index) => (
+                paginatedQuotations.map((quotation) => {
+                  const isMostRecent = quotation.id === mostRecentQuotationId;
+                  return (
                   <tr key={quotation.id} className="hover:bg-primary/5 transition-colors duration-200">
                     <td className="px-6 py-4 font-semibold text-primary">{quotation.quotationNumber}</td>
                     <td className="px-6 py-4 flex items-center gap-3">
@@ -373,7 +555,7 @@ export default function QuotationsPage() {
                             className="glass-button-icon p-1 rounded-md transition-all hover:text-amber-400 hover:border-amber-400/30 hover:bg-amber-400/10 tooltip cursor-pointer" title="Notes & Reminder">
                             <span className="material-symbols-outlined text-[16px]">sticky_note_2</span>
                           </button>
-                          {index === 0 && (
+                          {isMostRecent && (
                             <button onClick={() => setQuotationToDelete(quotation.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
                               <span className="material-symbols-outlined text-[16px]">delete</span>
                             </button>
@@ -408,7 +590,8 @@ export default function QuotationsPage() {
                       )}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -417,15 +600,42 @@ export default function QuotationsPage() {
         {/* Pagination */}
         <div className="p-6 border-t border-primary/10 bg-surface-container/30 flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
-            <span className="text-sm text-on-surface-variant">Showing 1 to {filteredQuotations.length} entries</span>
+            <span className="text-sm text-on-surface-variant">
+              {totalItems === 0 ? 'Showing 0 entries' : `Showing ${startIndex} to ${endIndex} of ${totalItems} entries`}
+            </span>
             <div className="flex items-center gap-1">
-              <button className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 cursor-pointer" disabled>
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
                 Previous
               </button>
-              <button className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)] cursor-pointer">
-                1
-              </button>
-              <button className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 cursor-pointer" disabled>
+
+              {getPageNumbers().map((page, idx) =>
+                page === '...' ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 py-1.5 text-sm text-on-surface-variant/50">...</span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page as number)}
+                    aria-current={currentPage === page ? 'page' : undefined}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
+                      currentPage === page
+                        ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
+                        : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border-transparent'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
                 Next
               </button>
             </div>

@@ -119,9 +119,9 @@ export default function QuotationConfigurationPage() {
                   Quotation
                 </span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
+                <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
                 <span className="text-on-surface">Quotation </span>
-                <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Settings
+              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Settings
                 </span>
               </h1>
               <p className="text-on-surface-variant text-lg">

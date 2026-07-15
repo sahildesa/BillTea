@@ -264,17 +264,6 @@ export default function ProfitReportPage() {
     return sortedRows.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
   }, [sortedRows, currentPage, entriesPerPage]);
 
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    if (totalPages <= maxButtons) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxButtons - 1);
-    start = Math.max(1, end - maxButtons + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [totalPages, currentPage]);
-
   const handleEntriesPerPageChange = (n: number) => {
     setEntriesPerPage(n);
     setCurrentPage(1);
@@ -301,7 +290,10 @@ export default function ProfitReportPage() {
     }`;
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 z-0 relative overflow-x-hidden">
+    <div
+      className="flex-1 overflow-y-auto p-8 z-0 relative overflow-x-hidden [&::-webkit-scrollbar]:hidden"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    >
       {/* Background Ambient Effects */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
       <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
@@ -321,10 +313,6 @@ export default function ProfitReportPage() {
             <button className="glass-panel px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium text-on-surface hover:bg-primary/10 transition-all duration-300 cursor-pointer">
               <span className="material-symbols-outlined text-primary text-xl">picture_as_pdf</span>
               Export PDF
-            </button>
-            <button className="glass-panel px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium text-on-surface hover:bg-primary/10 transition-all duration-300 cursor-pointer">
-              <span className="material-symbols-outlined text-primary text-xl">csv</span>
-              Export CSV
             </button>
             <button className="glass-panel px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium text-on-surface hover:bg-primary/10 transition-all duration-300 cursor-pointer">
               <span className="material-symbols-outlined text-primary text-xl">table_view</span>
@@ -349,10 +337,6 @@ export default function ProfitReportPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setCurrentPage(1)} className="bg-primary/20 text-primary border border-primary/40 px-8 py-3 rounded-xl font-bold hover:bg-primary/30 active:scale-95 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(125,211,252,0.2)] cursor-pointer">
-                <span className="material-symbols-outlined">filter_list</span>
-                Apply Filter
-              </button>
               <button onClick={handleResetFilters} className="glass-panel px-8 py-3 rounded-xl font-medium text-on-surface-variant hover:text-on-surface transition-all cursor-pointer">
                 Reset
               </button>
@@ -417,10 +401,6 @@ export default function ProfitReportPage() {
           {/* Table Header Controls */}
           <div className="p-6 border-b border-outline/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
             <div className="flex items-center gap-4 w-full sm:w-auto">
-              <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-lg">
-                <span className="material-symbols-outlined text-primary text-lg">calendar_month</span>
-                <span className="text-sm font-bold text-on-surface whitespace-nowrap">Date-wise Breakdown</span>
-              </div>
               <div className="flex items-center gap-2 text-sm text-on-surface-variant">
                 <span>Show</span>
                 <select
@@ -428,9 +408,9 @@ export default function ProfitReportPage() {
                   onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
                   className="bg-surface-container border border-outline/20 rounded px-2 py-1 text-xs focus:ring-0 focus:border-primary/50 cursor-pointer outline-none"
                 >
+                  <option value={10}>10</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
-                  <option value={100}>100</option>
                 </select>
                 <span>entries</span>
               </div>
@@ -447,7 +427,7 @@ export default function ProfitReportPage() {
             </div>
           </div>
           {/* Table Body */}
-          <div className="overflow-x-auto custom-scrollbar">
+          <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead className="bg-surface-container/30">
                 <tr>
@@ -520,33 +500,23 @@ export default function ProfitReportPage() {
                 ? 'Showing 0 entries'
                 : `Showing ${startIndex} to ${endIndex} of ${totalEntries} entries`}
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg text-on-surface-variant hover:bg-primary/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-primary/10 hover:text-on-surface transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer border border-outline/20"
               >
-                <span className="material-symbols-outlined">chevron_left</span>
+                Previous
               </button>
-              {pageNumbers.map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-10 h-10 rounded-lg border font-bold transition-colors cursor-pointer ${
-                    page === currentPage
-                      ? 'bg-primary/20 border-primary/40 text-primary shadow-[0_0_10px_rgba(125,211,252,0.2)]'
-                      : 'border-transparent text-on-surface-variant hover:bg-primary/10 hover:text-on-surface'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+                {currentPage}
+              </span>
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-lg text-on-surface-variant hover:bg-primary/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-primary/10 hover:text-on-surface transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer border border-outline/20"
               >
-                <span className="material-symbols-outlined">chevron_right</span>
+                Next
               </button>
             </div>
           </div>

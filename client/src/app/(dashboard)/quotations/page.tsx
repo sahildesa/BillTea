@@ -309,22 +309,6 @@ export default function QuotationsPage() {
     setCurrentPage(Math.min(Math.max(1, page), totalPages));
   };
 
-  const getPageNumbers = (): (number | string)[] => {
-    const pages: (number | string)[] = [];
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-      return pages;
-    }
-    if (currentPage <= 4) {
-      pages.push(1, 2, 3, 4, 5, '...', totalPages);
-    } else if (currentPage >= totalPages - 3) {
-      pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-    } else {
-      pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
-    }
-    return pages;
-  };
-
   // ---- Small helper to render a sortable header cell (icons aligned with Invoices/Customers/Products) ----
   const renderSortableHeader = (label: string, key: SortKey, align: 'left' | 'right' = 'left') => {
     const isActive = sortConfig?.key === key;
@@ -350,7 +334,10 @@ export default function QuotationsPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
+    <div
+      className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    >
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -641,24 +628,9 @@ export default function QuotationsPage() {
                 Previous
               </button>
 
-              {getPageNumbers().map((page, idx) =>
-                page === '...' ? (
-                  <span key={`ellipsis-${idx}`} className="px-2 py-1.5 text-sm text-on-surface-variant/50">...</span>
-                ) : (
-                  <button
-                    key={page}
-                    onClick={() => goToPage(page as number)}
-                    aria-current={currentPage === page ? 'page' : undefined}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
-                      currentPage === page
-                        ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
-                        : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border-transparent'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                )
-              )}
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+                {currentPage}
+              </span>
 
               <button
                 onClick={() => goToPage(currentPage + 1)}

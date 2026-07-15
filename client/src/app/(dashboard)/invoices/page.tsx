@@ -371,24 +371,13 @@ export default function InvoicesPage() {
     return sortedInvoices.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
   }, [sortedInvoices, currentPage, entriesPerPage]);
 
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    if (totalPages <= maxButtons) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxButtons - 1);
-    start = Math.max(1, end - maxButtons + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [totalPages, currentPage]);
-
   const handleEntriesPerPageChange = (n: number) => {
     setEntriesPerPage(n);
     setCurrentPage(1);
   };
 
   const sortHeaderClass = (key: string) =>
-    `px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group ${
+    `px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group outline-none focus:outline-none [-webkit-tap-highlight-color:transparent] ${
       sortConfig?.key === key ? 'text-primary' : ''
     }`;
 
@@ -398,7 +387,18 @@ export default function InvoicesPage() {
     }`;
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+    <div
+      className="flex-1 overflow-y-auto p-8 [&::-webkit-scrollbar]:hidden"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    >
+      <style jsx global>{`
+        button, th, select {
+          -webkit-tap-highlight-color: transparent;
+        }
+        button:focus, th:focus, select:focus {
+          outline: none;
+        }
+      `}</style>
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
         <div>
@@ -482,15 +482,18 @@ export default function InvoicesPage() {
         <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
           <div className="flex items-center gap-3 text-sm text-on-surface-variant">
             <span>Show</span>
-            <select
-              value={entriesPerPage}
-              onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
-              className="glass-input rounded-md py-1.5 px-3 text-on-surface focus:ring-0 focus:border-primary/50 text-sm cursor-pointer appearance-none pr-8 relative bg-surface-container-highest"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
+            <div className="relative">
+              <select
+                value={entriesPerPage}
+                onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
+                className="glass-input rounded-md py-1.5 pl-3 pr-8 text-on-surface focus:ring-0 focus:border-primary/50 text-sm cursor-pointer appearance-none bg-surface-container-highest outline-none [-webkit-tap-highlight-color:transparent]"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+            </div>
             <span>entries</span>
           </div>
           <div className="relative w-full sm:w-auto">
@@ -681,19 +684,9 @@ export default function InvoicesPage() {
               >
                 Previous
               </button>
-              {pageNumbers.map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
-                    page === currentPage
-                      ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
-                      : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+                {currentPage}
+              </span>
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}

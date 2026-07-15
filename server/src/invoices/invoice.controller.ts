@@ -47,7 +47,7 @@ export class InvoiceController {
     @ApiOperation({ summary: 'Preview' })
     @ApiResponse({ status: 201, description: 'Created successfully.' })
   preview(@CurrentUser() user: any, @Body() createInvoiceDto: CreateInvoiceDto) {
-    return this.invoiceService.calculatePreview(user.companyId, user.sub, createInvoiceDto);
+    return this.invoiceService.calculatePreview(user.companyId, user.userId, createInvoiceDto);
   }
 
   @Post()
@@ -55,7 +55,7 @@ export class InvoiceController {
   @ApiOperation({ summary: 'Create' })
   @ApiResponse({ status: 201, description: 'Created successfully.' })
   create(@CurrentUser() user: any, @Body() createInvoiceDto: CreateInvoiceDto) {
-    return this.invoiceService.create(user.companyId, user.sub, createInvoiceDto);
+    return this.invoiceService.create(user.companyId, user.userId, createInvoiceDto);
   }
 
   @Get()
@@ -107,7 +107,7 @@ export class InvoiceController {
     @CurrentUser() user: any,
     @Body() addPaymentDto: AddPaymentDto,
   ) {
-    return this.invoiceService.addPayment(id, user.companyId, user.sub, addPaymentDto);
+    return this.invoiceService.addPayment(id, user.companyId, user.userId, addPaymentDto);
   }
 
   @Post(':id/payments/:paymentId/attachment')
@@ -145,7 +145,7 @@ export class InvoiceController {
     @CurrentUser() user: any,
     @Body() updateInvoiceDto: UpdateInvoiceDto,
   ) {
-    return this.invoiceService.update(id, user.companyId, user.sub, updateInvoiceDto);
+    return this.invoiceService.update(id, user.companyId, user.userId, updateInvoiceDto);
   }
 
   @Delete(':id')

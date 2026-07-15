@@ -21,7 +21,7 @@ export class CustomersController {
   @ApiOperation({ summary: 'Create' })
   @ApiResponse({ status: 201, description: 'Created successfully.' })
   create(@CurrentUser() user: any, @Body() createCustomerDto: CreateCustomerDto) {
-    return this.customersService.create(user.companyId, user.sub, createCustomerDto);
+    return this.customersService.create(user.companyId, user.userId, createCustomerDto);
   }
 
   @Get()

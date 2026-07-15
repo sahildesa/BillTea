@@ -29,7 +29,7 @@ export class ProductsController {
     @UploadedFile() file?: Express.Multer.File
   ) {
     const imagePath = file ? `uploads/products/${file.filename}` : '';
-    return this.productsService.create(user.companyId, user.sub, createProductDto, imagePath);
+    return this.productsService.create(user.companyId, user.userId, createProductDto, imagePath);
   }
 
   @Get()

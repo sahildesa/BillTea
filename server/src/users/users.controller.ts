@@ -1,4 +1,6 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SubscriptionGuard } from '../common/guards/subscription.guard';
@@ -21,13 +23,18 @@ export class UsersController {
 
   @Post('create')
   @RequireSubscription('staff')
+  @UseInterceptors(FileInterceptor('profilePicture'))
   @ApiOperation({ summary: 'Create' })
   @ApiResponse({ status: 201, description: 'Created successfully.' })
   async create(
     @CurrentUser('userId') userId: string,
     @CurrentUser('companyId') companyId: string | null,
     @Body() dto: CreateUserDto,
+    @UploadedFile() file?: Express.Multer.File
   ) {
+    if (file) {
+      dto.profilePicture = `uploads/users/${file.filename}`;
+    }
     return this.usersService.create(userId, companyId, dto);
   }
 
@@ -39,6 +46,7 @@ export class UsersController {
   }
 
   @Put(':id')
+  @UseInterceptors(FileInterceptor('profilePicture'))
     @ApiOperation({ summary: 'Update' })
     @ApiResponse({ status: 200, description: 'Successful operation.' })
   async update(
@@ -46,7 +54,11 @@ export class UsersController {
     @CurrentUser('userId') userId: string,
     @CurrentUser('companyId') companyId: string | null,
     @Body() dto: UpdateUserDto,
+    @UploadedFile() file?: Express.Multer.File
   ) {
+    if (file) {
+      dto.profilePicture = `uploads/users/${file.filename}`;
+    }
     return this.usersService.update(id, userId, companyId, dto);
   }
 

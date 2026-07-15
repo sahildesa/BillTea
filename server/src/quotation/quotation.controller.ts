@@ -46,7 +46,7 @@ export class QuotationController {
     @ApiOperation({ summary: 'Preview' })
     @ApiResponse({ status: 201, description: 'Created successfully.' })
   preview(@CurrentUser() user: any, @Body() createQuotationDto: CreateQuotationDto) {
-    return this.quotationService.calculatePreview(user.companyId, user.sub, createQuotationDto);
+    return this.quotationService.calculatePreview(user.companyId, user.userId, createQuotationDto);
   }
 
   @Post()
@@ -54,7 +54,7 @@ export class QuotationController {
   @ApiOperation({ summary: 'Create' })
   @ApiResponse({ status: 201, description: 'Created successfully.' })
   create(@CurrentUser() user: any, @Body() createQuotationDto: CreateQuotationDto) {
-    return this.quotationService.create(user.companyId, user.sub, createQuotationDto);
+    return this.quotationService.create(user.companyId, user.userId, createQuotationDto);
   }
 
   @Get()
@@ -129,7 +129,7 @@ export class QuotationController {
     @CurrentUser() user: any,
     @Body() updateQuotationDto: UpdateQuotationDto,
   ) {
-    return this.quotationService.update(id, user.companyId, user.sub, updateQuotationDto);
+    return this.quotationService.update(id, user.companyId, user.userId, updateQuotationDto);
   }
 
   @Delete(':id')

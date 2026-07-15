@@ -85,8 +85,7 @@ async function main() {
   // Seed Manager
   await seedUser('Project Manager', 'manager@project.com', '9999999902', 'MANAGER');
 
-  // Seed Staff
-  await seedUser('Project Staff', 'user@project.com', '9999999903', 'STAFF');
+
 
   // 4. Seed Customers
   const customerData = [
@@ -336,12 +335,12 @@ async function main() {
   for (let i = 45; i >= 0; i--) {
     const targetDate = new Date(today);
     targetDate.setDate(targetDate.getDate() - i);
-    
+
     const grandTotal = Math.floor(Math.random() * 50000) + 5000;
     const isPaid = Math.random() > 0.3;
     const custName = customerData[i % customerData.length].name;
     const cust = seededCustomers[custName];
-    
+
     // Seed Quotation
     const qNum = `QUO-GEN-${i}`;
     const existingQ = await prisma.quotation.findFirst({

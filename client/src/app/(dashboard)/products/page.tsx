@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiFetch, API_BASE } from '../../../lib/auth';
 import { useBranch } from '../../../components/BranchProvider';
 
@@ -14,6 +14,12 @@ type Product = {
   image: string;
   isActive: boolean;
 };
+
+type SortDirection = 'asc' | 'desc';
+interface SortConfig {
+  key: string;
+  direction: SortDirection;
+}
 
 export default function ProductsPage() {
   const { selectedBranchId, isLoadingBranches } = useBranch();
@@ -33,6 +39,20 @@ export default function ProductsPage() {
     skuNumber: '',
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
+
+  // ---- Table controls: search, sorting, pagination ----
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const stats = React.useMemo(() => {
+    const total = products.length;
+    const active = products.filter((p) => p.isActive).length;
+    const inactive = total - active;
+    const avgPrice = total > 0 ? products.reduce((sum, p) => sum + (p.price || 0), 0) / total : 0;
+    return { total, active, inactive, avgPrice };
+  }, [products]);
 
   useEffect(() => {
     if (!selectedBranchId) return;
@@ -174,6 +194,104 @@ export default function ProductsPage() {
     return `${baseUrl}${path}`;
   };
 
+  // ---- Search ----
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery) return products;
+    const query = searchQuery.toLowerCase();
+    return products.filter((p) => {
+      const nameMatch = p.name?.toLowerCase().includes(query);
+      const skuMatch = p.skuNumber?.toLowerCase().includes(query);
+      const hsnMatch = p.hsnNumber?.toLowerCase().includes(query);
+      const priceMatch = p.price?.toString().includes(query);
+      return nameMatch || skuMatch || hsnMatch || priceMatch;
+    });
+  }, [products, searchQuery]);
+
+  // ---- Sorting ----
+  const handleSort = (key: string) => {
+    setCurrentPage(1);
+    setSortConfig((prev) => {
+      if (prev?.key === key && prev.direction === 'asc') {
+        return { key, direction: 'desc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string): string => {
+    if (sortConfig?.key !== key) return 'unfold_more';
+    return sortConfig.direction === 'asc' ? 'expand_less' : 'expand_more';
+  };
+
+  const sortValue = (row: Product, key: string): string | number => {
+    switch (key) {
+      case 'name': return row.name || '';
+      case 'sku': return row.skuNumber || '';
+      case 'hsn': return row.hsnNumber || '';
+      case 'price': return row.price || 0;
+      case 'status': return row.isActive ? 1 : 0;
+      default: return '';
+    }
+  };
+
+  const sortedProducts = useMemo(() => {
+    if (!sortConfig) return filteredProducts;
+    return [...filteredProducts].sort((a, b) => {
+      const aVal = sortValue(a, sortConfig.key);
+      const bVal = sortValue(b, sortConfig.key);
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortConfig.direction === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredProducts, sortConfig]);
+
+  // ---- Pagination ----
+  const totalCount = sortedProducts.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / entriesPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
+  const endIndex = Math.min(currentPage * entriesPerPage, totalCount);
+
+  const paginatedProducts = useMemo(() => {
+    return sortedProducts.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
+  }, [sortedProducts, currentPage, entriesPerPage]);
+
+  const pageNumbers = useMemo(() => {
+    const maxButtons = 5;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    start = Math.max(1, end - maxButtons + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [totalPages, currentPage]);
+
+  const handleEntriesPerPageChange = (n: number) => {
+    setEntriesPerPage(n);
+    setCurrentPage(1);
+  };
+
+  const sortHeaderClass = (key: string) =>
+    `px-6 py-4 cursor-pointer hover:text-primary transition-colors group ${
+      sortConfig?.key === key ? 'text-primary' : ''
+    }`;
+
+  const sortIconClass = (key: string) =>
+    `material-symbols-outlined text-[12px] transition-opacity ${
+      sortConfig?.key === key ? 'opacity-100 text-primary' : 'opacity-50 group-hover:opacity-100'
+    }`;
+
   return (
     <>
       <div className="flex-1 overflow-y-auto p-8 z-0 relative">
@@ -201,22 +319,80 @@ export default function ProductsPage() {
           </button>
         </div>
 
+
+{/* Metrics Grid */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Products</p>
+      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">inventory_2</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Active</p>
+      <span className="material-symbols-outlined text-green-500 p-2 rounded-lg bg-green-500/10">task_alt</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.active}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">
+      {stats.total > 0 ? `${Math.round((stats.active / stats.total) * 100)}% of catalog` : 'no data yet'}
+    </p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Inactive</p>
+      <span className="material-symbols-outlined text-error p-2 rounded-lg bg-error/10">block</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.inactive}</p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">not currently sellable</p>
+  </div>
+
+  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Average Price</p>
+      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">payments</span>
+    </div>
+    <p className="text-3xl font-bold text-on-surface tracking-tight">
+      ₹ {stats.avgPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+    </p>
+    <p className="mt-2 text-sm text-on-surface-variant/60">across all products</p>
+  </div>
+</div>
+      
         {/* Main Content Glass Card */}
         <section className="glass-panel rounded-xl overflow-hidden mb-12 relative z-10 border border-primary/10 shadow-lg">
           {/* Table Controls */}
           <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
             <div className="flex items-center gap-3">
               <span className="text-sm text-on-surface-variant">Show</span>
-              <select className="glass-input text-sm px-3 py-1.5 rounded-lg text-on-surface focus:ring-0 cursor-pointer bg-surface-container-highest">
-                <option>10</option>
-                <option>25</option>
-                <option>50</option>
+              <select
+                value={entriesPerPage}
+                onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
+                className="glass-input text-sm px-3 py-1.5 rounded-lg text-on-surface focus:ring-0 cursor-pointer bg-surface-container-highest"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
               </select>
               <span className="text-sm text-on-surface-variant">entries</span>
             </div>
             <div className="relative w-full sm:w-80 group">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-sm">search</span>
-              <input className="glass-input w-full pl-10 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none transition-all" placeholder="Search products..." type="text" />
+              <input
+                className="glass-input w-full pl-10 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none transition-all"
+                placeholder="Search products..."
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
 
@@ -225,11 +401,31 @@ export default function ProductsPage() {
             <table className="w-full table-fixed text-left border-collapse whitespace-nowrap">
               <thead>
                 <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
-                  <th className="px-6 py-4 w-1/6">Product Details</th>
-                  <th className="px-6 py-4 w-1/6">SKU</th>
-                  <th className="px-6 py-4 w-1/6">HSN</th>
-                  <th className="px-6 py-4 text-right w-1/6">Price</th>
-                  <th className="px-6 py-4 text-center w-1/6">Status</th>
+                  <th className={`${sortHeaderClass('name')} w-1/6`} onClick={() => handleSort('name')}>
+                    <div className="flex items-center gap-1">
+                      Product Details <span className={sortIconClass('name')}>{getSortIcon('name')}</span>
+                    </div>
+                  </th>
+                  <th className={`${sortHeaderClass('sku')} w-1/6`} onClick={() => handleSort('sku')}>
+                    <div className="flex items-center gap-1">
+                      SKU <span className={sortIconClass('sku')}>{getSortIcon('sku')}</span>
+                    </div>
+                  </th>
+                  <th className={`${sortHeaderClass('hsn')} w-1/6`} onClick={() => handleSort('hsn')}>
+                    <div className="flex items-center gap-1">
+                      HSN <span className={sortIconClass('hsn')}>{getSortIcon('hsn')}</span>
+                    </div>
+                  </th>
+                  <th className={`${sortHeaderClass('price')} text-right w-1/6`} onClick={() => handleSort('price')}>
+                    <div className="flex items-center justify-end gap-1">
+                      Price <span className={sortIconClass('price')}>{getSortIcon('price')}</span>
+                    </div>
+                  </th>
+                  <th className={`${sortHeaderClass('status')} text-center w-1/6`} onClick={() => handleSort('status')}>
+                    <div className="flex items-center justify-center gap-1">
+                      Status <span className={sortIconClass('status')}>{getSortIcon('status')}</span>
+                    </div>
+                  </th>
                   <th className="px-6 py-4 text-right pr-8 w-1/6">Actions</th>
                 </tr>
               </thead>
@@ -242,14 +438,14 @@ export default function ProductsPage() {
                       </div>
                     </td>
                   </tr>
-                ) : products.length === 0 ? (
+                ) : paginatedProducts.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-on-surface-variant">
-                      No products found for this branch. Create one to get started!
+                      {searchQuery ? 'No matching products found.' : 'No products found for this branch. Create one to get started!'}
                     </td>
                   </tr>
                 ) : (
-                  products.map((product) => (
+                  paginatedProducts.map((product) => (
                     <tr key={product.id} className="group hover:bg-surface-container-highest/50 transition-all duration-300">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-5">
@@ -320,8 +516,39 @@ export default function ProductsPage() {
           {/* Pagination */}
           <div className="p-6 border-t border-primary/10 flex flex-col md:flex-row items-center justify-between gap-4 bg-surface-container/30">
             <span className="text-sm text-on-surface-variant/70">
-              Showing <span className="text-on-surface font-semibold">{products.length > 0 ? 1 : 0}</span> to <span className="text-on-surface font-semibold">{products.length}</span> of <span className="text-on-surface font-semibold">{products.length}</span> entries
+              {totalCount === 0
+                ? 'Showing 0 entries'
+                : <>Showing <span className="text-on-surface font-semibold">{startIndex}</span> to <span className="text-on-surface font-semibold">{endIndex}</span> of <span className="text-on-surface font-semibold">{totalCount}</span> entries</>}
             </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Previous
+              </button>
+              {pageNumbers.map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
+                    page === currentPage
+                      ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
+                      : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </section>
       </div>

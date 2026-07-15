@@ -459,42 +459,70 @@ export default function EditQuotationPage() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar bg-background">
-        <div className="flex items-center justify-center h-64">
-          <div className="flex flex-col items-center gap-4">
-            <span className="material-symbols-outlined animate-spin text-primary text-[40px]">refresh</span>
-            <p className="text-on-surface-variant font-semibold">Loading quotation...</p>
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
+        <div className="flex flex-col items-center justify-center py-32">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
           </div>
+          <p className="mt-6 text-on-surface-variant font-medium tracking-wide">Loading quotation data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar bg-background">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8 relative z-10">
-        <div>
-          <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-2">
+    <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+      `}} />
+
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+        <div className="max-w-2xl">
+          <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-4">
             <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to List
           </button>
-          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-[24px]">edit_document</span>
-            </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+            <span className="material-symbols-outlined text-[14px]">edit_document</span>
             Edit Quotation
-          </h1>
-          {quotationNumber && (
-            <span className="text-sm font-semibold text-primary mt-1 inline-flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[14px]">tag</span> {quotationNumber}
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+            <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+              Update Details
             </span>
-          )}
+          </h1>
+          <div className="flex flex-col gap-2">
+            <p className="text-on-surface-variant text-lg leading-relaxed">
+              Modify the quotation details below and save your changes.
+            </p>
+            {quotationNumber && (
+              <span className="text-sm font-bold text-primary inline-flex items-center gap-1.5 bg-primary/5 px-2 py-1 rounded w-max border border-primary/10">
+                <span className="material-symbols-outlined text-[14px]">tag</span> {quotationNumber}
+              </span>
+            )}
+          </div>
         </div>
-        <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="glass-button-primary rounded-lg py-2.5 px-6 flex items-center gap-2 text-sm font-semibold transition-all shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
-          {isSaving ? <span className="material-symbols-outlined animate-spin text-[18px]">refresh</span> : <span className="material-symbols-outlined text-[18px]">save</span>}
-          Update Quotation
+        <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="group relative h-14 px-8 rounded-2xl bg-primary text-on-primary font-bold flex items-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+          <div className="absolute inset-0 w-full h-full bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
+          {isSaving ? <span className="material-symbols-outlined animate-spin">refresh</span> : <span className="material-symbols-outlined">save</span>}
+          <span>Update Quotation</span>
         </button>
-      </div>
+      </header>
 
       {error && (
         <div ref={errorRef} className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
@@ -503,11 +531,11 @@ export default function EditQuotationPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 relative z-10">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 relative z-10 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
         <div className="col-span-2 space-y-6">
 
           {/* Customer & Address Section */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10 overflow-visible relative">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30 overflow-visible relative">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">person</span> Customer Information
             </h2>
@@ -586,7 +614,7 @@ export default function EditQuotationPage() {
           </div>
 
           {/* Master Configurations */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">settings</span> Discount & Tax Rules
             </h2>
@@ -661,7 +689,7 @@ export default function EditQuotationPage() {
           </div>
 
           {/* Items Table */}
-          <div className="glass-panel rounded-xl shadow-md border border-primary/10 overflow-hidden relative overflow-visible">
+          <div className="glass-panel rounded-3xl shadow-sm border border-outline-variant/30 overflow-hidden relative overflow-visible">
             <h2 className="text-lg font-bold text-on-surface m-6 mb-2 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">inventory_2</span> Quotation Items
             </h2>
@@ -817,7 +845,7 @@ export default function EditQuotationPage() {
           </div>
 
           {/* Terms and Conditions */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">description</span> Terms & Conditions
             </h2>
@@ -829,7 +857,7 @@ export default function EditQuotationPage() {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Summary */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Quotation Summary</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center text-on-surface-variant">
@@ -855,7 +883,7 @@ export default function EditQuotationPage() {
           </div>
 
           {/* Dates */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Timeline</h3>
             <div className="space-y-4">
               <div>
@@ -871,7 +899,7 @@ export default function EditQuotationPage() {
 
           {/* Existing Attachments */}
           {existingAttachments.length > 0 && (
-            <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+            <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
               <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Existing Attachments</h3>
               <div className="space-y-2">
                 {existingAttachments.map((att: any) => (
@@ -888,7 +916,7 @@ export default function EditQuotationPage() {
           )}
 
           {/* Attachments Dropzone */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Add Attachments</h3>
             <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center hover:bg-primary/5 transition-colors relative group cursor-pointer">
               <input type="file" multiple accept=".pdf,.xlsx,.docx,.png,.jpg,.jpeg,.ppt,.pptx" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
@@ -912,7 +940,7 @@ export default function EditQuotationPage() {
           </div>
 
           {/* Notes & Reminder */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Notes & Reminder</h3>
             <div className="space-y-4">
               <div>
@@ -927,6 +955,16 @@ export default function EditQuotationPage() {
           </div>
         </div>
       </div>
+
+      {/* Footer Decoration */}
+      <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-12 mb-4">
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+        <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+          BillTea Dashboard • Edit Quotation
+        </p>
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+      </footer>
+    </div>
     </div>
   );
 }

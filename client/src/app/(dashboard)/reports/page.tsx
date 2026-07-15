@@ -22,6 +22,13 @@ interface Invoice {
   };
 }
 
+type SortDirection = 'asc' | 'desc';
+type SortKey = 'invoiceNumber' | 'date' | 'customer' | 'total' | 'paid' | 'pending' | 'status';
+interface SortConfig {
+  key: SortKey;
+  direction: SortDirection;
+}
+
 export default function ReportsPage() {
   const { selectedBranchId, isLoadingBranches } = useBranch();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -34,9 +41,12 @@ export default function ReportsPage() {
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Sorting State
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     if (selectedBranchId) {
@@ -68,6 +78,7 @@ export default function ReportsPage() {
     setSelectedCustomerId('ALL');
     setSelectedStatus('ALL');
     setSearchQuery('');
+    setSortConfig(null);
     setCurrentPage(1);
   };
 
@@ -124,9 +135,77 @@ export default function ReportsPage() {
     });
   }, [invoices, fromDate, toDate, selectedCustomerId, selectedStatus, searchQuery]);
 
+  // ---- Sorting ----
+  const handleSort = (key: SortKey) => {
+    setCurrentPage(1);
+    setSortConfig((prev) => {
+      if (prev?.key === key && prev.direction === 'asc') {
+        return { key, direction: 'desc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: SortKey): string => {
+    if (sortConfig?.key !== key) return 'unfold_more';
+    return sortConfig.direction === 'asc' ? 'expand_less' : 'expand_more';
+  };
+
+  const sortValue = (inv: Invoice, key: SortKey): string | number => {
+    switch (key) {
+      case 'invoiceNumber': return inv.invoiceNumber || '';
+      case 'date': return new Date(inv.invoiceDate).getTime() || 0;
+      case 'customer': return inv.customer?.customerName || '';
+      case 'total': return inv.totals?.grandTotal || 0;
+      case 'paid': return inv.amountPaid || 0;
+      case 'pending': return inv.amountDue || 0;
+      case 'status': return inv.status || '';
+      default: return '';
+    }
+  };
+
+  const sortedInvoices = useMemo(() => {
+    if (!sortConfig) return filteredInvoices;
+    return [...filteredInvoices].sort((a, b) => {
+      const aVal = sortValue(a, sortConfig.key);
+      const bVal = sortValue(b, sortConfig.key);
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortConfig.direction === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredInvoices, sortConfig]);
+
   // Pagination logic
-  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
-  const paginatedInvoices = filteredInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(sortedInvoices.length / itemsPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  const paginatedInvoices = useMemo(() => {
+    return sortedInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  }, [sortedInvoices, currentPage, itemsPerPage]);
+
+  const startIndex = sortedInvoices.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(currentPage * itemsPerPage, sortedInvoices.length);
+
+  const pageNumbers = useMemo(() => {
+    const maxButtons = 5;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    start = Math.max(1, end - maxButtons + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [totalPages, currentPage]);
+
+  const handleItemsPerPageChange = (n: number) => {
+    setItemsPerPage(n);
+    setCurrentPage(1);
+  };
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -153,6 +232,16 @@ export default function ReportsPage() {
     if (status === 'UNPAID') return 'Pending';
     return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
   };
+
+  const sortHeaderClass = (key: SortKey, align: 'left' | 'right' | 'center' = 'left') =>
+    `px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-primary transition-colors group select-none ${
+      align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : ''
+    } ${sortConfig?.key === key ? 'text-primary' : 'text-on-surface-variant'}`;
+
+  const sortIconClass = (key: SortKey) =>
+    `material-symbols-outlined text-[12px] transition-opacity ${
+      sortConfig?.key === key ? 'opacity-100 text-primary' : 'opacity-50 group-hover:opacity-100'
+    }`;
 
   return (
     <div className="flex-1 overflow-y-auto p-8 z-0 relative">
@@ -282,7 +371,20 @@ export default function ReportsPage() {
               <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
               <h2 className="text-xl font-bold text-on-surface">Invoice Details</h2>
             </div>
-            <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="flex items-center gap-4 w-full md:w-auto flex-wrap">
+              <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+                <span>Show</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                  className="bg-surface-container border border-primary/20 rounded-lg px-2 py-1.5 text-xs focus:ring-0 focus:border-primary cursor-pointer outline-none"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+                <span>entries</span>
+              </div>
               <div className="relative w-full md:w-64 group">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl group-focus-within:text-primary transition-colors">search</span>
                 <input 
@@ -311,13 +413,41 @@ export default function ReportsPage() {
               <thead className="bg-surface-container/50">
                 <tr>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant">#</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Invoice Number</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Date</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Customer</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Total Amount</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Paid Amount</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Pending Amount</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-center">Status</th>
+                  <th className={sortHeaderClass('invoiceNumber')} onClick={() => handleSort('invoiceNumber')}>
+                    <div className="flex items-center gap-1">
+                      Invoice Number <span className={sortIconClass('invoiceNumber')}>{getSortIcon('invoiceNumber')}</span>
+                    </div>
+                  </th>
+                  <th className={sortHeaderClass('date')} onClick={() => handleSort('date')}>
+                    <div className="flex items-center gap-1">
+                      Date <span className={sortIconClass('date')}>{getSortIcon('date')}</span>
+                    </div>
+                  </th>
+                  <th className={sortHeaderClass('customer')} onClick={() => handleSort('customer')}>
+                    <div className="flex items-center gap-1">
+                      Customer <span className={sortIconClass('customer')}>{getSortIcon('customer')}</span>
+                    </div>
+                  </th>
+                  <th className={sortHeaderClass('total', 'right')} onClick={() => handleSort('total')}>
+                    <div className="flex items-center justify-end gap-1">
+                      Total Amount <span className={sortIconClass('total')}>{getSortIcon('total')}</span>
+                    </div>
+                  </th>
+                  <th className={sortHeaderClass('paid', 'right')} onClick={() => handleSort('paid')}>
+                    <div className="flex items-center justify-end gap-1">
+                      Paid Amount <span className={sortIconClass('paid')}>{getSortIcon('paid')}</span>
+                    </div>
+                  </th>
+                  <th className={sortHeaderClass('pending', 'right')} onClick={() => handleSort('pending')}>
+                    <div className="flex items-center justify-end gap-1">
+                      Pending Amount <span className={sortIconClass('pending')}>{getSortIcon('pending')}</span>
+                    </div>
+                  </th>
+                  <th className={sortHeaderClass('status', 'center')} onClick={() => handleSort('status')}>
+                    <div className="flex items-center justify-center gap-1">
+                      Status <span className={sortIconClass('status')}>{getSortIcon('status')}</span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/5 text-sm">
@@ -371,18 +501,20 @@ export default function ReportsPage() {
           </div>
           <div className="p-6 border-t border-outline-variant/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
             <p className="text-sm text-on-surface-variant">
-              Showing <span className="text-on-surface font-semibold">{paginatedInvoices.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> to <span className="text-on-surface font-semibold">{Math.min(currentPage * itemsPerPage, filteredInvoices.length)}</span> of <span className="text-on-surface font-semibold">{filteredInvoices.length}</span> entries
+              {sortedInvoices.length === 0
+                ? 'Showing 0 entries'
+                : <>Showing <span className="text-on-surface font-semibold">{startIndex}</span> to <span className="text-on-surface font-semibold">{endIndex}</span> of <span className="text-on-surface font-semibold">{sortedInvoices.length}</span> entries</>}
             </p>
             <div className="flex items-center gap-2">
               <button 
-                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-container-highest disabled:opacity-30 cursor-pointer transition-colors" 
+                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-container-highest disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors" 
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               >
                 <span className="material-symbols-outlined">chevron_left</span>
               </button>
               
-              {Array.from({ length: totalPages || 1 }, (_, i) => i + 1).map(page => (
+              {pageNumbers.map(page => (
                 <button 
                   key={page}
                   className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold cursor-pointer transition-all ${currentPage === page ? 'bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]' : 'hover:bg-surface-container-highest'}`}
@@ -393,8 +525,8 @@ export default function ReportsPage() {
               ))}
 
               <button 
-                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-container-highest disabled:opacity-30 cursor-pointer transition-colors"
-                disabled={currentPage === totalPages || totalPages === 0}
+                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-container-highest disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               >
                 <span className="material-symbols-outlined">chevron_right</span>

@@ -1,4 +1,5 @@
-import { IsString, IsEmail, IsEnum, IsOptional, IsArray, MinLength, Matches } from 'class-validator';
+import { IsString, IsEmail, IsEnum, IsOptional, IsArray, MinLength, Matches, IsBoolean } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateUserDto {
@@ -21,13 +22,25 @@ export class CreateUserDto {
     @ApiProperty({ example: 'password123' })
   password: string;
 
-  @IsEnum(['MANAGER', 'STAFF'], { message: 'Role must be either "MANAGER" or "STAFF"' })
-    @ApiProperty({ example: 'sample_value' })
-  role: 'MANAGER' | 'STAFF';
+  @IsEnum(['MANAGER'], { message: 'Role must be "MANAGER"' })
+    @ApiProperty({ example: 'MANAGER' })
+  role: 'MANAGER';
 
   @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : value ? [value] : []))
   @IsArray()
   @IsString({ each: true })
     @ApiPropertyOptional({ example: [] })
   branches?: string[];
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  profilePicture?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  @ApiPropertyOptional()
+  isActive?: boolean;
 }

@@ -17,7 +17,7 @@ export class ExpenseCategoriesController {
     if (!createExpenseCategoryDto.branchId) {
       throw new BadRequestException('branchId is required');
     }
-    return this.expenseCategoriesService.create(createExpenseCategoryDto.name, req.user.companyId, createExpenseCategoryDto.branchId, req.user.id);
+    return this.expenseCategoriesService.create(createExpenseCategoryDto.name, req.user.companyId, createExpenseCategoryDto.branchId, req.user.userId);
   }
 
   @Get()

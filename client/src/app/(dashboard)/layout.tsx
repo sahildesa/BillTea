@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from '../../components/ThemeProvider';
 import { BranchProvider, useBranch } from '../../components/BranchProvider';
+import { SubscriptionProvider, useSubscription } from '../../components/SubscriptionProvider';
 import Link from 'next/link';
 import { isLoggedIn, logout } from '../../lib/auth';
 
@@ -12,6 +13,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { branches, selectedBranchId, setSelectedBranchId, isLoadingBranches } = useBranch();
+  const { isExpired, daysRemaining, isLoading: isLoadingSub } = useSubscription();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState<{ fullName: string; email: string; role?: string }>({
@@ -163,6 +165,36 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
+        {/* Subscription Expiry Banner */}
+        {!isLoadingSub && isExpired && (
+          <div className="bg-error/10 border-b border-error/30 px-6 py-3 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-error">warning</span>
+              <div>
+                <p className="text-error font-semibold text-sm">Your subscription has expired.</p>
+                <p className="text-on-surface-variant text-xs">You have lost access to premium features. Please renew your plan to restore access.</p>
+              </div>
+            </div>
+            <Link href="/settings/subscription" className="px-4 py-1.5 bg-error text-on-error text-sm font-semibold rounded-lg hover:bg-error/90 transition-colors">
+              Renew Now
+            </Link>
+          </div>
+        )}
+        {!isLoadingSub && !isExpired && daysRemaining !== null && daysRemaining <= 3 && daysRemaining >= 0 && (
+          <div className="bg-warning/10 border-b border-warning/30 px-6 py-3 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-warning">info</span>
+              <div>
+                <p className="text-warning font-semibold text-sm">Your subscription expires in {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}.</p>
+                <p className="text-on-surface-variant text-xs">Renew now to avoid service interruption.</p>
+              </div>
+            </div>
+            <Link href="/settings/subscription" className="px-4 py-1.5 bg-warning text-on-warning text-sm font-semibold rounded-lg hover:bg-warning/90 transition-colors">
+              Renew Plan
+            </Link>
+          </div>
+        )}
+
         {children}
       </main>
     </div>
@@ -171,8 +203,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <BranchProvider>
-      <DashboardContent>{children}</DashboardContent>
-    </BranchProvider>
+    <SubscriptionProvider>
+      <BranchProvider>
+        <DashboardContent>{children}</DashboardContent>
+      </BranchProvider>
+    </SubscriptionProvider>
   );
 }

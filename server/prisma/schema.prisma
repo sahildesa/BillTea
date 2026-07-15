@@ -8,14 +8,45 @@ datasource db {
 }
 
 enum UserRole {
+  SUPER_ADMIN
   OWNER
   MANAGER
-  STAFF
 }
 
-enum SignatureType {
-  TEXT
-  IMAGE
+enum PlanRank {
+  TRIAL
+  BRONZE
+  SILVER
+  GOLD
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum SubPaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum NotificationType {
+  SUBSCRIPTION_PURCHASED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  SUBSCRIPTION_EXPIRING
+  SUBSCRIPTION_EXPIRED
+  PLAN_UPGRADED
+  PLAN_DOWNGRADED
 }
 
 enum QuotationStatus {
@@ -40,23 +71,27 @@ enum PaymentMethod {
 }
 
 model Company {
-  id                String            @id @default(uuid())
-  name              String
-  logo              String            @default("")
-  identifiers       Json              @default("[]")
-  isActive          Boolean           @default(true)
-  createdById       String?
-  createdBy         User?             @relation("CompanyCreator", fields: [createdById], references: [id])
-  branches          Branch[]
-  customers         Customer[]
-  products          Product[]
-  expenses          Expense[]
-  expenseCategories ExpenseCategory[]
-  quotations        Quotation[]
-  invoices          Invoice[]
-  users             User[]            @relation("CompanyUsers")
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                   String                @id @default(uuid())
+  name                 String
+  logo                 String                @default("")
+  identifiers          Json                  @default("[]")
+  isActive             Boolean               @default(true)
+  createdById          String?
+  createdBy            User?                 @relation("CompanyCreator", fields: [createdById], references: [id])
+  branches             Branch[]
+  customers            Customer[]
+  products             Product[]
+  expenses             Expense[]
+  expenseCategories    ExpenseCategory[]
+  quotations           Quotation[]
+  invoices             Invoice[]
+  users                User[]                @relation("CompanyUsers")
+  subscription         CompanySubscription?
+  usage                CompanyUsage?
+  subscriptionPayments SubscriptionPayment[]
+  notifications        Notification[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   @@map("companies")
 }
@@ -68,7 +103,7 @@ model User {
   email                    String            @unique
   password                 String
   profilePicture           String            @default("")
-  role                     UserRole          @default(STAFF)
+  role                     UserRole          @default(MANAGER)
   isActive                 Boolean           @default(true)
   companyId                String?
   company                  Company?          @relation("CompanyUsers", fields: [companyId], references: [id])
@@ -109,7 +144,6 @@ model Branch {
   accountNumber     String            @default("")
   ifscCode          String            @default("")
   upiId             String            @default("")
-  signatureType     SignatureType     @default(TEXT)
   signatureValue    String            @default("")
   tax               Int               @default(0)
   taxLabel          String            @default("")
@@ -452,4 +486,116 @@ model InvoicePayment {
   updatedAt DateTime @updatedAt
 
   @@map("invoice_payments")
+}
+
+// ─── Subscription Management ───────────────────────────────────────
+
+model SubscriptionPlan {
+  id            String   @id @default(uuid())
+  name          String
+  rank          PlanRank
+  description   String   @default("")
+  displayOrder  Int      @unique
+  isActive      Boolean  @default(true)
+  isDeleted     Boolean  @default(false)
+  isRecommended Boolean  @default(false)
+
+  // Pricing
+  price        Float
+  billingCycle BillingCycle
+
+  // Usage Limits (0 = Unlimited)
+  quotationLimit       Int @default(0)
+  invoiceLimit         Int @default(0)
+  customerLimit        Int @default(0)
+  productLimit         Int @default(0)
+  branchLimit          Int @default(0)
+  staffLimit           Int @default(0)
+  whatsappMessageLimit Int @default(0)
+
+  // Feature Permissions
+  customQuotationThemes Boolean @default(false)
+  customInvoiceThemes   Boolean @default(false)
+  whatsappIntegration   Boolean @default(false)
+
+  // Relations
+  subscriptions CompanySubscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscription_plans")
+}
+
+model CompanySubscription {
+  id        String           @id @default(uuid())
+  companyId String           @unique
+  company   Company          @relation(fields: [companyId], references: [id])
+  planId    String
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  status     SubscriptionStatus @default(TRIAL)
+  startDate  DateTime           @default(now())
+  expiryDate DateTime
+
+  paymentId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("company_subscriptions")
+}
+
+model SubscriptionPayment {
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  planId   String
+  amount   Float
+  currency String @default("INR")
+
+  razorpayOrderId   String @default("")
+  razorpayPaymentId String @default("")
+  razorpaySignature String @default("")
+
+  status      SubPaymentStatus @default(PENDING)
+  paymentDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscription_payments")
+}
+
+model CompanyUsage {
+  id        String  @id @default(uuid())
+  companyId String  @unique
+  company   Company @relation(fields: [companyId], references: [id])
+
+  quotationsUsed       Int @default(0)
+  invoicesUsed         Int @default(0)
+  customersUsed        Int @default(0)
+  productsUsed         Int @default(0)
+  whatsappMessagesSent Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("company_usage")
+}
+
+model Notification {
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  type    NotificationType
+  title   String
+  message String
+  isRead  Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
 }

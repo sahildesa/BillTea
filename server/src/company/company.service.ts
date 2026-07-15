@@ -67,6 +67,24 @@ export class CompanyService {
 
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
+      include: {
+        createdBy: {
+          select: { fullName: true }
+        },
+        branches: {
+          where: { isMainBranch: true },
+          select: { city: true, state: true }
+        },
+        _count: {
+          select: {
+            branches: true,
+            customers: true,
+            users: true,
+            products: true,
+          }
+        },
+        subscription: true
+      }
     });
 
     if (!company) {

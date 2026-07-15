@@ -58,7 +58,7 @@ function Icon({
 export default function QuotationConfigurationPage() {
   const [hsn, setHsn] = useState(true);
   const [sku, setSku] = useState(false);
-  const [payment, setPayment] = useState(true);
+
   const [personalName, setPersonalName] = useState(false);
 
   const [prefix, setPrefix] = useState("QT-");
@@ -247,13 +247,7 @@ export default function QuotationConfigurationPage() {
                       onChange={setSku}
                       id="toggle_sku"
                     />
-                    <PreferenceRow
-                      title="Payment Method"
-                      description="Display accepted payment options on the quote footer."
-                      checked={payment}
-                      onChange={setPayment}
-                      id="toggle_payment"
-                    />
+
                     <PreferenceRow
                       title="Display Personal Name"
                       description="Show the generating agent's name instead of just the company."

@@ -16,8 +16,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     setMounted(true);
+    
+    if (pathname === '/admin/auth' || pathname === '/') return;
+
     if (!isLoggedIn()) {
-      router.push('/login');
+      router.push('/admin/auth');
       return;
     }
     
@@ -31,7 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
       } catch (e) {}
     }
-  }, [router]);
+  }, [router, pathname]);
 
   const handleLogout = () => {
     logout();
@@ -39,6 +42,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   if (!mounted) return null;
+
+  if (pathname === '/admin/auth' || pathname === '/') {
+    return <>{children}</>;
+  }
 
   return (
     <div className="bg-background text-on-surface font-body min-h-screen flex overflow-hidden antialiased transition-colors duration-300">

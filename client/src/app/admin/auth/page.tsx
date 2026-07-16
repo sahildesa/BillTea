@@ -1,164 +1,502 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { saveAuthData, API_BASE } from '../../../lib/auth';
+
+type AuthUser = Parameters<typeof saveAuthData>[2];
+
+type AdminLoginResponse = {
+  success?: boolean;
+  message?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  user?: AuthUser;
+};
+
+function MailIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M4 6h16v12H4V6Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m4 7 8 6 8-6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+      <rect
+        x="5"
+        y="10"
+        width="14"
+        height="10"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path
+        d="M8 10V7a4 4 0 0 1 8 0v3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function EyeIcon({ hidden }: { hidden: boolean }) {
+  if (hidden) {
+    return (
+      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M3 3l18 18"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M10.6 10.6A2 2 0 0 0 13.4 13.4"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M9.9 4.2A10.7 10.7 0 0 1 12 4c5 0 9 5 9 8a8.8 8.8 0 0 1-2 3.5"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M6.6 6.6C4.4 8 3 10.3 3 12c0 3 4 8 9 8a10.4 10.4 0 0 0 4.3-.9"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="3"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 3 5 6v5c0 5 3 9 7 10 4-1 7-5 7-10V6l-7-3Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m9 12 2 2 4-4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M12 2v2M12 20v2M2 12h2M20 12h2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="m4.93 4.93 1.41 1.41M17.66 17.66l1.41 1.41M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M21 14.5A8.5 8.5 0 0 1 9.5 3 7 7 0 1 0 21 14.5Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M3 11l9-8 9 8"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 10v10h14V10"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 20v-6h6v6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError('Please enter both email and password.');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminSuccess, setAdminSuccess] = useState(false);
+
+  const [isLightTheme, setIsLightTheme] = useState(false);
+  const [logoSrc, setLogoSrc] = useState('/logo.jpg');
+  const [logoFailed, setLogoFailed] = useState(false);
+
+  const isFormValid =
+    adminEmail.trim().length > 0 && adminPassword.trim().length > 0;
+
+  const getMainWebsiteOrigin = () => {
+    if (typeof window === 'undefined') {
+      return '';
+    }
+
+    const { protocol, hostname, port } = window.location;
+    const mainHostname = hostname.replace(/^admin\./, '');
+
+    return `${protocol}//${mainHostname}${port ? `:${port}` : ''}`;
+  };
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const shouldUseLightTheme = savedTheme === 'light';
+
+    document.documentElement.classList.toggle('light', shouldUseLightTheme);
+    document.documentElement.classList.toggle('dark', !shouldUseLightTheme);
+
+    setIsLightTheme(shouldUseLightTheme);
+    setLogoSrc(`${getMainWebsiteOrigin()}/logo.jpg`);
+  }, []);
+
+  const validateAdminForm = () => {
+    const trimmedEmail = adminEmail.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(trimmedEmail)) {
+      setAdminError('Please enter a valid email address.');
+      return false;
+    }
+
+    if (!adminPassword.trim()) {
+      setAdminError('Please enter your password.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const readLoginResponse = async (response: Response) => {
+    try {
+      return (await response.json()) as AdminLoginResponse;
+    } catch {
+      return {} as AdminLoginResponse;
+    }
+  };
+
+  const handleThemeToggle = () => {
+    const nextThemeIsLight = !isLightTheme;
+
+    document.documentElement.classList.toggle('light', nextThemeIsLight);
+    document.documentElement.classList.toggle('dark', !nextThemeIsLight);
+
+    localStorage.setItem('theme', nextThemeIsLight ? 'light' : 'dark');
+    setIsLightTheme(nextThemeIsLight);
+  };
+
+  const handleGoHome = () => {
+    window.location.href = `${getMainWebsiteOrigin()}/`;
+  };
+
+  const handleForgotPassword = () => {
+    router.push('/forgot-password');
+  };
+
+  const handleAdminLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setAdminError(null);
+
+    if (!validateAdminForm()) {
       return;
     }
-    
-    setError('');
-    setIsLoading(true);
 
-    // Simulate API call for admin login
-    setTimeout(() => {
-      setIsLoading(false);
-      // Example routing after successful login:
-      // router.push('/dashboard');
-      console.log('Logged in with', email);
-    }, 1500);
+    try {
+      setAdminLoading(true);
+
+      const response = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: adminEmail.trim(),
+          password: adminPassword,
+        }),
+      });
+
+      const data = await readLoginResponse(response);
+
+      if (!response.ok || !data.success) {
+        setAdminError(data.message || 'Invalid admin credentials.');
+        return;
+      }
+
+      if (!data.accessToken || !data.refreshToken || !data.user) {
+        setAdminError('Login response is missing required authentication data.');
+        return;
+      }
+
+      saveAuthData(data.accessToken, data.refreshToken, data.user);
+
+      setAdminSuccess(true);
+
+      setTimeout(() => {
+        router.push('/admin');
+      }, 1800);
+    } catch {
+      setAdminError('Unable to connect to server. Please check your connection.');
+    } finally {
+      setAdminLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-surface selection:bg-primary/30">
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-slide-up {
-          opacity: 0;
-          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-      `}} />
+    <main className="min-h-screen bg-background text-on-surface overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center px-6 py-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
 
-      {/* Premium Background Elements */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-primary/10 blur-[150px]"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-tertiary/10 blur-[150px]"></div>
-        <div className="absolute top-[30%] right-[20%] w-[40%] h-[40%] rounded-full bg-secondary/10 blur-[120px]"></div>
-      </div>
+        <div className="absolute right-8 top-8 hidden sm:flex items-center gap-4 z-[9999] pointer-events-auto">
+          <button
+            type="button"
+            onClick={handleThemeToggle}
+            aria-label="Toggle theme"
+            className="h-12 w-12 rounded-full glass-panel flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+          >
+            {isLightTheme ? <MoonIcon /> : <SunIcon />}
+          </button>
 
-      <div className="relative z-10 w-full max-w-md mx-auto animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
-        
-        {/* Logo or Brand */}
-        <div className="flex flex-col items-center justify-center mb-10 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-secondary to-tertiary p-[2px] mb-6 shadow-xl shadow-primary/20">
-            <div className="w-full h-full bg-surface rounded-[14px] flex items-center justify-center">
-              <span className="material-symbols-outlined text-[32px] bg-gradient-to-br from-primary to-secondary bg-clip-text text-transparent">
-                admin_panel_settings
-              </span>
-            </div>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
-            <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
-              BillTea Admin
-            </span>
-          </h1>
-          <p className="text-on-surface-variant font-medium tracking-wide">
-            Secure login to the administration panel
-          </p>
+          <button
+            type="button"
+            onClick={handleGoHome}
+            aria-label="Go home"
+            className="h-12 w-12 rounded-full glass-panel flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+          >
+            <HomeIcon />
+          </button>
         </div>
 
-        {/* Login Form Panel */}
-        <div className="glass-panel rounded-3xl p-8 shadow-2xl border border-outline-variant/30 relative overflow-hidden backdrop-blur-2xl">
-          {/* subtle inset highlight */}
-          <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-          
-          <form onSubmit={handleLogin} className="flex flex-col gap-6 relative z-10">
-            {error && (
-              <div className="p-4 rounded-xl bg-red-50/50 border border-red-500/20 flex items-start gap-3 shadow-sm">
-                <span className="material-symbols-outlined text-red-500 text-[20px] mt-0.5">error</span>
-                <div className="text-sm text-red-600 font-medium whitespace-pre-line leading-relaxed">{error}</div>
+        <div className="w-full max-w-md animate-fade-in relative z-10">
+          <div className="flex items-center justify-center gap-4 mb-10">
+            {logoFailed ? (
+              <div className="h-12 w-12 rounded-xl border border-primary/30 bg-primary/10 flex items-center justify-center text-primary font-bold shadow-lg shadow-primary/20">
+                IT
+              </div>
+            ) : (
+              <img
+                src={logoSrc}
+                alt="Indux Technology Logo"
+                onError={() => setLogoFailed(true)}
+                className="h-12 w-12 rounded-xl object-cover border border-primary/30 shadow-lg shadow-primary/20"
+              />
+            )}
+
+            <h1 className="text-3xl font-display font-semibold text-on-surface text-glow">
+              Indux Technology
+            </h1>
+          </div>
+
+          <div className="glass-panel-elevated rounded-3xl p-8 sm:p-10 relative overflow-hidden transition-all duration-300">
+            <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent opacity-70" />
+
+            <div className="mb-8">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-primary">
+                Admin Portal
+              </p>
+
+              <h2 className="font-headline text-4xl font-bold text-on-surface mb-3 tracking-tight">
+                Admin Sign In
+              </h2>
+
+              <p className="text-on-surface-variant text-base leading-7">
+                Secure access for authorized admin users only.
+              </p>
+            </div>
+
+            {adminError && (
+              <div className="mb-6 flex items-start gap-3 rounded-xl border border-error/20 bg-error/10 px-4 py-3 text-sm font-medium text-error animate-fade-in">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-error text-xs">
+                  !
+                </span>
+                <span>{adminError}</span>
               </div>
             )}
 
-            <div className="space-y-4">
-              <div className="relative group">
-                <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">
+            <form onSubmit={handleAdminLogin} className="space-y-6">
+              <div className="space-y-3">
+                <label
+                  className="block text-sm font-semibold text-on-surface"
+                  htmlFor="admin-email"
+                >
                   Email Address
                 </label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 group-focus-within:text-primary transition-colors text-[20px]">
-                    mail
-                  </span>
+
+                <div className="input-container input-glow flex items-center rounded-full overflow-hidden px-5 py-1.5 transition-all duration-300 text-primary">
+                  <MailIcon />
+
                   <input
+                    id="admin-email"
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@billtea.com"
-                    className="glass-input pl-12 pr-4 py-3.5 rounded-xl text-sm text-on-surface w-full font-semibold focus:ring-primary/50 transition-all placeholder:font-normal placeholder:text-on-surface-variant/40"
-                    autoComplete="email"
+                    required
+                    disabled={adminLoading}
+                    value={adminEmail}
+                    onChange={event => {
+                      setAdminError(null);
+                      setAdminEmail(event.target.value);
+                    }}
+                    placeholder="Enter admin email"
+                    className="ml-4 w-full bg-transparent border-none text-on-surface placeholder-on-surface-variant/50 focus:ring-0 focus:outline-none py-2 text-sm disabled:opacity-50"
                   />
                 </div>
               </div>
 
-              <div className="relative group">
-                <div className="flex justify-between items-end mb-2">
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider block">
-                    Password
-                  </label>
-                  <a href="#" className="text-[11px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider">
-                    Forgot?
-                  </a>
-                </div>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 group-focus-within:text-primary transition-colors text-[20px]">
-                    lock
-                  </span>
+              <div className="space-y-3">
+                <label
+                  className="block text-sm font-semibold text-on-surface"
+                  htmlFor="admin-password"
+                >
+                  Password
+                </label>
+
+                <div className="input-container input-glow flex items-center rounded-full overflow-hidden px-5 py-1.5 transition-all duration-300 text-primary">
+                  <LockIcon />
+
                   <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="glass-input pl-12 pr-4 py-3.5 rounded-xl text-sm text-on-surface w-full font-semibold focus:ring-primary/50 transition-all placeholder:tracking-widest"
-                    autoComplete="current-password"
+                    id="admin-password"
+                    type={showAdminPassword ? 'text' : 'password'}
+                    required
+                    disabled={adminLoading}
+                    value={adminPassword}
+                    onChange={event => {
+                      setAdminError(null);
+                      setAdminPassword(event.target.value);
+                    }}
+                    placeholder="Enter admin password"
+                    className="ml-4 w-full bg-transparent border-none text-on-surface placeholder-on-surface-variant/50 focus:ring-0 focus:outline-none py-2 pr-3 text-sm disabled:opacity-50"
                   />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminPassword(previous => !previous)}
+                    disabled={adminLoading}
+                    aria-label={showAdminPassword ? 'Hide password' : 'Show password'}
+                    className="text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+                  >
+                    <EyeIcon hidden={showAdminPassword} />
+                  </button>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    disabled={adminLoading}
+                    className="text-sm text-primary font-bold hover:text-primary/80 transition-colors disabled:opacity-50"
+                  >
+                    Forgot Password?
+                  </button>
                 </div>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="mt-2 group relative w-full h-14 rounded-xl bg-primary text-on-primary font-bold flex items-center justify-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              <button
+                type="submit"
+                disabled={!isFormValid || adminLoading}
+                className="w-full glass-panel-elevated btn-login-glow hover:bg-surface-container/60 text-on-surface rounded-full py-4 font-semibold text-lg flex items-center justify-center gap-3 cursor-pointer border border-primary/30 transition-all duration-300 active:scale-98 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <ShieldIcon />
+                <span>{adminLoading ? 'Signing In...' : 'Sign In as Admin'}</span>
+              </button>
+            </form>
+
+            <p className="mt-8 text-center text-xs leading-6 text-on-surface-variant">
+              Admin access is restricted to authorized BillTea admin.
+            </p>
+
+            <div
+              className={`absolute inset-0 bg-surface/95 backdrop-blur-2xl flex flex-col items-center justify-center success-overlay shimmer-bg rounded-3xl z-20 ${
+                adminSuccess ? 'active' : ''
+              }`}
             >
-              <div className="absolute inset-0 w-full h-full bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
-              {isLoading ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin">refresh</span>
-                  <span>Authenticating...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-                </>
-              )}
-            </button>
-          </form>
-        </div>
+              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(125,211,252,0.3)]">
+                <ShieldIcon />
+              </div>
 
-        {/* Footer Decoration */}
-        <footer className="w-full opacity-40 text-center flex items-center justify-center gap-4 mt-12 mb-4">
-          <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
-          <p className="text-[10px] font-bold tracking-[0.2em] text-on-surface-variant uppercase">
-            BillTea Admin Portal
-          </p>
-          <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
-        </footer>
-      </div>
-    </div>
+              <h3 className="font-headline text-3xl font-bold text-on-surface mb-2">
+                Access Granted
+              </h3>
+
+              <p className="text-base text-primary font-semibold">
+                Redirecting to admin dashboard...
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }

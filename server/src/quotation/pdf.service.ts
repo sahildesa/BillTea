@@ -101,7 +101,7 @@ export class PdfService {
         </svg>`;
 
         let imageUrl = item.editedImage || item.originalImage;
-        if (imageUrl && !imageUrl.startsWith('http')) imageUrl = `${baseUrl}/${imageUrl.replace(/^\/+/, '')}`;
+        if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) imageUrl = `${baseUrl}/${imageUrl.replace(/^\/+/, '')}`;
         const itemImage = imageUrl 
           ? `<img src="${imageUrl}" class="mx-auto block h-[65px] w-auto max-w-[120px] object-cover" />`
           : imgPlaceholder;
@@ -212,7 +212,7 @@ export class PdfService {
 
           <div class="w-[30%] text-[#9D7E6C] p-8 pr-6 flex flex-col items-center justify-center relative z-10 h-full">
             ${company.logo ? `
-                <img src="${company.logo.startsWith('http') ? company.logo : `${baseUrl}/${company.logo.replace(/^\/+/, '')}`}" alt="${company.name}" class="w-[180px] h-[64px] mb-6 object-contain brightness-0 invert opacity-90" />
+                <img src="${company.logo.startsWith('http') || company.logo.startsWith('data:') ? company.logo : `${baseUrl}/${company.logo.replace(/^\/+/, '')}`}" alt="${company.name}" class="w-[180px] h-[64px] mb-6 object-contain opacity-90" />
             ` : `
                 <div class="text-center font-serif text-[28px] italic text-[#9D7E6C] leading-snug tracking-wider">
                   <p>${company.name}</p>

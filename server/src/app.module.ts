@@ -19,7 +19,7 @@ import { SubscriptionPlansModule } from './subscription-plans/subscription-plans
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DashboardModule } from './dashboard/dashboard.module';
-
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -34,6 +34,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 
     // Core modules
     PrismaModule,
+    AdminModule,
     AuthModule,
     CompanyModule,
     BranchesModule,

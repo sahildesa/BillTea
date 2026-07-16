@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
           destination: '/admin/auth',
         },
         {
-          source: '/:path((?!_next|api|uploads|favicon\\.ico|admin).*)',
+          source: '/:path((?!_next|api|uploads|fonts|images|.*\\\\.svg|.*\\\\.png|.*\\\\.jpg|favicon\\\\.ico|admin).*)',
           has: [{ type: 'host', value: 'admin.localhost:3000' }],
           destination: '/admin/:path',
         },
@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
           destination: '/admin/auth',
         },
         {
-          source: '/:path((?!_next|api|uploads|favicon\\.ico|admin).*)',
+          source: '/:path((?!_next|api|uploads|fonts|images|.*\\\\.svg|.*\\\\.png|.*\\\\.jpg|favicon\\\\.ico|admin).*)',
           has: [{ type: 'host', value: 'admin.localhost' }],
           destination: '/admin/:path',
         },
@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
           destination: '/admin/auth',
         },
         {
-          source: '/:path((?!_next|api|uploads|favicon\\.ico|admin).*)',
+          source: '/:path((?!_next|api|uploads|fonts|images|.*\\\\.svg|.*\\\\.png|.*\\\\.jpg|favicon\\\\.ico|admin).*)',
           has: [{ type: 'host', value: 'admin.billtea.com' }],
           destination: '/admin/:path',
         },

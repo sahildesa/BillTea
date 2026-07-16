@@ -281,7 +281,7 @@ export default function AdminLoginPage() {
     try {
       setAdminLoading(true);
 
-      const response = await fetch(`${API_BASE}/auth/login`, {
+      const response = await fetch(`${API_BASE}/admin/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -307,7 +307,7 @@ export default function AdminLoginPage() {
       setAdminSuccess(true);
 
       setTimeout(() => {
-        router.push('/admin');
+        router.push('/dashboard');
       }, 1800);
     } catch {
       setAdminError('Unable to connect to server. Please check your connection.');

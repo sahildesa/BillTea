@@ -264,133 +264,153 @@ export default function CustomersPage() {
 
   return (
     <>
-      <div
-        className="flex-1 overflow-y-auto p-8 z-0 relative [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-      <style jsx global>{`
-  * {
-    -webkit-tap-highlight-color: transparent !important;
-  }
-  button, th, select, input, a, tr, td, span, div, [role='button'] {
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    outline: none !important;
-  }
-  th::selection, th *::selection,
-  button::selection, button *::selection,
-  span::selection {
-    background: transparent !important;
-  }
-  button::-moz-focus-inner {
-    border: 0 !important;
-  }
-  button,
-  button:focus,
-  button:focus-visible,
-  button:active,
-  th,
-  th:focus,
-  th:focus-visible,
-  th:active,
-  select,
-  select:focus,
-  select:focus-visible,
-  select:active,
-  a,
-  a:focus,
-  a:focus-visible,
-  a:active,
-  tr,
-  tr:focus,
-  tr:active,
-  td,
-  td:focus,
-  td:active,
-  span,
-  span:focus,
-  span:active,
-  [role='button'],
-  [role='button']:focus,
-  [role='button']:focus-visible,
-  [role='button']:active {
-    outline: none !important;
-    box-shadow: none !important;
-    -webkit-appearance: none;
-    appearance: none;
-  }
-`}</style>
-        {/* Background Ambient Effects */}
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fade-slide-up {
+            opacity: 0;
+            animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+          }
+        `}} />
+        <style jsx global>{`
+          * {
+            -webkit-tap-highlight-color: transparent !important;
+          }
+          button, th, select, input, a, tr, td, span, div, [role='button'] {
+            -webkit-tap-highlight-color: transparent !important;
+            -webkit-touch-callout: none !important;
+            outline: none !important;
+          }
+          th::selection, th *::selection,
+          button::selection, button *::selection,
+          span::selection {
+            background: transparent !important;
+          }
+          button::-moz-focus-inner {
+            border: 0 !important;
+          }
+          button,
+          button:focus,
+          button:focus-visible,
+          button:active,
+          th,
+          th:focus,
+          th:focus-visible,
+          th:active,
+          select,
+          select:focus,
+          select:focus-visible,
+          select:active,
+          a,
+          a:focus,
+          a:focus-visible,
+          a:active,
+          tr,
+          tr:focus,
+          tr:active,
+          td,
+          td:focus,
+          td:active,
+          span,
+          span:focus,
+          span:active,
+          [role='button'],
+          [role='button']:focus,
+          [role='button']:focus-visible,
+          [role='button']:active {
+            outline: none !important;
+            box-shadow: none !important;
+            -webkit-appearance: none;
+            appearance: none;
+          }
+        `}</style>
 
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 relative z-10">
-        <div className="space-y-1">
-         <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
-              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">
-            Customers
-            </span>
-          </h1>
-          <p className="text-on-surface-variant text-lg">Manage your business connections and relationship data.</p>
+        {/* Premium Background */}
+        <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+          <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+          <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+          <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
         </div>
-        <button
-          onClick={handleOpenCreateModal}
-          disabled={!selectedBranchId}
-          className="glass-button-primary group flex items-center gap-2 px-5 py-2.5 rounded-lg text-primary font-semibold text-sm transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 cursor-pointer disabled:opacity-50"
-        >
-          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-          New Customer
-        </button>
-      </div>
 
-{/* Metrics Grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Customers</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">group</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
-  </div>
+        <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Active Customers</p>
-      <span className="material-symbols-outlined text-emerald-400 p-2 rounded-lg bg-emerald-400/10">task_alt</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.active}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">
-      {stats.total > 0 ? `${Math.round((stats.active / stats.total) * 100)}% of total` : 'no data yet'}
-    </p>
-  </div>
+          {/* Header Section */}
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+                <span className="material-symbols-outlined text-[14px]">group</span>
+                Customer Directory
+              </div>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+                <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+                  Customers
+                </span>
+              </h1>
+              <p className="text-on-surface-variant text-lg leading-relaxed">
+                Manage your business connections and relationship data.
+              </p>
+            </div>
+            <button
+              onClick={handleOpenCreateModal}
+              disabled={!selectedBranchId}
+              className="glass-button-primary group flex items-center gap-2 px-5 py-2.5 rounded-lg text-primary font-semibold text-sm transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 mb-1"
+            >
+              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
+              New Customer
+            </button>
+          </header>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.totalInvoices}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">across all customers</p>
-  </div>
+          {/* Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
+            <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+              <div className="flex justify-between items-start mb-4">
+                <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Customers</p>
+                <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">group</span>
+              </div>
+              <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
+              <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
+            </div>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Quotations</p>
-      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">request_quote</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.totalQuotations}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">across all customers</p>
-  </div>
-</div>
-      
-      {/* Main Content Glass Card */}
-      <section className="glass-panel rounded-xl overflow-hidden mb-12 relative z-10 border border-primary/10 shadow-lg">
+            <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-emerald-400/40 hover:shadow-[0_20px_40px_-15px_rgba(52,211,153,0.15)] hover:-translate-y-1 transition-all duration-300">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-400/5 rounded-full blur-2xl group-hover:bg-emerald-400/10 transition-colors duration-500"></div>
+              <div className="flex justify-between items-start mb-4">
+                <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Active Customers</p>
+                <span className="material-symbols-outlined text-emerald-400 p-2 rounded-lg bg-emerald-400/10">task_alt</span>
+              </div>
+              <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.active}</p>
+              <p className="mt-2 text-sm text-on-surface-variant/60">
+                {stats.total > 0 ? `${Math.round((stats.active / stats.total) * 100)}% of total` : 'no data yet'}
+              </p>
+            </div>
+
+            <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+              <div className="flex justify-between items-start mb-4">
+                <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
+                <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
+              </div>
+              <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.totalInvoices}</p>
+              <p className="mt-2 text-sm text-on-surface-variant/60">across all customers</p>
+            </div>
+
+            <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+              <div className="flex justify-between items-start mb-4">
+                <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Quotations</p>
+                <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">request_quote</span>
+              </div>
+              <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.totalQuotations}</p>
+              <p className="mt-2 text-sm text-on-surface-variant/60">across all customers</p>
+            </div>
+          </div>
+          
+          {/* Main Content Glass Card */}
+          <section className="glass-panel rounded-3xl overflow-hidden animate-fade-slide-up" style={{ animationDelay: '0.3s' }}>
         {/* Table Controls */}
         <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
           <div className="flex items-center gap-3">
@@ -548,7 +568,8 @@ export default function CustomersPage() {
             </button>
           </div>
         </div>
-      </section>
+          </section>
+        </div>
       </div>
 
       {/* New Customer Modal */}

@@ -40,6 +40,10 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   // Increase body size limit for file uploads
+  const express = require('express');
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+  
   const expressApp = app.getHttpAdapter().getInstance();
   expressApp.set('trust proxy', 1);
 

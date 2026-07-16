@@ -246,9 +246,9 @@ export default function ReportsPage() {
   };
 
   const sortHeaderClass = (key: SortKey, align: 'left' | 'right' | 'center' = 'left') =>
-    `px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-primary transition-colors group select-none ${
+    `px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group select-none ${
       align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : ''
-    } ${sortConfig?.key === key ? 'text-primary' : 'text-on-surface-variant'}`;
+    } ${sortConfig?.key === key ? 'text-primary' : ''}`;
 
   const sortIconClass = (key: SortKey) =>
     `material-symbols-outlined text-[12px] transition-opacity ${
@@ -256,51 +256,79 @@ export default function ReportsPage() {
     }`;
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 z-0 relative scrollbar-hide">
-      {/* Background Ambient Effects */}
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
+    <div
+      className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    >
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+      `}} />
 
-      <div className="flex flex-col gap-8 relative z-10 max-w-[1440px] mx-auto">
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
         {/* Header Section */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+              <span className="material-symbols-outlined text-[14px]">analytics</span>
+              Financial Reports
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
               <span className="text-on-surface">Invoice </span>
-              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Reports</span>
+              <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+                Reports
+              </span>
             </h1>
-            <p className="text-on-surface-variant text-lg">Financial overview and tracking for Indux Technology.</p>
+            <p className="text-on-surface-variant text-lg leading-relaxed">
+              Financial overview and tracking for Indux Technology. Analyze invoices, payments, and track outstanding balances.
+            </p>
           </div>
           <Link href="/profit">
-            <button className="glass-elevated px-6 py-3 rounded-xl border border-primary/30 text-primary font-semibold flex items-center gap-2 hover:bg-primary/10 transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.2)] hover:shadow-[0_0_25px_rgba(125,211,252,0.4)] active:scale-95 group cursor-pointer">
+            <button className="group relative h-14 px-8 rounded-2xl bg-surface-container-highest border border-primary/20 text-primary font-bold flex items-center gap-3 overflow-hidden shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:shadow-[0_0_25px_rgba(125,211,252,0.3)] transition-all hover:-translate-y-0.5 hover:border-primary/40 cursor-pointer">
+              <div className="absolute inset-0 w-full h-full bg-primary/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
               <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">analytics</span>
-              Profit & Loss Report
+              <span>Profit & Loss Report</span>
             </button>
           </Link>
         </header>
 
         {/* Filters Section */}
-        <section className="glass-panel p-6 md:p-8 rounded-xl">
-          <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
+        <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-hidden animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.2s' }}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+          
+          <div className="flex items-center justify-between gap-3 mb-6 flex-wrap relative z-10">
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary">filter_list</span>
+              <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">filter_list</span>
               <h2 className="text-xl font-bold text-on-surface">Filters</h2>
             </div>
-            {/* Export actions moved here from the table header */}
             <div className="flex gap-2">
-              <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 transition-colors tooltip cursor-pointer" title="Export PDF">
-                <span className="material-symbols-outlined text-primary">picture_as_pdf</span>
+              <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 hover:text-primary transition-colors tooltip cursor-pointer" title="Export PDF">
+                <span className="material-symbols-outlined">picture_as_pdf</span>
               </button>
-              <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 transition-colors tooltip cursor-pointer" title="Export Excel">
-                <span className="material-symbols-outlined text-primary">table_view</span>
+              <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 hover:text-primary transition-colors tooltip cursor-pointer" title="Export Excel">
+                <span className="material-symbols-outlined">table_view</span>
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">From Date</label>
               <input 
-                className="w-full h-12 px-4 rounded-lg bg-surface-container text-on-surface focus:ring-0 border border-primary/20 focus:border-primary transition-colors focus:shadow-[0_0_10px_rgba(125,211,252,0.3)] outline-none" 
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
                 type="date" 
                 value={fromDate}
                 onChange={(e) => { setFromDate(e.target.value); setCurrentPage(1); }}
@@ -309,7 +337,7 @@ export default function ReportsPage() {
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">To Date</label>
               <input 
-                className="w-full h-12 px-4 rounded-lg bg-surface-container text-on-surface focus:ring-0 border border-primary/20 focus:border-primary transition-colors focus:shadow-[0_0_10px_rgba(125,211,252,0.3)] outline-none" 
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
                 type="date" 
                 value={toDate}
                 onChange={(e) => { setToDate(e.target.value); setCurrentPage(1); }}
@@ -317,98 +345,118 @@ export default function ReportsPage() {
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Customer</label>
-              <select 
-                className="w-full h-12 px-4 rounded-lg bg-surface-container text-on-surface focus:ring-0 border border-primary/20 focus:border-primary transition-colors focus:shadow-[0_0_10px_rgba(125,211,252,0.3)] outline-none"
-                value={selectedCustomerId}
-                onChange={(e) => { setSelectedCustomerId(e.target.value); setCurrentPage(1); }}
-              >
-                <option value="ALL">All Customers</option>
-                {uniqueCustomers.map(customer => (
-                  <option key={customer?.id} value={customer?.id}>
-                    {customer?.customerName} {customer?.companyName ? `(${customer.companyName})` : ''}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select 
+                  className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
+                  value={selectedCustomerId}
+                  onChange={(e) => { setSelectedCustomerId(e.target.value); setCurrentPage(1); }}
+                >
+                  <option value="ALL">All Customers</option>
+                  {uniqueCustomers.map(customer => (
+                    <option key={customer?.id} value={customer?.id}>
+                      {customer?.customerName} {customer?.companyName ? `(${customer.companyName})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Payment Status</label>
-              <select 
-                className="w-full h-12 px-4 rounded-lg bg-surface-container text-on-surface focus:ring-0 border border-primary/20 focus:border-primary transition-colors focus:shadow-[0_0_10px_rgba(125,211,252,0.3)] outline-none"
-                value={selectedStatus}
-                onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-              >
-                <option value="ALL">All Status</option>
-                <option value="PAID">Paid</option>
-                <option value="UNPAID">Pending</option>
-                <option value="PARTIAL">Partial</option>
-                <option value="OVERDUE">Overdue</option>
-              </select>
+              <div className="relative">
+                <select 
+                  className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
+                  value={selectedStatus}
+                  onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="PAID">Paid</option>
+                  <option value="UNPAID">Pending</option>
+                  <option value="PARTIAL">Partial</option>
+                  <option value="OVERDUE">Overdue</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              </div>
             </div>
           </div>
-          <div className="mt-8 flex flex-wrap gap-4">
+          
+          <div className="mt-8 flex flex-wrap gap-4 relative z-10">
             <button 
-              className="bg-surface-variant text-on-surface px-8 py-3 rounded-lg font-semibold hover:bg-surface-container-highest transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center gap-2"
               onClick={handleClearFilters}
             >
+              <span className="material-symbols-outlined text-[18px]">clear_all</span>
               Clear Filters
             </button>
           </div>
         </section>
 
-        {/* Stats Section */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="glass-elevated p-6 rounded-xl relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <span className="material-symbols-outlined text-9xl">receipt</span>
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.3s' }}>
+          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
+              <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt</span>
             </div>
-            <p className="text-on-surface-variant text-sm font-medium mb-1">Total Invoices</p>
-            <p className="text-4xl font-black text-on-surface">{filteredInvoices.length}</p>
+            <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{filteredInvoices.length}</p>
           </div>
-          <div className="glass-elevated p-6 rounded-xl relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <span className="material-symbols-outlined text-9xl">payments</span>
+          
+          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-blue-500/40 hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.15)] hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors duration-500"></div>
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Amount</p>
+              <span className="material-symbols-outlined text-blue-500 p-2 rounded-lg bg-blue-500/10">payments</span>
             </div>
-            <p className="text-on-surface-variant text-sm font-medium mb-1">Total Amount</p>
-            <p className="text-2xl sm:text-3xl font-black text-primary whitespace-nowrap" title={formatINR(stats.totalAmount)}>{formatINR(stats.totalAmount, true)}</p>
+            <p className="text-3xl font-bold text-blue-500 tracking-tight relative z-10 whitespace-nowrap" title={formatINR(stats.totalAmount)}>{formatINR(stats.totalAmount, true)}</p>
           </div>
-          <div className="glass-elevated p-6 rounded-xl relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <span className="material-symbols-outlined text-9xl">verified_user</span>
+          
+          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-emerald-500/40 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Paid</p>
+              <span className="material-symbols-outlined text-emerald-500 p-2 rounded-lg bg-emerald-500/10">verified_user</span>
             </div>
-            <p className="text-on-surface-variant text-sm font-medium mb-1">Total Paid</p>
-            <p className="text-2xl sm:text-3xl font-black text-secondary whitespace-nowrap" title={formatINR(stats.totalPaid)}>{formatINR(stats.totalPaid, true)}</p>
+            <p className="text-3xl font-bold text-emerald-500 tracking-tight relative z-10 whitespace-nowrap" title={formatINR(stats.totalPaid)}>{formatINR(stats.totalPaid, true)}</p>
           </div>
-          <div className="glass-elevated p-6 rounded-xl relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <span className="material-symbols-outlined text-9xl">pending_actions</span>
+          
+          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Pending</p>
+              <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">pending_actions</span>
             </div>
-            <p className="text-on-surface-variant text-sm font-medium mb-1">Total Pending</p>
-            <p className="text-2xl sm:text-3xl font-black text-tertiary whitespace-nowrap" title={formatINR(stats.totalPending)}>{formatINR(stats.totalPending, true)}</p>
+            <p className="text-3xl font-bold text-tertiary tracking-tight relative z-10 whitespace-nowrap" title={formatINR(stats.totalPending)}>{formatINR(stats.totalPending, true)}</p>
           </div>
-        </section>
+        </div>
 
-        {/* Invoice Details Table */}
-        <section className="glass-panel rounded-xl flex flex-col mb-12">
-          <div className="p-6 border-b border-outline-variant/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-container/30">
-            {/* Show entries - left corner */}
-            <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+        {/* Glassmorphic Data Table Container */}
+        <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.4s' }}>
+          {/* Glow Accent */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+          
+          {/* Table Controls */}
+          <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
+            <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant">
               <span>Show</span>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                className="bg-surface-container border border-primary/20 rounded-lg px-2 py-1.5 text-xs focus:ring-0 focus:border-primary cursor-pointer outline-none"
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                  className="bg-surface-container border border-outline-variant/30 rounded-xl py-2 pl-4 pr-10 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm cursor-pointer appearance-none hover:bg-surface-container-high transition-colors font-semibold"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              </div>
               <span>entries</span>
             </div>
-            {/* Search bar - right corner */}
-            <div className="relative w-full md:w-64 group">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl group-focus-within:text-primary transition-colors">search</span>
+            <div className="relative w-full sm:w-auto">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
               <input 
-                className="glass-input w-full pl-10 pr-4 h-10 rounded-full text-sm outline-none placeholder:text-on-surface-variant/50 transition-all" 
+                className="w-full sm:w-80 bg-surface-container border border-outline-variant/30 pl-11 pr-4 py-2.5 rounded-xl text-sm font-medium text-on-surface placeholder-on-surface-variant/60 focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all" 
                 placeholder="Search invoices..." 
                 type="text" 
                 value={searchQuery}
@@ -416,49 +464,51 @@ export default function ReportsPage() {
               />
             </div>
           </div>
-          <div className="overflow-x-auto scrollbar-hide">
-            <table className="w-full text-left border-separate border-spacing-0 whitespace-nowrap">
-              <thead className="bg-surface-container/50">
+
+          {/* The Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
+              <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant">#</th>
-                  <th className={sortHeaderClass('invoiceNumber')} onClick={() => handleSort('invoiceNumber')}>
+                  <th className="px-6 py-4 font-semibold tracking-wider">#</th>
+                  <th className={sortHeaderClass('invoiceNumber')} onClick={() => handleSort('invoiceNumber')} role="columnheader" aria-sort={sortConfig?.key === 'invoiceNumber' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                     <div className="flex items-center gap-1">
                       Invoice Number <span className={sortIconClass('invoiceNumber')}>{getSortIcon('invoiceNumber')}</span>
                     </div>
                   </th>
-                  <th className={sortHeaderClass('date')} onClick={() => handleSort('date')}>
+                  <th className={sortHeaderClass('date')} onClick={() => handleSort('date')} role="columnheader" aria-sort={sortConfig?.key === 'date' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                     <div className="flex items-center gap-1">
                       Date <span className={sortIconClass('date')}>{getSortIcon('date')}</span>
                     </div>
                   </th>
-                  <th className={sortHeaderClass('customer')} onClick={() => handleSort('customer')}>
+                  <th className={sortHeaderClass('customer')} onClick={() => handleSort('customer')} role="columnheader" aria-sort={sortConfig?.key === 'customer' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                     <div className="flex items-center gap-1">
                       Customer <span className={sortIconClass('customer')}>{getSortIcon('customer')}</span>
                     </div>
                   </th>
-                  <th className={sortHeaderClass('total', 'right')} onClick={() => handleSort('total')}>
+                  <th className={sortHeaderClass('total', 'right')} onClick={() => handleSort('total')} role="columnheader" aria-sort={sortConfig?.key === 'total' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                     <div className="flex items-center justify-end gap-1">
                       Total Amount <span className={sortIconClass('total')}>{getSortIcon('total')}</span>
                     </div>
                   </th>
-                  <th className={sortHeaderClass('paid', 'right')} onClick={() => handleSort('paid')}>
+                  <th className={sortHeaderClass('paid', 'right')} onClick={() => handleSort('paid')} role="columnheader" aria-sort={sortConfig?.key === 'paid' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                     <div className="flex items-center justify-end gap-1">
                       Paid Amount <span className={sortIconClass('paid')}>{getSortIcon('paid')}</span>
                     </div>
                   </th>
-                  <th className={sortHeaderClass('pending', 'right')} onClick={() => handleSort('pending')}>
+                  <th className={sortHeaderClass('pending', 'right')} onClick={() => handleSort('pending')} role="columnheader" aria-sort={sortConfig?.key === 'pending' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                     <div className="flex items-center justify-end gap-1">
                       Pending Amount <span className={sortIconClass('pending')}>{getSortIcon('pending')}</span>
                     </div>
                   </th>
-                  <th className={sortHeaderClass('status', 'center')} onClick={() => handleSort('status')}>
+                  <th className={sortHeaderClass('status', 'center')} onClick={() => handleSort('status')} role="columnheader" aria-sort={sortConfig?.key === 'status' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                     <div className="flex items-center justify-center gap-1">
                       Status <span className={sortIconClass('status')}>{getSortIcon('status')}</span>
                     </div>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant/5 text-sm">
+              <tbody className="divide-y divide-primary/5">
                 {isLoadingBranches || loading ? (
                   <tr>
                     <td colSpan={8} className="px-6 py-8 text-center text-on-surface-variant">
@@ -469,35 +519,42 @@ export default function ReportsPage() {
                   </tr>
                 ) : paginatedInvoices.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-on-surface-variant">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
-                        <span className="material-symbols-outlined text-[32px]">search_off</span>
+                    <td colSpan={8} className="px-6 py-24 text-center">
+                      <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
+                        <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-60">search_off</span>
                       </div>
-                      <h3 className="text-lg font-bold text-on-surface">No invoices found</h3>
-                      <p className="text-sm mt-1">Try adjusting your filters.</p>
+                      <h3 className="text-2xl text-on-surface font-bold mb-3">No invoices found</h3>
+                      <p className="text-on-surface-variant max-w-md mx-auto text-lg">Try adjusting your filters.</p>
                     </td>
                   </tr>
                 ) : (
                   paginatedInvoices.map((invoice, idx) => (
-                    <tr key={invoice.id} className="hover:bg-primary/5 transition-colors group cursor-pointer active:scale-[0.995]">
-                      <td className="px-6 py-5 text-on-surface-variant font-medium">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                      <td className="px-6 py-5 font-bold text-on-surface group-hover:text-primary transition-colors">{invoice.invoiceNumber}</td>
-                      <td className="px-6 py-5 text-on-surface-variant">
+                    <tr key={invoice.id} className="hover:bg-primary/5 transition-colors duration-200">
+                      <td className="px-6 py-4 text-on-surface-variant font-medium">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+                      <td className="px-6 py-4 font-semibold text-primary">{invoice.invoiceNumber}</td>
+                      <td className="px-6 py-4 text-on-surface-variant mb-1">
                         {new Date(invoice.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full ${idx % 2 === 0 ? 'bg-primary/20 text-primary' : 'bg-secondary/20 text-secondary'} flex items-center justify-center text-xs font-bold`}>
-                            {invoice.customer?.customerName?.substring(0, 2).toUpperCase() || 'NA'}
-                          </div>
-                          <span className="text-on-surface">{invoice.customer?.customerName || 'Unknown'}</span>
+                      <td className="px-6 py-4 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-surface-container-highest border border-primary/20 flex items-center justify-center text-primary font-bold text-xs">
+                          {invoice.customer?.customerName?.substring(0, 2).toUpperCase() || 'NA'}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-on-surface font-semibold">{invoice.customer?.customerName || 'Unknown'}</span>
+                          <span className="text-[11px] text-on-surface-variant/70">{invoice.customer?.companyName}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-5 text-right font-semibold text-on-surface">{formatINR(invoice.totals?.grandTotal || 0)}</td>
-                      <td className="px-6 py-5 text-right text-on-surface-variant">{formatINR(invoice.amountPaid || 0)}</td>
-                      <td className="px-6 py-5 text-right font-bold text-tertiary">{formatINR(invoice.amountDue || 0)}</td>
-                      <td className="px-6 py-5 text-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(invoice.status)}`}>
+                      <td className="px-6 py-4 font-bold text-on-surface text-right">
+                        {formatINR(invoice.totals?.grandTotal || 0)}
+                      </td>
+                      <td className="px-6 py-4 font-semibold text-on-surface text-right">
+                        {formatINR(invoice.amountPaid || 0)}
+                      </td>
+                      <td className="px-6 py-4 font-bold text-tertiary text-right">
+                        {formatINR(invoice.amountDue || 0)}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${getStatusColor(invoice.status)}`}>
                           {getStatusText(invoice.status)}
                         </span>
                       </td>
@@ -507,46 +564,50 @@ export default function ReportsPage() {
               </tbody>
             </table>
           </div>
-          <div className="p-6 border-t border-outline-variant/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
-            <p className="text-sm text-on-surface-variant">
-              {sortedInvoices.length === 0
-                ? 'Showing 0 entries'
-                : <>Showing <span className="text-on-surface font-semibold">{startIndex}</span> to <span className="text-on-surface font-semibold">{endIndex}</span> of <span className="text-on-surface font-semibold">{sortedInvoices.length}</span> entries</>}
-            </p>
-            <div className="flex items-center gap-2">
-              <button 
-                className="px-4 h-9 rounded-lg flex items-center gap-1 font-semibold text-sm hover:bg-surface-container-highest disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors" 
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              >
-                Previous
-              </button>
 
-              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
-                {currentPage}
+          {/* Pagination */}
+          <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
+              <span className="text-sm text-on-surface-variant">
+                {sortedInvoices.length === 0
+                  ? 'Showing 0 entries'
+                  : `Showing ${startIndex} to ${endIndex} of ${sortedInvoices.length} entries`}
               </span>
+              <div className="flex items-center gap-1">
+                <button 
+                  className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                >
+                  Previous
+                </button>
 
-              <button 
-                className="px-4 h-9 rounded-lg flex items-center gap-1 font-semibold text-sm hover:bg-surface-container-highest disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              >
-                Next
-              </button>
+                <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+                  {currentPage}
+                </span>
+
+                <button 
+                  className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
 
-      <style jsx global>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none; /* IE and Edge */
-          scrollbar-width: none; /* Firefox */
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none; /* Chrome, Safari, Opera */
-        }
-      `}</style>
+        {/* Footer Decoration */}
+        <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-8">
+          <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+          <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+            BillTea Dashboard • Reports
+          </p>
+          <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+        </footer>
+
+      </div>
     </div>
   );
 }

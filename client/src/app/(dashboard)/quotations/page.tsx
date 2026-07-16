@@ -158,7 +158,7 @@ export default function QuotationsPage() {
 
   const handleDownloadPdf = async (id: string, quotationNumber: string) => {
     try {
-      const res = await apiFetch(`/quotations/${id}/pdf`, {
+      const res = await apiFetch(`/quotations/${id}/pdf?t=${Date.now()}`, {
         method: 'GET',
       });
 
@@ -183,7 +183,7 @@ export default function QuotationsPage() {
   const handleViewPdf = async (id: string, quotationNumber: string) => {
     try {
       setIsLoadingPdf(true);
-      const res = await apiFetch(`/quotations/${id}/pdf`, {
+      const res = await apiFetch(`/quotations/${id}/pdf?t=${Date.now()}`, {
         method: 'GET',
       });
 

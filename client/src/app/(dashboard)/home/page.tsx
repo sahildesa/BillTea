@@ -88,7 +88,8 @@ export default function DashboardHome() {
     try {
       const endpoint = type === 'quotation' ? `/quotations/${id}/pdf` : `/invoices/${id}/pdf`;
       const prefix = type === 'quotation' ? 'Quotation' : 'Invoice';
-      const res = await apiFetch(endpoint, { method: 'GET' });
+      const cacheBustedEndpoint = `${endpoint}?t=${Date.now()}`;
+      const res = await apiFetch(cacheBustedEndpoint, { method: 'GET' });
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       setViewerPdfUrl({ url, title: `${prefix}-${numberStr}.pdf`, id, type });

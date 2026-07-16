@@ -13,6 +13,7 @@ interface PdfViewerModalProps {
 
 export default function PdfViewerModal({ url, title, documentId, documentType = 'quotation', onClose, renderActions }: PdfViewerModalProps) {
   const [mounted, setMounted] = useState(false);
+  const [timestamp] = useState(Date.now());
 
   useEffect(() => {
     setMounted(true);

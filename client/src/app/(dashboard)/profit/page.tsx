@@ -428,7 +428,7 @@ export default function ProfitReportPage() {
           </div>
           {/* Table Body */}
           <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <table className="w-full text-left border-collapse whitespace-nowrap">
+        <table className="w-full text-left border-separate border-spacing-0 whitespace-nowrap">
               <thead className="bg-surface-container/30">
                 <tr>
                   <th className={sortHeaderClass('date')} onClick={() => handleSort('date')}>

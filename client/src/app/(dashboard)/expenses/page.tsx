@@ -387,6 +387,34 @@ export default function ExpensesPage() {
 
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-theme(spacing.16))] bg-background overflow-hidden relative">
+      <style jsx global>{`
+  table, thead, tbody, tr, td, th {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+  }
+  table ::selection,
+  tr::selection, tr *::selection,
+  td::selection, td *::selection,
+  th::selection, th *::selection,
+  button::selection, button *::selection,
+  span::selection {
+    background: transparent !important;
+    color: inherit !important;
+  }
+  button, th, select, input, a, tr, td, span, [role='button'] {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    outline: none !important;
+  }
+  button::-moz-focus-inner {
+    border: 0 !important;
+  }
+  th, th:focus, th:active {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+`}</style>
       <div
         className="flex-1 overflow-y-auto px-8 py-8 [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -496,7 +524,7 @@ export default function ExpensesPage() {
 
             {/* High-Fidelity Data Table */}
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed text-left border-collapse whitespace-nowrap">
+              <table className="w-full table-fixed text-left border-separate border-spacing-0 whitespace-nowrap">
                 <thead>
                   <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
                     <th className={`${sortHeaderClass('date')} w-1/6`} onClick={() => handleSort('date')}>
@@ -801,8 +829,7 @@ export default function ExpensesPage() {
                   <p className="text-sm text-error font-medium">{categoryError}</p>
                 </div>
               )}
-
-              <table className="w-full text-left border-collapse bg-surface border border-outline-variant/20 rounded-xl overflow-hidden shadow-sm">
+<table className="w-full text-left border-separate border-spacing-0 bg-surface border border-outline-variant/20 rounded-xl overflow-hidden shadow-sm">
                 <thead>
                   <tr className="bg-surface-container-low text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-outline-variant/20">
                     <th className="px-4 py-3">Category Name</th>

@@ -476,7 +476,7 @@ export default function QuotationsPage() {
         
         {/* The Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+          <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
             <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
               <tr>
                 {renderSortableHeader('Quotation Number', 'quotationNumber')}

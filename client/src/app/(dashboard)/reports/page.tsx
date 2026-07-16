@@ -417,7 +417,7 @@ export default function ReportsPage() {
             </div>
           </div>
           <div className="overflow-x-auto scrollbar-hide">
-            <table className="w-full text-left border-collapse whitespace-nowrap">
+            <table className="w-full text-left border-separate border-spacing-0 whitespace-nowrap">
               <thead className="bg-surface-container/50">
                 <tr>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant">#</th>

@@ -390,7 +390,7 @@ export default function ProductsPage() {
 
           {/* High-Fidelity Data Table */}
           <div className="overflow-x-auto">
-            <table className="w-full table-fixed text-left border-collapse whitespace-nowrap">
+            <table className="w-full table-fixed text-left border-separate border-spacing-0 whitespace-nowrap">
               <thead>
                 <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
                   <th className={`${sortHeaderClass('name')} w-1/6`} onClick={() => handleSort('name')}>

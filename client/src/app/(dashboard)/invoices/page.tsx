@@ -391,14 +391,36 @@ export default function InvoicesPage() {
       className="flex-1 overflow-y-auto p-8 [&::-webkit-scrollbar]:hidden"
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
-      <style jsx global>{`
-        button, th, select {
-          -webkit-tap-highlight-color: transparent;
-        }
-        button:focus, th:focus, select:focus {
-          outline: none;
-        }
-      `}</style>
+    <style jsx global>{`
+  table, thead, tbody, tr, td, th {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+  }
+  table ::selection,
+  tr::selection, tr *::selection,
+  td::selection, td *::selection,
+  th::selection, th *::selection,
+  button::selection, button *::selection,
+  span::selection {
+    background: transparent !important;
+    color: inherit !important;
+  }
+  button, th, select, input, a, tr, td, span, [role='button'] {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    outline: none !important;
+  }
+  button::-moz-focus-inner {
+    border: 0 !important;
+  }
+  th, th:focus, th:active,
+  button:focus, button:active,
+  select:focus, select:active {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+`}</style>
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
         <div>
@@ -510,7 +532,7 @@ export default function InvoicesPage() {
 
         {/* The Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+         <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
             <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
               <tr>
                 <th className={sortHeaderClass('invoiceNumber')} scope="col" onClick={() => handleSort('invoiceNumber')}>

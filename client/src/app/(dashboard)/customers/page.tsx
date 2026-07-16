@@ -268,30 +268,58 @@ export default function CustomersPage() {
         className="flex-1 overflow-y-auto p-8 z-0 relative [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        <style jsx global>{`
-          * {
-            -webkit-tap-highlight-color: transparent !important;
-          }
-          button, th, select, input, a, tr, td, [role='button'] {
-            -webkit-tap-highlight-color: transparent !important;
-            outline: none !important;
-          }
-          th::selection, th *::selection {
-            background: transparent !important;
-          }
-          button:focus,
-          button:focus-visible,
-          th:focus,
-          th:focus-visible,
-          select:focus,
-          a:focus,
-          a:focus-visible,
-          tr:focus,
-          td:focus {
-            outline: none !important;
-            box-shadow: none !important;
-          }
-        `}</style>
+      <style jsx global>{`
+  * {
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  button, th, select, input, a, tr, td, span, div, [role='button'] {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    outline: none !important;
+  }
+  th::selection, th *::selection,
+  button::selection, button *::selection,
+  span::selection {
+    background: transparent !important;
+  }
+  button::-moz-focus-inner {
+    border: 0 !important;
+  }
+  button,
+  button:focus,
+  button:focus-visible,
+  button:active,
+  th,
+  th:focus,
+  th:focus-visible,
+  th:active,
+  select,
+  select:focus,
+  select:focus-visible,
+  select:active,
+  a,
+  a:focus,
+  a:focus-visible,
+  a:active,
+  tr,
+  tr:focus,
+  tr:active,
+  td,
+  td:focus,
+  td:active,
+  span,
+  span:focus,
+  span:active,
+  [role='button'],
+  [role='button']:focus,
+  [role='button']:focus-visible,
+  [role='button']:active {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+`}</style>
         {/* Background Ambient Effects */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
       <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
@@ -392,7 +420,7 @@ export default function CustomersPage() {
 
         {/* High-Fidelity Data Table */}
         <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          <table className="w-full text-left border-collapse whitespace-nowrap">
+          <table className="w-full text-left border-separate border-spacing-0 whitespace-nowrap">
             <thead>
               <tr className="bg-surface-container-low/50 text-xs font-semibold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
                 <th className={sortHeaderClass('customer')} onClick={() => handleSort('customer')} tabIndex={-1}>

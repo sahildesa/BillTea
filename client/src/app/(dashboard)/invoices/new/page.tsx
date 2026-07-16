@@ -460,38 +460,65 @@ export default function CreateInvoicePage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar bg-background">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8 relative z-10">
-        <div>
-          <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-2">
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to List
-          </button>
-          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-[24px]">post_add</span>
-            </div>
-            New Invoice
-          </h1>
-        </div>
-        <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="glass-button-primary rounded-lg py-2.5 px-6 flex items-center gap-2 text-sm font-semibold transition-all shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
-          {isSaving ? <span className="material-symbols-outlined animate-spin text-[18px]">refresh</span> : <span className="material-symbols-outlined text-[18px]">save</span>}
-          Save Invoice
-        </button>
+    <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+      `}} />
+
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
       </div>
 
-      {error && (
-        <div ref={errorRef} className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
-          <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
-          <div className="text-sm text-red-700 font-medium whitespace-pre-line leading-relaxed">{error}</div>
-        </div>
-      )}
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
+        {/* Header Section */}
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="max-w-2xl">
+            <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-4">
+              <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to List
+            </button>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+              <span className="material-symbols-outlined text-[14px]">post_add</span>
+              New Invoice
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+              <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+                Create Invoice
+              </span>
+            </h1>
+            <p className="text-on-surface-variant text-lg leading-relaxed">
+              Fill in the details below to create a new invoice for your customer.
+            </p>
+          </div>
+          <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="group relative h-14 px-8 rounded-2xl bg-primary text-on-primary font-bold flex items-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+            <div className="absolute inset-0 w-full h-full bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
+            {isSaving ? <span className="material-symbols-outlined animate-spin">refresh</span> : <span className="material-symbols-outlined">save</span>}
+            <span>Save Invoice</span>
+          </button>
+        </header>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 relative z-10">
+        {error && (
+          <div ref={errorRef} className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
+            <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
+            <div className="text-sm text-red-700 font-medium whitespace-pre-line leading-relaxed">{error}</div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 relative z-10 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
         <div className="col-span-2 space-y-6">
           
           {/* Convert from Quotation Section */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/20 bg-primary/5 overflow-visible relative">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30 bg-primary/5 overflow-visible relative">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">receipt_long</span> Convert from Quotation
             </h2>
@@ -535,7 +562,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Customer & Address Section */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10 overflow-visible relative">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30 overflow-visible relative">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">person</span> Customer Information
             </h2>
@@ -614,7 +641,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Master Configurations */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">settings</span> Discount & Tax Rules
             </h2>
@@ -689,7 +716,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Items Table */}
-          <div className="glass-panel rounded-xl shadow-md border border-primary/10 overflow-hidden relative overflow-visible">
+          <div className="glass-panel rounded-3xl shadow-sm border border-outline-variant/30 overflow-hidden relative overflow-visible">
             <h2 className="text-lg font-bold text-on-surface m-6 mb-2 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">inventory_2</span> Invoice Items
             </h2>
@@ -845,7 +872,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Payments Section */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">payments</span> Payments
@@ -992,7 +1019,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Terms and Conditions */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">description</span> Terms & Conditions
             </h2>
@@ -1004,7 +1031,7 @@ export default function CreateInvoicePage() {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Summary */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Invoice Summary</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center text-on-surface-variant">
@@ -1030,7 +1057,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Dates */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Timeline</h3>
             <div className="space-y-4">
               <div>
@@ -1045,7 +1072,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Attachments Dropzone */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Attachments</h3>
             <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center hover:bg-primary/5 transition-colors relative group cursor-pointer">
               <input type="file" multiple accept=".pdf,.xlsx,.docx,.png,.jpg,.jpeg,.ppt,.pptx,.heic,.heif" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
@@ -1068,6 +1095,16 @@ export default function CreateInvoicePage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Footer Decoration */}
+      <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-12 mb-4">
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+        <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+          BillTea • New Invoice
+        </p>
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+      </footer>
       </div>
     </div>
   );

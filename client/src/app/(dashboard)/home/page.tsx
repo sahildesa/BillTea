@@ -1,7 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/auth';
+import PdfViewerModal from '@/components/PdfViewerModal';
+import PaymentModal from '@/components/PaymentModal';
 
 interface SalesDataPoint {
   date: string;
@@ -12,17 +16,155 @@ interface SalesDataPoint {
 }
 
 export default function DashboardHome() {
+  const router = useRouter();
   const [hoveredInvoicePoint, setHoveredInvoicePoint] = useState<SalesDataPoint | null>(null);
   const [hoveredQuotationPoint, setHoveredQuotationPoint] = useState<SalesDataPoint | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [branchId, setBranchId] = useState<string>('');
+  const [refreshKey, setRefreshKey] = useState<number>(0);
+
+  const [dateRangeType, setDateRangeType] = useState<string>('30_days');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [branches, setBranches] = useState<any[]>([]);
+
+  const [viewerPdfUrl, setViewerPdfUrl] = useState<{ url: string; title: string; id: string, type: 'quotation' | 'invoice' } | null>(null);
   
+  const [isSendingId, setIsSendingId] = useState<string | null>(null);
+  const [notesModalData, setNotesModalData] = useState<{ id: string, notes: string, followUpDate: string } | null>(null);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+  const [paymentModalInvoice, setPaymentModalInvoice] = useState<{ id: string, invoiceNumber: string, amountDue: number } | null>(null);
+
+  const handleSaveNotes = async () => {
+    if (!notesModalData) return;
+    try {
+      setIsSavingNotes(true);
+      const res = await apiFetch(`/quotations/${notesModalData.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          notes: notesModalData.notes,
+          followUpDate: notesModalData.followUpDate ? new Date(notesModalData.followUpDate).toISOString() : null,
+        }),
+      });
+      if (res.ok) {
+        setNotesModalData(null);
+        setRefreshKey(prev => prev + 1);
+      } else {
+        const errData = await res.json();
+        alert(errData.message || 'Failed to save notes');
+      }
+    } catch (err: any) {
+      alert('Failed to save notes');
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
+  const handleSend = async (id: string, type: 'quotation' | 'invoice' = 'quotation') => {
+    try {
+      setIsSendingId(id);
+      const res = await apiFetch(`/${type}s/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'SENT' }),
+      });
+      if (res.ok) {
+        setRefreshKey(prev => prev + 1);
+      } else {
+        const errData = await res.json();
+        alert(errData.message || `Failed to send ${type}`);
+      }
+    } catch (err: any) {
+      alert(`Failed to send ${type}`);
+    } finally {
+      setIsSendingId(null);
+    }
+  };
+  
+  const handleViewPdf = async (id: string, numberStr: string, type: 'quotation' | 'invoice' = 'quotation') => {
+    try {
+      const endpoint = type === 'quotation' ? `/quotations/${id}/pdf` : `/invoices/${id}/pdf`;
+      const prefix = type === 'quotation' ? 'Quotation' : 'Invoice';
+      const cacheBustedEndpoint = `${endpoint}?t=${Date.now()}`;
+      const res = await apiFetch(cacheBustedEndpoint, { method: 'GET' });
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      setViewerPdfUrl({ url, title: `${prefix}-${numberStr}.pdf`, id, type });
+    } catch (err) {
+      alert('Failed to load PDF');
+    }
+  };
+
+  const closePdfViewer = () => {
+    if (viewerPdfUrl) {
+      window.URL.revokeObjectURL(viewerPdfUrl.url);
+      setViewerPdfUrl(null);
+    }
+  };
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const res = await apiFetch('/branches');
+        const data = await res.json();
+        if (data.branches) setBranches(data.branches);
+      } catch (err) {
+        console.error('Failed to fetch branches', err);
+      }
+    };
+    fetchBranches();
+  }, []);
+
   useEffect(() => {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const url = branchId ? `/dashboard/stats?branchId=${branchId}` : `/dashboard/stats`;
+        const queryParams = new URLSearchParams();
+        if (branchId) queryParams.append('branchId', branchId);
+
+        let start = '';
+        let end = '';
+        const today = new Date();
+        const yyyyMmDd = (d: Date) => d.toISOString().split('T')[0];
+
+        if (dateRangeType === 'custom') {
+          start = customStartDate;
+          end = customEndDate;
+        } else {
+          end = yyyyMmDd(today);
+          const pastDate = new Date();
+          if (dateRangeType === 'today') {
+            start = end;
+          } else if (dateRangeType === '1_week') {
+            pastDate.setDate(today.getDate() - 7);
+            start = yyyyMmDd(pastDate);
+          } else if (dateRangeType === '15_days') {
+            pastDate.setDate(today.getDate() - 15);
+            start = yyyyMmDd(pastDate);
+          } else if (dateRangeType === '30_days') {
+            pastDate.setDate(today.getDate() - 30);
+            start = yyyyMmDd(pastDate);
+          } else if (dateRangeType === '6_months') {
+            pastDate.setMonth(today.getMonth() - 6);
+            start = yyyyMmDd(pastDate);
+          } else if (dateRangeType === '1_year') {
+            pastDate.setFullYear(today.getFullYear() - 1);
+            start = yyyyMmDd(pastDate);
+          }
+
+          if (customStartDate !== start || customEndDate !== end) {
+            setCustomStartDate(start);
+            setCustomEndDate(end);
+          }
+        }
+
+        if (start) queryParams.append('startDate', start);
+        if (end) queryParams.append('endDate', end);
+
+        const url = `/dashboard/stats?${queryParams.toString()}`;
         const res = await apiFetch(url);
         const data = await res.json();
         setStats(data);
@@ -33,7 +175,7 @@ export default function DashboardHome() {
       }
     };
     fetchStats();
-  }, [branchId]);
+  }, [branchId, dateRangeType, customStartDate, customEndDate, refreshKey]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
@@ -45,7 +187,7 @@ export default function DashboardHome() {
   };
 
   // Prepare chart data
-  const createSmoothPath = (points: {x: number, y: number}[]) => {
+  const createSmoothPath = (points: { x: number, y: number }[]) => {
     if (points.length === 0) return '';
     if (points.length === 1) return `M${points[0].x},${points[0].y}`;
     let path = `M${points[0].x},${points[0].y}`;
@@ -77,7 +219,7 @@ export default function DashboardHome() {
     maxInvoiceSales = Math.max(...stats.salesTrend.map((d: any) => d.invoices), 1);
     maxQuotationSales = Math.max(...stats.salesTrend.map((d: any) => d.quotations), 1);
 
-    const xStep = 400 / 27; // 28 points, 27 intervals
+    const xStep = 400 / Math.max(1, stats.salesTrend.length - 1);
 
     invoiceSalesData = stats.salesTrend.map((d: any, i: number) => ({
       date: formatDate(d.date),
@@ -140,7 +282,7 @@ export default function DashboardHome() {
           </div>
         </header>
 
-        {loading ? (
+        {!stats ? (
           <div className="flex flex-col items-center justify-center py-32 animate-fade-slide-up">
             <div className="relative">
               <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
@@ -148,7 +290,15 @@ export default function DashboardHome() {
             <p className="mt-6 text-on-surface-variant font-medium tracking-wide">Loading dashboard data...</p>
           </div>
         ) : (
-          <>
+          <div className={`transition-opacity duration-300 relative flex flex-col gap-12 ${loading ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
+            {loading && (
+              <div className="absolute inset-0 z-50 flex items-start justify-center pt-32 pointer-events-none">
+                <div className="bg-surface p-3 rounded-full shadow-lg border border-outline-variant/20 flex items-center gap-3">
+                  <div className="w-5 h-5 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                  <span className="text-xs font-bold text-on-surface-variant pr-2">Refreshing...</span>
+                </div>
+              </div>
+            )}
             {/* Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
               <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
@@ -209,31 +359,75 @@ export default function DashboardHome() {
               </div>
             </div>
 
-            {/* Filters */}
-            <div className="glass-panel p-6 rounded-3xl flex flex-wrap items-end gap-6 animate-fade-slide-up" style={{ animationDelay: '0.3s' }}>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Branch</label>
-                <div className="relative">
-                  <select 
-                    value={branchId}
-                    onChange={(e) => setBranchId(e.target.value)}
-                    className="glass-input rounded-xl py-2.5 pl-3 pr-10 text-sm font-medium appearance-none cursor-pointer w-48 focus:ring-2 focus:ring-primary/20 transition-all"
-                  >
-                    <option value="">All Branches</option>
-                    {/* Ideally populate this with actual branches if available */}
-                  </select>
-                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-primary">expand_more</span>
+            {/* Filters Row */}
+            <div className="glass-panel px-6 py-4 rounded-2xl flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 animate-fade-slide-up" style={{ animationDelay: '0.3s' }}>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full xl:w-auto">
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider shrink-0 w-24 sm:w-auto">Branch Filter:</label>
+                  <div className="relative flex-1 sm:flex-none">
+                    <select
+                      value={branchId}
+                      onChange={(e) => setBranchId(e.target.value)}
+                      className="glass-input rounded-xl py-2 pl-4 pr-10 text-sm font-medium appearance-none cursor-pointer w-full sm:w-[180px] focus:ring-2 focus:ring-primary/20 transition-all bg-surface/50 hover:bg-surface"
+                    >
+                      <option value="">All Branches</option>
+                      {branches.map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-primary text-[18px]">expand_more</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider shrink-0 w-24 sm:w-auto">Date Range:</label>
+                  <div className="relative flex-1 sm:flex-none">
+                    <select
+                      value={dateRangeType}
+                      onChange={(e) => setDateRangeType(e.target.value)}
+                      className="glass-input rounded-xl py-2 pl-4 pr-10 text-sm font-medium appearance-none cursor-pointer w-full sm:w-[150px] focus:ring-2 focus:ring-primary/20 transition-all bg-surface/50 hover:bg-surface"
+                    >
+                      <option value="today">Today</option>
+                      <option value="1_week">Last 7 Days</option>
+                      <option value="15_days">Last 15 Days</option>
+                      <option value="30_days">Last 30 Days</option>
+                      <option value="6_months">Last 6 Months</option>
+                      <option value="1_year">Last 1 Year</option>
+                    </select>
+                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-primary text-[18px]">expand_more</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider shrink-0">From</span>
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={e => { setCustomStartDate(e.target.value); setDateRangeType('custom'); }}
+                      className="glass-input rounded-xl py-1.5 px-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all bg-surface/50 hover:bg-surface"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider shrink-0">To</span>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={e => { setCustomEndDate(e.target.value); setDateRangeType('custom'); }}
+                      className="glass-input rounded-xl py-1.5 px-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all bg-surface/50 hover:bg-surface"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setBranchId('')}
-                  className="glass-button p-2.5 rounded-xl flex items-center justify-center cursor-pointer hover:bg-surface-bright transition-colors" 
-                  title="Reset Filters"
-                >
-                  <span className="material-symbols-outlined">restart_alt</span>
-                </button>
-              </div>
+
+              <button
+                onClick={() => { setBranchId(''); setDateRangeType('30_days'); }}
+                className="glass-button px-4 py-2 rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-surface-bright transition-colors text-sm font-bold text-on-surface hover:text-primary shrink-0 w-full xl:w-auto mt-4 xl:mt-0"
+                title="Reset Filters"
+              >
+                <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+                Reset
+              </button>
             </div>
 
             {/* Charts Grid */}
@@ -242,19 +436,19 @@ export default function DashboardHome() {
               <div className="glass-panel-elevated p-8 rounded-3xl hover:border-primary/30 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.1)] transition-all duration-300">
                 <div className="flex justify-between items-end mb-6">
                   <div>
-                    <h3 className="text-on-surface font-bold mb-1">Invoice Sales (28 Days)</h3>
+                    <h3 className="text-on-surface font-bold mb-1">Invoice Sales</h3>
                   </div>
                 </div>
                 <div className="h-48 w-full relative pb-6">
-                  <svg 
-                    className="w-full h-full overflow-visible cursor-crosshair" 
-                    preserveAspectRatio="none" 
+                  <svg
+                    className="w-full h-full overflow-hidden cursor-crosshair"
+                    preserveAspectRatio="none"
                     viewBox="0 0 400 100"
                     onMouseMove={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const relativeX = ((e.clientX - rect.left) / rect.width) * 400;
                       if (invoiceSalesData.length > 0) {
-                        const closestPoint = invoiceSalesData.reduce((prev, curr) => 
+                        const closestPoint = invoiceSalesData.reduce((prev, curr) =>
                           Math.abs(curr.x - relativeX) < Math.abs(prev.x - relativeX) ? curr : prev
                         );
                         setHoveredInvoicePoint(closestPoint);
@@ -270,40 +464,40 @@ export default function DashboardHome() {
                     </defs>
                     <path d={`${invoicePath} L400,100 L0,100 Z`} fill="url(#gradient1)"></path>
                     <path className="path-line" d={invoicePath} fill="none" stroke="#7dd3fc" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
-                    
+
                     {hoveredInvoicePoint && (
                       <>
-                        <line 
-                          x1={hoveredInvoicePoint.x} 
-                          y1={0} 
-                          x2={hoveredInvoicePoint.x} 
-                          y2={100} 
-                          stroke="#7dd3fc" 
-                          strokeWidth="1.5" 
-                          strokeDasharray="4 4" 
+                        <line
+                          x1={hoveredInvoicePoint.x}
+                          y1={0}
+                          x2={hoveredInvoicePoint.x}
+                          y2={100}
+                          stroke="#7dd3fc"
+                          strokeWidth="1.5"
+                          strokeDasharray="4 4"
                           opacity="0.6"
                         />
-                        <circle 
-                          cx={hoveredInvoicePoint.x} 
-                          cy={hoveredInvoicePoint.y} 
-                          r="8" 
-                          fill="#7dd3fc" 
+                        <circle
+                          cx={hoveredInvoicePoint.x}
+                          cy={hoveredInvoicePoint.y}
+                          r="8"
+                          fill="#7dd3fc"
                           opacity="0.3"
                         />
-                        <circle 
-                          cx={hoveredInvoicePoint.x} 
-                          cy={hoveredInvoicePoint.y} 
-                          r="4" 
-                          fill="#7dd3fc" 
-                          stroke="#ffffff" 
+                        <circle
+                          cx={hoveredInvoicePoint.x}
+                          cy={hoveredInvoicePoint.y}
+                          r="4"
+                          fill="#7dd3fc"
+                          stroke="#ffffff"
                           strokeWidth="1.5"
                         />
                       </>
                     )}
                   </svg>
-                  
+
                   {hoveredInvoicePoint && (
-                    <div 
+                    <div
                       className="absolute pointer-events-none z-30 transition-all duration-150 ease-out glass-panel p-2.5 rounded-xl shadow-lg border border-primary/20 flex flex-col gap-1 text-xs min-w-[140px]"
                       style={{
                         left: `${(hoveredInvoicePoint.x / 400) * 100}%`,
@@ -331,19 +525,19 @@ export default function DashboardHome() {
               <div className="glass-panel-elevated p-8 rounded-3xl hover:border-tertiary/30 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.1)] transition-all duration-300">
                 <div className="flex justify-between items-end mb-6">
                   <div>
-                    <h3 className="text-on-surface font-bold mb-1">Quotation Value (28 Days)</h3>
+                    <h3 className="text-on-surface font-bold mb-1">Quotation Value</h3>
                   </div>
                 </div>
                 <div className="h-48 w-full relative pb-6">
-                  <svg 
-                    className="w-full h-full overflow-visible cursor-crosshair" 
-                    preserveAspectRatio="none" 
+                  <svg
+                    className="w-full h-full overflow-hidden cursor-crosshair"
+                    preserveAspectRatio="none"
                     viewBox="0 0 400 100"
                     onMouseMove={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const relativeX = ((e.clientX - rect.left) / rect.width) * 400;
                       if (quotationSalesData.length > 0) {
-                        const closestPoint = quotationSalesData.reduce((prev, curr) => 
+                        const closestPoint = quotationSalesData.reduce((prev, curr) =>
                           Math.abs(curr.x - relativeX) < Math.abs(prev.x - relativeX) ? curr : prev
                         );
                         setHoveredQuotationPoint(closestPoint);
@@ -359,40 +553,40 @@ export default function DashboardHome() {
                     </defs>
                     <path d={`${quotationPath} L400,100 L0,100 Z`} fill="url(#gradient2)"></path>
                     <path className="path-line" d={quotationPath} fill="none" stroke="#c8a0f0" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
-                    
+
                     {hoveredQuotationPoint && (
                       <>
-                        <line 
-                          x1={hoveredQuotationPoint.x} 
-                          y1={0} 
-                          x2={hoveredQuotationPoint.x} 
-                          y2={100} 
-                          stroke="#c8a0f0" 
-                          strokeWidth="1.5" 
-                          strokeDasharray="4 4" 
+                        <line
+                          x1={hoveredQuotationPoint.x}
+                          y1={0}
+                          x2={hoveredQuotationPoint.x}
+                          y2={100}
+                          stroke="#c8a0f0"
+                          strokeWidth="1.5"
+                          strokeDasharray="4 4"
                           opacity="0.6"
                         />
-                        <circle 
-                          cx={hoveredQuotationPoint.x} 
-                          cy={hoveredQuotationPoint.y} 
-                          r="8" 
-                          fill="#c8a0f0" 
+                        <circle
+                          cx={hoveredQuotationPoint.x}
+                          cy={hoveredQuotationPoint.y}
+                          r="8"
+                          fill="#c8a0f0"
                           opacity="0.3"
                         />
-                        <circle 
-                          cx={hoveredQuotationPoint.x} 
-                          cy={hoveredQuotationPoint.y} 
-                          r="4" 
-                          fill="#c8a0f0" 
-                          stroke="#ffffff" 
+                        <circle
+                          cx={hoveredQuotationPoint.x}
+                          cy={hoveredQuotationPoint.y}
+                          r="4"
+                          fill="#c8a0f0"
+                          stroke="#ffffff"
                           strokeWidth="1.5"
                         />
                       </>
                     )}
                   </svg>
-                  
+
                   {hoveredQuotationPoint && (
-                    <div 
+                    <div
                       className="absolute pointer-events-none z-30 transition-all duration-150 ease-out glass-panel p-2.5 rounded-xl shadow-lg border border-tertiary/20 flex flex-col gap-1 text-xs min-w-[140px]"
                       style={{
                         left: `${(hoveredQuotationPoint.x / 400) * 100}%`,
@@ -420,7 +614,7 @@ export default function DashboardHome() {
               <div className="glass-panel-elevated p-8 rounded-3xl hover:border-primary/30 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.1)] transition-all duration-300">
                 <div className="flex justify-between items-end mb-6">
                   <div>
-                    <h3 className="text-on-surface font-bold mb-1">Invoice Count (6 Weeks)</h3>
+                    <h3 className="text-on-surface font-bold mb-1">Invoice Count</h3>
                   </div>
                 </div>
                 <div className="h-48 w-full flex items-end justify-around pb-6 relative">
@@ -443,7 +637,7 @@ export default function DashboardHome() {
               <div className="glass-panel-elevated p-8 rounded-3xl hover:border-tertiary/30 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.1)] transition-all duration-300">
                 <div className="flex justify-between items-end mb-6">
                   <div>
-                    <h3 className="text-on-surface font-bold mb-1">Quotation Count (6 Weeks)</h3>
+                    <h3 className="text-on-surface font-bold mb-1">Quotation Count</h3>
                   </div>
                 </div>
                 <div className="h-48 w-full flex items-end justify-around pb-6 relative">
@@ -480,13 +674,23 @@ export default function DashboardHome() {
                     <div className="text-on-surface-variant text-sm py-8 text-center">No overdue or unpaid invoices.</div>
                   ) : (
                     stats?.invoiceReminders?.map((inv: any) => (
-                      <div key={inv.id} className="p-4 rounded-2xl bg-surface-bright/50 border border-outline-variant/30 flex gap-4 hover:bg-surface-bright hover:border-outline-variant/50 transition-all cursor-pointer group hover:-translate-y-0.5">
+                      <div 
+                        key={inv.id} 
+                        onClick={() => handleViewPdf(inv.id, inv.invoiceNumber, 'invoice')}
+                        className="p-4 rounded-2xl bg-surface-bright/50 border border-outline-variant/30 flex gap-4 hover:bg-surface-bright hover:border-outline-variant/50 transition-all cursor-pointer group hover:-translate-y-0.5"
+                      >
                         <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 border border-rose-500/20 group-hover:scale-110 transition-transform group-hover:shadow-[0_0_15px_rgba(244,63,94,0.2)]">
                           <span className="material-symbols-outlined text-[24px]">receipt_long</span>
                         </div>
                         <div className="flex flex-col justify-center flex-grow">
                           <p className="text-sm font-bold text-on-surface mb-0.5">{inv.customer?.customerName || 'Unknown Customer'}</p>
-                          <p className="text-xs text-on-surface-variant font-medium">#{inv.invoiceNumber} • {formatCurrency(inv.grandTotal)}</p>
+                          <p className="text-xs text-on-surface-variant font-medium flex items-center flex-wrap gap-x-2 gap-y-1">
+                            <span className="text-rose-400 font-bold">Due: {formatCurrency(inv.amountDue)}</span>
+                            <span>•</span>
+                            <span>{inv.customer?.mobileNumber || 'No Mobile'}</span>
+                            <span>•</span>
+                            <span>#{inv.invoiceNumber}</span>
+                          </p>
                         </div>
                         <div className="flex items-center">
                           <span className="text-xs font-bold bg-rose-500/10 text-rose-400 px-2 py-1 rounded border border-rose-500/20">{inv.status}</span>
@@ -512,13 +716,22 @@ export default function DashboardHome() {
                     <div className="text-on-surface-variant text-sm py-8 text-center">No quotations need follow-up.</div>
                   ) : (
                     stats?.quotationFollowups?.map((quo: any) => (
-                      <div key={quo.id} className="p-4 rounded-2xl bg-surface-bright/50 border border-outline-variant/30 flex gap-4 hover:bg-surface-bright hover:border-outline-variant/50 transition-all cursor-pointer group hover:-translate-y-0.5">
+                      <div 
+                        key={quo.id} 
+                        onClick={() => handleViewPdf(quo.id, quo.quotationNumber)}
+                        className="p-4 rounded-2xl bg-surface-bright/50 border border-outline-variant/30 flex gap-4 hover:bg-surface-bright hover:border-outline-variant/50 transition-all cursor-pointer group hover:-translate-y-0.5"
+                      >
                         <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/20 group-hover:scale-110 transition-transform group-hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                           <span className="material-symbols-outlined text-[24px]">request_quote</span>
                         </div>
-                        <div className="flex flex-col justify-center flex-grow">
-                          <p className="text-sm font-bold text-on-surface mb-0.5">{quo.customer?.customerName || 'Unknown Customer'}</p>
-                          <p className="text-xs text-on-surface-variant font-medium">#{quo.quotationNumber} • {formatCurrency(quo.grandTotal)}</p>
+                        <div className="flex flex-col justify-center flex-grow overflow-hidden">
+                          <p className="text-sm font-bold text-on-surface mb-0.5 truncate">{quo.customer?.customerName || 'Unknown Customer'}</p>
+                          <p className="text-xs text-on-surface-variant font-medium mb-0.5">#{quo.quotationNumber} • {formatCurrency(quo.grandTotal)}</p>
+                          {quo.notes && (
+                            <p className="text-[11px] text-primary/80 italic truncate mt-1 border-l-2 border-primary/20 pl-2">
+                              {quo.notes}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center">
                           <span className="text-xs font-bold bg-amber-500/10 text-amber-400 px-2 py-1 rounded border border-amber-500/20">{quo.status}</span>
@@ -529,16 +742,129 @@ export default function DashboardHome() {
                 </div>
               </div>
             </div>
-          </>
+          </div>
         )}
-
       </div>
+
+      {viewerPdfUrl && (
+        <PdfViewerModal
+          url={viewerPdfUrl.url}
+          title={viewerPdfUrl.title}
+          documentId={viewerPdfUrl.id}
+          documentType={viewerPdfUrl.type}
+          onClose={closePdfViewer}
+          renderActions={(documentId, documentType) => {
+            if (documentType === 'quotation') {
+              const activeQuotation = stats?.quotationFollowups?.find((q: any) => q.id === documentId);
+              if (!activeQuotation) return null;
+              return (
+                <>
+                  <Link href={`/invoices/new?copyFromQuotation=${activeQuotation.id}`}>
+                    <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Convert to Invoice">
+                      <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+                    </button>
+                  </Link>
+                  <button onClick={() => handleSend(activeQuotation.id, 'quotation')} disabled={isSendingId === activeQuotation.id} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip disabled:opacity-50" title="Send">
+                    {isSendingId === activeQuotation.id ? <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[20px]">send</span>}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      closePdfViewer();
+                      setNotesModalData({
+                        id: activeQuotation.id,
+                        notes: activeQuotation.notes || '',
+                        followUpDate: activeQuotation.followUpDate ? new Date(activeQuotation.followUpDate).toISOString().split('T')[0] : ''
+                      });
+                    }}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-amber-400/10 hover:text-amber-400 border border-transparent hover:border-amber-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Notes & Reminder">
+                    <span className="material-symbols-outlined text-[20px]">sticky_note_2</span>
+                  </button>
+                </>
+              );
+            } else {
+              const activeInvoice = stats?.invoiceReminders?.find((i: any) => i.id === documentId);
+              if (!activeInvoice) return null;
+              return (
+                <>
+                  <button onClick={() => { closePdfViewer(); setPaymentModalInvoice({ id: activeInvoice.id, invoiceNumber: activeInvoice.invoiceNumber, amountDue: activeInvoice.amountDue }); }} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Add Payment">
+                    <span className="material-symbols-outlined text-[20px]">payments</span>
+                  </button>
+                  <button onClick={() => handleSend(activeInvoice.id, 'invoice')} disabled={isSendingId === activeInvoice.id} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip disabled:opacity-50" title="Send">
+                    {isSendingId === activeInvoice.id ? <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[20px]">send</span>}
+                  </button>
+                </>
+              );
+            }
+          }}
+        />
+      )}
+
+      {/* Payment Modal */}
+      <PaymentModal 
+        isOpen={!!paymentModalInvoice} 
+        onClose={() => setPaymentModalInvoice(null)} 
+        invoice={paymentModalInvoice} 
+        onSuccess={() => {
+          setRefreshKey(prev => prev + 1);
+        }}
+      />
+
+      {/* Notes & Reminder Modal */}
+      {notesModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setNotesModalData(null)}></div>
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 animate-fade-slide-up">
+            <div className="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between bg-surface-bright/50">
+              <h3 className="text-lg font-bold text-on-surface">Notes & Reminder</h3>
+              <button onClick={() => setNotesModalData(null)} className="text-on-surface-variant hover:text-on-surface">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-on-surface mb-2">Follow Up Date</label>
+                <input
+                  type="date"
+                  className="w-full bg-surface-container/50 border border-outline-variant/30 text-on-surface text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+                  value={notesModalData.followUpDate}
+                  onChange={(e) => setNotesModalData({ ...notesModalData, followUpDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-on-surface mb-2">Notes</label>
+                <textarea
+                  className="w-full bg-surface-container/50 border border-outline-variant/30 text-on-surface text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all min-h-[100px]"
+                  placeholder="Enter notes about this quotation..."
+                  value={notesModalData.notes}
+                  onChange={(e) => setNotesModalData({ ...notesModalData, notes: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-outline-variant/20 bg-surface-bright/50 flex justify-end gap-3">
+              <button 
+                onClick={() => setNotesModalData(null)}
+                className="px-4 py-2 rounded-xl text-sm font-bold text-on-surface-variant hover:bg-surface-container transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveNotes}
+                disabled={isSavingNotes}
+                className="px-6 py-2 rounded-xl text-sm font-bold bg-primary text-on-primary hover:shadow-[0_0_15px_rgba(var(--primary),0.4)] transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSavingNotes ? <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[18px]">save</span>}
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer Decoration */}
       <footer className="relative z-10 max-w-7xl mx-auto px-8 pb-8 opacity-40 text-center flex items-center justify-center gap-4">
         <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
         <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
-          BillTea Dashboard • Overview
+          BillTea • Dashboard
         </p>
         <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
       </footer>

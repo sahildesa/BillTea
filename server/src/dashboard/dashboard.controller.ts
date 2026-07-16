@@ -8,8 +8,13 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('stats')
-  async getStats(@Request() req: any, @Query('branchId') branchId?: string) {
+  async getStats(
+    @Request() req: any, 
+    @Query('branchId') branchId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
+  ) {
     const user = req.user;
-    return this.dashboardService.getStats(user.companyId, branchId);
+    return this.dashboardService.getStats(user.companyId, branchId, startDate, endDate);
   }
 }

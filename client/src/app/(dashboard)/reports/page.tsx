@@ -29,6 +29,29 @@ interface SortConfig {
   direction: SortDirection;
 }
 
+// Formats an amount in Indian numbering style, switching to "Cr" once the
+// value crosses 1 crore (1,00,00,000) so large totals never wrap/overflow
+// inside the stat cards.
+const formatINR = (amount: number, compact: boolean = false): string => {
+  const value = amount || 0;
+  if (compact) {
+    const abs = Math.abs(value);
+    if (abs >= 10000000) {
+      const crores = value / 10000000;
+      return `₹${crores.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Cr`;
+    }
+    if (abs >= 100000) {
+      const lakhs = value / 100000;
+      return `₹${lakhs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} L`;
+    }
+    if (abs >= 1000) {
+      const thousands = value / 1000;
+      return `₹${thousands.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} K`;
+    }
+  }
+  return `₹${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
 export default function ReportsPage() {
   const { selectedBranchId, isLoadingBranches } = useBranch();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -126,7 +149,7 @@ export default function ReportsPage() {
         const query = searchQuery.toLowerCase();
         const matchInvoice = inv.invoiceNumber?.toLowerCase().includes(query) || false;
         const matchCustomer = inv.customer?.customerName?.toLowerCase().includes(query) || false;
-        
+
         if (!matchInvoice && !matchCustomer) {
           return false;
         }
@@ -191,17 +214,6 @@ export default function ReportsPage() {
   const startIndex = sortedInvoices.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const endIndex = Math.min(currentPage * itemsPerPage, sortedInvoices.length);
 
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    if (totalPages <= maxButtons) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxButtons - 1);
-    start = Math.max(1, end - maxButtons + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [totalPages, currentPage]);
-
   const handleItemsPerPageChange = (n: number) => {
     setItemsPerPage(n);
     setCurrentPage(1);
@@ -244,7 +256,7 @@ export default function ReportsPage() {
     }`;
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 z-0 relative">
+    <div className="flex-1 overflow-y-auto p-8 z-0 relative scrollbar-hide">
       {/* Background Ambient Effects */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
       <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
@@ -269,9 +281,20 @@ export default function ReportsPage() {
 
         {/* Filters Section */}
         <section className="glass-panel p-6 md:p-8 rounded-xl">
-          <div className="flex items-center gap-3 mb-6">
-            <span className="material-symbols-outlined text-primary">filter_list</span>
-            <h2 className="text-xl font-bold text-on-surface">Filters</h2>
+          <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary">filter_list</span>
+              <h2 className="text-xl font-bold text-on-surface">Filters</h2>
+            </div>
+            {/* Export actions moved here from the table header */}
+            <div className="flex gap-2">
+              <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 transition-colors tooltip cursor-pointer" title="Export PDF">
+                <span className="material-symbols-outlined text-primary">picture_as_pdf</span>
+              </button>
+              <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 transition-colors tooltip cursor-pointer" title="Export Excel">
+                <span className="material-symbols-outlined text-primary">table_view</span>
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="space-y-2">
@@ -346,70 +369,55 @@ export default function ReportsPage() {
               <span className="material-symbols-outlined text-9xl">payments</span>
             </div>
             <p className="text-on-surface-variant text-sm font-medium mb-1">Total Amount</p>
-            <p className="text-4xl font-black text-primary">₹{stats.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-2xl sm:text-3xl font-black text-primary whitespace-nowrap" title={formatINR(stats.totalAmount)}>{formatINR(stats.totalAmount, true)}</p>
           </div>
           <div className="glass-elevated p-6 rounded-xl relative overflow-hidden group">
             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <span className="material-symbols-outlined text-9xl">verified_user</span>
             </div>
             <p className="text-on-surface-variant text-sm font-medium mb-1">Total Paid</p>
-            <p className="text-4xl font-black text-secondary">₹{stats.totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-2xl sm:text-3xl font-black text-secondary whitespace-nowrap" title={formatINR(stats.totalPaid)}>{formatINR(stats.totalPaid, true)}</p>
           </div>
           <div className="glass-elevated p-6 rounded-xl relative overflow-hidden group">
             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <span className="material-symbols-outlined text-9xl">pending_actions</span>
             </div>
             <p className="text-on-surface-variant text-sm font-medium mb-1">Total Pending</p>
-            <p className="text-4xl font-black text-tertiary">₹{stats.totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-2xl sm:text-3xl font-black text-tertiary whitespace-nowrap" title={formatINR(stats.totalPending)}>{formatINR(stats.totalPending, true)}</p>
           </div>
         </section>
 
         {/* Invoice Details Table */}
-        <section className="glass-panel rounded-xl overflow-hidden flex flex-col mb-12">
+        <section className="glass-panel rounded-xl flex flex-col mb-12">
           <div className="p-6 border-b border-outline-variant/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-container/30">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
-              <h2 className="text-xl font-bold text-on-surface">Invoice Details</h2>
+            {/* Show entries - left corner */}
+            <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+              <span>Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                className="bg-surface-container border border-primary/20 rounded-lg px-2 py-1.5 text-xs focus:ring-0 focus:border-primary cursor-pointer outline-none"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>entries</span>
             </div>
-            <div className="flex items-center gap-4 w-full md:w-auto flex-wrap">
-              <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-                <span>Show</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                  className="bg-surface-container border border-primary/20 rounded-lg px-2 py-1.5 text-xs focus:ring-0 focus:border-primary cursor-pointer outline-none"
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
-                <span>entries</span>
-              </div>
-              <div className="relative w-full md:w-64 group">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl group-focus-within:text-primary transition-colors">search</span>
-                <input 
-                  className="glass-input w-full pl-10 pr-4 h-10 rounded-full text-sm outline-none placeholder:text-on-surface-variant/50 transition-all" 
-                  placeholder="Search invoices..." 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                />
-              </div>
-              <div className="flex gap-2">
-                <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 transition-colors tooltip cursor-pointer" title="Export PDF">
-                  <span className="material-symbols-outlined text-primary">picture_as_pdf</span>
-                </button>
-                <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 transition-colors tooltip cursor-pointer" title="Export Excel">
-                  <span className="material-symbols-outlined text-primary">table_view</span>
-                </button>
-                <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 transition-colors tooltip cursor-pointer" title="Export CSV">
-                  <span className="material-symbols-outlined text-primary">csv</span>
-                </button>
-              </div>
+            {/* Search bar - right corner */}
+            <div className="relative w-full md:w-64 group">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl group-focus-within:text-primary transition-colors">search</span>
+              <input 
+                className="glass-input w-full pl-10 pr-4 h-10 rounded-full text-sm outline-none placeholder:text-on-surface-variant/50 transition-all" 
+                placeholder="Search invoices..." 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              />
             </div>
           </div>
-          <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse whitespace-nowrap">
+          <div className="overflow-x-auto scrollbar-hide">
+            <table className="w-full text-left border-separate border-spacing-0 whitespace-nowrap">
               <thead className="bg-surface-container/50">
                 <tr>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant">#</th>
@@ -485,9 +493,9 @@ export default function ReportsPage() {
                           <span className="text-on-surface">{invoice.customer?.customerName || 'Unknown'}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-5 text-right font-semibold text-on-surface">₹{invoice.totals?.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</td>
-                      <td className="px-6 py-5 text-right text-on-surface-variant">₹{(invoice.amountPaid || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="px-6 py-5 text-right font-bold text-tertiary">₹{(invoice.amountDue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="px-6 py-5 text-right font-semibold text-on-surface">{formatINR(invoice.totals?.grandTotal || 0)}</td>
+                      <td className="px-6 py-5 text-right text-on-surface-variant">{formatINR(invoice.amountPaid || 0)}</td>
+                      <td className="px-6 py-5 text-right font-bold text-tertiary">{formatINR(invoice.amountDue || 0)}</td>
                       <td className="px-6 py-5 text-center">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(invoice.status)}`}>
                           {getStatusText(invoice.status)}
@@ -507,34 +515,38 @@ export default function ReportsPage() {
             </p>
             <div className="flex items-center gap-2">
               <button 
-                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-container-highest disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors" 
+                className="px-4 h-9 rounded-lg flex items-center gap-1 font-semibold text-sm hover:bg-surface-container-highest disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors" 
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               >
-                <span className="material-symbols-outlined">chevron_left</span>
+                Previous
               </button>
-              
-              {pageNumbers.map(page => (
-                <button 
-                  key={page}
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold cursor-pointer transition-all ${currentPage === page ? 'bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]' : 'hover:bg-surface-container-highest'}`}
-                  onClick={() => setCurrentPage(page)}
-                >
-                  {page}
-                </button>
-              ))}
+
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+                {currentPage}
+              </span>
 
               <button 
-                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-container-highest disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                className="px-4 h-9 rounded-lg flex items-center gap-1 font-semibold text-sm hover:bg-surface-container-highest disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               >
-                <span className="material-symbols-outlined">chevron_right</span>
+                Next
               </button>
             </div>
           </div>
         </section>
       </div>
+
+      <style jsx global>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none; /* IE and Edge */
+          scrollbar-width: none; /* Firefox */
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, Opera */
+        }
+      `}</style>
     </div>
   );
 }

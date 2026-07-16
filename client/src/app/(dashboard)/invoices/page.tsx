@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import PdfViewerModal from '@/components/PdfViewerModal';
 import { apiFetch } from '@/lib/auth';
 import { useBranch } from '@/components/BranchProvider';
 
@@ -164,7 +166,7 @@ export default function InvoicesPage() {
 
   const handleDownloadPdf = async (id: string, invoiceNumber: string) => {
     try {
-      const res = await apiFetch(`/invoices/${id}/pdf`, {
+      const res = await apiFetch(`/invoices/${id}/pdf?t=${Date.now()}`, {
         method: 'GET',
       });
 
@@ -189,7 +191,7 @@ export default function InvoicesPage() {
   const handleViewPdf = async (id: string, invoiceNumber: string) => {
     try {
       setIsLoadingPdf(true);
-      const res = await apiFetch(`/invoices/${id}/pdf`, {
+      const res = await apiFetch(`/invoices/${id}/pdf?t=${Date.now()}`, {
         method: 'GET',
       });
 
@@ -371,24 +373,13 @@ export default function InvoicesPage() {
     return sortedInvoices.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
   }, [sortedInvoices, currentPage, entriesPerPage]);
 
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    if (totalPages <= maxButtons) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxButtons - 1);
-    start = Math.max(1, end - maxButtons + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [totalPages, currentPage]);
-
   const handleEntriesPerPageChange = (n: number) => {
     setEntriesPerPage(n);
     setCurrentPage(1);
   };
 
   const sortHeaderClass = (key: string) =>
-    `px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group ${
+    `px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group outline-none focus:outline-none [-webkit-tap-highlight-color:transparent] ${
       sortConfig?.key === key ? 'text-primary' : ''
     }`;
 
@@ -398,7 +389,40 @@ export default function InvoicesPage() {
     }`;
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+    <div
+      className="flex-1 overflow-y-auto p-8 [&::-webkit-scrollbar]:hidden"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    >
+    <style jsx global>{`
+  table, thead, tbody, tr, td, th {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+  }
+  table ::selection,
+  tr::selection, tr *::selection,
+  td::selection, td *::selection,
+  th::selection, th *::selection,
+  button::selection, button *::selection,
+  span::selection {
+    background: transparent !important;
+    color: inherit !important;
+  }
+  button, th, select, input, a, tr, td, span, [role='button'] {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    outline: none !important;
+  }
+  button::-moz-focus-inner {
+    border: 0 !important;
+  }
+  th, th:focus, th:active,
+  button:focus, button:active,
+  select:focus, select:active {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+`}</style>
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
         <div>
@@ -482,15 +506,18 @@ export default function InvoicesPage() {
         <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
           <div className="flex items-center gap-3 text-sm text-on-surface-variant">
             <span>Show</span>
-            <select
-              value={entriesPerPage}
-              onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
-              className="glass-input rounded-md py-1.5 px-3 text-on-surface focus:ring-0 focus:border-primary/50 text-sm cursor-pointer appearance-none pr-8 relative bg-surface-container-highest"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
+            <div className="relative">
+              <select
+                value={entriesPerPage}
+                onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
+                className="glass-input rounded-md py-1.5 pl-3 pr-8 text-on-surface focus:ring-0 focus:border-primary/50 text-sm cursor-pointer appearance-none bg-surface-container-highest outline-none [-webkit-tap-highlight-color:transparent]"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+            </div>
             <span>entries</span>
           </div>
           <div className="relative w-full sm:w-auto">
@@ -507,7 +534,7 @@ export default function InvoicesPage() {
 
         {/* The Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+         <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
             <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
               <tr>
                 <th className={sortHeaderClass('invoiceNumber')} scope="col" onClick={() => handleSort('invoiceNumber')}>
@@ -681,19 +708,9 @@ export default function InvoicesPage() {
               >
                 Previous
               </button>
-              {pageNumbers.map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
-                    page === currentPage
-                      ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
-                      : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+                {currentPage}
+              </span>
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
@@ -708,90 +725,27 @@ export default function InvoicesPage() {
 
       {/* PDF Viewer Modal */}
       {viewerPdfUrl && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-8">
-          <div className="absolute inset-0 bg-background/60 backdrop-blur-xl transition-opacity" onClick={closePdfViewer}></div>
-          <div className="bg-surface/80 backdrop-blur-2xl rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] w-full max-w-6xl overflow-hidden relative z-10 flex flex-col h-[90vh] animate-in zoom-in-95 fade-in duration-300 border border-white/10">
-
-            {/* Premium Toolbar */}
-            <div className="px-6 py-4 bg-gradient-to-r from-surface-container/50 to-surface-container/10 flex items-center justify-between border-b border-white/10 relative">
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
-
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
-                  <span className="material-symbols-outlined text-[24px]">picture_as_pdf</span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-headline font-bold text-on-surface tracking-tight leading-tight">Document Preview</h3>
-                  <p className="text-sm text-on-surface-variant font-medium mt-0.5">{viewerPdfUrl.title}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                {(() => {
-                  const activeInvoice = invoices.find(q => q.id === viewerPdfUrl.id);
-                  if (!activeInvoice) return null;
-
-                  return (
-                    <div className="flex items-center gap-2 hidden lg:flex">
-                      <Link href={`/invoices/${activeInvoice.id}/edit`}>
-                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Edit">
-                          <span className="material-symbols-outlined text-[20px]">edit</span>
-                        </button>
-                      </Link>
-
-                      <button onClick={() => { closePdfViewer(); handleOpenPaymentModal(activeInvoice); }} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Add Payment">
-                        <span className="material-symbols-outlined text-[20px]">payments</span>
-                      </button>
-                      <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Send">
-                        <span className="material-symbols-outlined text-[20px]">send</span>
-                      </button>
-                      <div className="w-px h-6 bg-white/10 mx-1"></div>
-                    </div>
-                  );
-                })()}
-
-                <a
-                  href={viewerPdfUrl.url}
-                  download={viewerPdfUrl.title}
-                  className="group relative inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:translate-y-0"
-                >
-                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-                  <span className="material-symbols-outlined text-[18px] relative z-10">download</span>
-                  <span className="relative z-10 text-sm hidden sm:inline-block">Download</span>
-                </a>
-                <div className="w-px h-8 bg-white/10 mx-1"></div>
-                <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-error/10 hover:text-error border border-transparent hover:border-error/20 text-on-surface-variant transition-all cursor-pointer">
-                  <span className="material-symbols-outlined">close</span>
+        <PdfViewerModal
+          url={viewerPdfUrl.url}
+          title={viewerPdfUrl.title}
+          documentId={viewerPdfUrl.id}
+          documentType="invoice"
+          onClose={closePdfViewer}
+          renderActions={(documentId) => {
+            const activeInvoice = invoices.find(q => q.id === documentId);
+            if (!activeInvoice) return null;
+            return (
+              <>
+                <button onClick={() => { closePdfViewer(); handleOpenPaymentModal(activeInvoice as any); }} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Add Payment">
+                  <span className="material-symbols-outlined text-[20px]">payments</span>
                 </button>
-              </div>
-            </div>
-
-            {/* Content Area with sophisticated framing */}
-            <div className="flex-1 bg-black/40 p-2 sm:p-6 flex items-center justify-center overflow-hidden">
-              {isLoadingPdf ? (
-                <div className="flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in-95 duration-500">
-                  <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
-                    <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-                    <span className="absolute inset-0 flex items-center justify-center material-symbols-outlined text-primary text-2xl animate-pulse">description</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <h3 className="text-lg font-bold text-on-surface tracking-wide text-white">Generating PDF</h3>
-                    <p className="text-sm text-white/70 mt-1">Please wait while we render your document...</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full h-full max-w-[800px] bg-white rounded-xl shadow-2xl overflow-hidden relative border border-white/20">
-                  <iframe
-                    src={viewerPdfUrl.url}
-                    className="w-full h-full border-none"
-                    title="PDF Viewer"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+                <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Send">
+                  <span className="material-symbols-outlined text-[20px]">send</span>
+                </button>
+              </>
+            );
+          }}
+        />
       )}
 
       {/* Add Payment Modal */}

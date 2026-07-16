@@ -513,7 +513,6 @@ export class InvoiceService {
       method: dto.method,
       date: new Date(dto.date),
       note: dto.note || '',
-      recordedById: userId,
     };
 
     const updateData = {

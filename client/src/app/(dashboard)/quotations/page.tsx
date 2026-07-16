@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/auth';
+import PdfViewerModal from '@/components/PdfViewerModal';
 import { useBranch } from '@/components/BranchProvider';
 
 interface Quotation {
@@ -157,7 +158,7 @@ export default function QuotationsPage() {
 
   const handleDownloadPdf = async (id: string, quotationNumber: string) => {
     try {
-      const res = await apiFetch(`/quotations/${id}/pdf`, {
+      const res = await apiFetch(`/quotations/${id}/pdf?t=${Date.now()}`, {
         method: 'GET',
       });
 
@@ -182,7 +183,7 @@ export default function QuotationsPage() {
   const handleViewPdf = async (id: string, quotationNumber: string) => {
     try {
       setIsLoadingPdf(true);
-      const res = await apiFetch(`/quotations/${id}/pdf`, {
+      const res = await apiFetch(`/quotations/${id}/pdf?t=${Date.now()}`, {
         method: 'GET',
       });
 
@@ -309,22 +310,6 @@ export default function QuotationsPage() {
     setCurrentPage(Math.min(Math.max(1, page), totalPages));
   };
 
-  const getPageNumbers = (): (number | string)[] => {
-    const pages: (number | string)[] = [];
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-      return pages;
-    }
-    if (currentPage <= 4) {
-      pages.push(1, 2, 3, 4, 5, '...', totalPages);
-    } else if (currentPage >= totalPages - 3) {
-      pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-    } else {
-      pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
-    }
-    return pages;
-  };
-
   // ---- Small helper to render a sortable header cell (icons aligned with Invoices/Customers/Products) ----
   const renderSortableHeader = (label: string, key: SortKey, align: 'left' | 'right' = 'left') => {
     const isActive = sortConfig?.key === key;
@@ -350,7 +335,10 @@ export default function QuotationsPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
+    <div
+      className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    >
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -489,7 +477,7 @@ export default function QuotationsPage() {
         
         {/* The Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+          <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
             <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
               <tr>
                 {renderSortableHeader('Quotation Number', 'quotationNumber')}
@@ -641,24 +629,9 @@ export default function QuotationsPage() {
                 Previous
               </button>
 
-              {getPageNumbers().map((page, idx) =>
-                page === '...' ? (
-                  <span key={`ellipsis-${idx}`} className="px-2 py-1.5 text-sm text-on-surface-variant/50">...</span>
-                ) : (
-                  <button
-                    key={page}
-                    onClick={() => goToPage(page as number)}
-                    aria-current={currentPage === page ? 'page' : undefined}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
-                      currentPage === page
-                        ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
-                        : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border-transparent'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                )
-              )}
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+                {currentPage}
+              </span>
 
               <button
                 onClick={() => goToPage(currentPage + 1)}
@@ -776,94 +749,41 @@ export default function QuotationsPage() {
       )}
       {/* PDF Viewer Modal */}
       {viewerPdfUrl && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-8">
-          <div className="absolute inset-0 bg-background/60 backdrop-blur-xl transition-opacity" onClick={closePdfViewer}></div>
-          <div className="bg-surface/80 backdrop-blur-2xl rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] w-full max-w-6xl overflow-hidden relative z-10 flex flex-col h-[90vh] animate-in zoom-in-95 fade-in duration-300 border border-white/10">
-            
-            {/* Premium Toolbar */}
-            <div className="px-6 py-4 bg-gradient-to-r from-surface-container/50 to-surface-container/10 flex items-center justify-between border-b border-white/10 relative">
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
-              
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
-                  <span className="material-symbols-outlined text-[24px]">picture_as_pdf</span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-headline font-bold text-on-surface tracking-tight leading-tight">Document Preview</h3>
-                  <p className="text-sm text-on-surface-variant font-medium mt-0.5">{viewerPdfUrl.title}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                {(() => {
-                  const activeQuotation = quotations.find(q => q.id === viewerPdfUrl.id);
-                  if (!activeQuotation) return null;
-                  
-                  return (
-                    <div className="flex items-center gap-2 hidden lg:flex">
-                      <Link href={`/quotations/${activeQuotation.id}/edit`}>
-                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Edit">
-                          <span className="material-symbols-outlined text-[20px]">edit</span>
-                        </button>
-                      </Link>
-                      <Link href={`/quotations/new?copyFrom=${activeQuotation.id}`}>
-                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-blue-400/10 hover:text-blue-400 border border-transparent hover:border-blue-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Copy">
-                          <span className="material-symbols-outlined text-[20px]">content_copy</span>
-                        </button>
-                      </Link>
-                      <Link href={`/invoices/new?copyFromQuotation=${activeQuotation.id}`}>
-                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Convert to Invoice">
-                          <span className="material-symbols-outlined text-[20px]">receipt_long</span>
-                        </button>
-                      </Link>
-                      <button onClick={() => handleSend(activeQuotation.id)} disabled={isSendingId === activeQuotation.id} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip disabled:opacity-50" title="Send">
-                        {isSendingId === activeQuotation.id ? <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[20px]">send</span>}
-                      </button>
-                      <button 
-                        onClick={() => {
-                          closePdfViewer();
-                          setNotesModalData({
-                            id: activeQuotation.id,
-                            notes: activeQuotation.notes || '',
-                            followUpDate: activeQuotation.followUpDate ? new Date(activeQuotation.followUpDate).toISOString().split('T')[0] : ''
-                          });
-                        }}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-amber-400/10 hover:text-amber-400 border border-transparent hover:border-amber-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Notes & Reminder">
-                        <span className="material-symbols-outlined text-[20px]">sticky_note_2</span>
-                      </button>
-                      <div className="w-px h-6 bg-white/10 mx-1"></div>
-                    </div>
-                  );
-                })()}
-
-                <a 
-                  href={viewerPdfUrl.url} 
-                  download={viewerPdfUrl.title}
-                  className="group relative inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:translate-y-0"
-                >
-                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-                  <span className="material-symbols-outlined text-[18px] relative z-10">download</span>
-                  <span className="relative z-10 text-sm hidden sm:inline-block">Download</span>
-                </a>
-                <div className="w-px h-8 bg-white/10 mx-1"></div>
-                <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-error/10 hover:text-error border border-transparent hover:border-error/20 text-on-surface-variant transition-all cursor-pointer">
-                  <span className="material-symbols-outlined">close</span>
+        <PdfViewerModal
+          url={viewerPdfUrl.url}
+          title={viewerPdfUrl.title}
+          documentId={viewerPdfUrl.id}
+          documentType="quotation"
+          onClose={closePdfViewer}
+          renderActions={(documentId) => {
+            const activeQuotation = quotations.find(q => q.id === documentId);
+            if (!activeQuotation) return null;
+            return (
+              <>
+                <Link href={`/invoices/new?copyFromQuotation=${activeQuotation.id}`}>
+                  <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Convert to Invoice">
+                    <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+                  </button>
+                </Link>
+                <button onClick={() => handleSend(activeQuotation.id)} disabled={isSendingId === activeQuotation.id} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip disabled:opacity-50" title="Send">
+                  {isSendingId === activeQuotation.id ? <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[20px]">send</span>}
                 </button>
-              </div>
-            </div>
-            
-            {/* Content Area with sophisticated framing */}
-            <div className="flex-1 bg-black/40 p-2 sm:p-6 flex items-center justify-center overflow-hidden">
-              <div className="w-full h-full max-w-[800px] bg-white rounded-xl shadow-2xl overflow-hidden relative border border-white/20">
-                <iframe 
-                  src={viewerPdfUrl.url} 
-                  className="w-full h-full border-none"
-                  title="PDF Viewer"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+                <button 
+                  onClick={() => {
+                    closePdfViewer();
+                    setNotesModalData({
+                      id: activeQuotation.id,
+                      notes: activeQuotation.notes || '',
+                      followUpDate: activeQuotation.followUpDate ? new Date(activeQuotation.followUpDate).toISOString().split('T')[0] : ''
+                    });
+                  }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-amber-400/10 hover:text-amber-400 border border-transparent hover:border-amber-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Notes & Reminder">
+                  <span className="material-symbols-outlined text-[20px]">sticky_note_2</span>
+                </button>
+              </>
+            );
+          }}
+        />
       )}
 
       {/* Footer Decoration */}

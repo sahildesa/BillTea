@@ -247,24 +247,13 @@ export default function CustomersPage() {
     return sortedCustomers.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
   }, [sortedCustomers, currentPage, entriesPerPage]);
 
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    if (totalPages <= maxButtons) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxButtons - 1);
-    start = Math.max(1, end - maxButtons + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [totalPages, currentPage]);
-
   const handleEntriesPerPageChange = (n: number) => {
     setEntriesPerPage(n);
     setCurrentPage(1);
   };
 
   const sortHeaderClass = (key: string) =>
-    `px-6 py-4 cursor-pointer hover:text-primary transition-colors group ${
+    `px-6 py-4 cursor-pointer hover:text-primary transition-colors group outline-none focus:outline-none select-none [-webkit-tap-highlight-color:transparent] [-webkit-user-select:none] ${
       sortConfig?.key === key ? 'text-primary' : ''
     }`;
 
@@ -275,7 +264,62 @@ export default function CustomersPage() {
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto p-8 z-0 relative">
+      <div
+        className="flex-1 overflow-y-auto p-8 z-0 relative [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+      <style jsx global>{`
+  * {
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  button, th, select, input, a, tr, td, span, div, [role='button'] {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    outline: none !important;
+  }
+  th::selection, th *::selection,
+  button::selection, button *::selection,
+  span::selection {
+    background: transparent !important;
+  }
+  button::-moz-focus-inner {
+    border: 0 !important;
+  }
+  button,
+  button:focus,
+  button:focus-visible,
+  button:active,
+  th,
+  th:focus,
+  th:focus-visible,
+  th:active,
+  select,
+  select:focus,
+  select:focus-visible,
+  select:active,
+  a,
+  a:focus,
+  a:focus-visible,
+  a:active,
+  tr,
+  tr:focus,
+  tr:active,
+  td,
+  td:focus,
+  td:active,
+  span,
+  span:focus,
+  span:active,
+  [role='button'],
+  [role='button']:focus,
+  [role='button']:focus-visible,
+  [role='button']:active {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+`}</style>
         {/* Background Ambient Effects */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
       <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
@@ -375,31 +419,31 @@ export default function CustomersPage() {
         </div>
 
         {/* High-Fidelity Data Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap">
+        <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <table className="w-full text-left border-separate border-spacing-0 whitespace-nowrap">
             <thead>
               <tr className="bg-surface-container-low/50 text-xs font-semibold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
-                <th className={sortHeaderClass('customer')} onClick={() => handleSort('customer')}>
+                <th className={sortHeaderClass('customer')} onClick={() => handleSort('customer')} tabIndex={-1}>
                   <div className="flex items-center gap-1">
                     Customer <span className={sortIconClass('customer')}>{getSortIcon('customer')}</span>
                   </div>
                 </th>
-                <th className={sortHeaderClass('contact')} onClick={() => handleSort('contact')}>
+                <th className={sortHeaderClass('contact')} onClick={() => handleSort('contact')} tabIndex={-1}>
                   <div className="flex items-center gap-1">
                     Contact <span className={sortIconClass('contact')}>{getSortIcon('contact')}</span>
                   </div>
                 </th>
-                <th className={sortHeaderClass('identifier')} onClick={() => handleSort('identifier')}>
+                <th className={sortHeaderClass('identifier')} onClick={() => handleSort('identifier')} tabIndex={-1}>
                   <div className="flex items-center gap-1">
                     Identifier <span className={sortIconClass('identifier')}>{getSortIcon('identifier')}</span>
                   </div>
                 </th>
-                <th className={`${sortHeaderClass('invoices')} text-center`} onClick={() => handleSort('invoices')}>
+                <th className={`${sortHeaderClass('invoices')} text-center`} onClick={() => handleSort('invoices')} tabIndex={-1}>
                   <div className="flex items-center justify-center gap-1">
                     Invoices <span className={sortIconClass('invoices')}>{getSortIcon('invoices')}</span>
                   </div>
                 </th>
-                <th className={`${sortHeaderClass('quotations')} text-center`} onClick={() => handleSort('quotations')}>
+                <th className={`${sortHeaderClass('quotations')} text-center`} onClick={() => handleSort('quotations')} tabIndex={-1}>
                   <div className="flex items-center justify-center gap-1">
                     Quotations <span className={sortIconClass('quotations')}>{getSortIcon('quotations')}</span>
                   </div>
@@ -462,10 +506,10 @@ export default function CustomersPage() {
                     </td>
                     <td className="px-6 py-5 text-right pr-8">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => handleOpenEditModal(customer)} className="glass-button-icon p-1 rounded-md transition-all cursor-pointer hover:text-primary hover:border-primary/30 hover:bg-primary/10" title="Edit">
+                        <button onClick={() => handleOpenEditModal(customer)} className="glass-button-icon p-1 rounded-md transition-all cursor-pointer hover:text-primary hover:border-primary/30 hover:bg-primary/10 outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]" title="Edit">
                           <span className="material-symbols-outlined text-[16px]">edit</span>
                         </button>
-                        <button onClick={() => handleDeleteCustomer(customer.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 cursor-pointer" title="Delete">
+                        <button onClick={() => handleDeleteCustomer(customer.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 cursor-pointer outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]" title="Delete">
                           <span className="material-symbols-outlined text-[16px]">delete</span>
                         </button>
                       </div>
@@ -488,27 +532,17 @@ export default function CustomersPage() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]"
             >
               Previous
             </button>
-            {pageNumbers.map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
-                  page === currentPage
-                    ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
-                    : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+              {currentPage}
+            </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]"
             >
               Next
             </button>

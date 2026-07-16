@@ -370,17 +370,6 @@ export default function ExpensesPage() {
     return sortedExpenses.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
   }, [sortedExpenses, currentPage, entriesPerPage]);
 
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    if (totalPages <= maxButtons) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxButtons - 1);
-    start = Math.max(1, end - maxButtons + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [totalPages, currentPage]);
-
   const handleEntriesPerPageChange = (n: number) => {
     setEntriesPerPage(n);
     setCurrentPage(1);
@@ -398,7 +387,38 @@ export default function ExpensesPage() {
 
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-theme(spacing.16))] bg-background overflow-hidden relative">
-      <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
+      <style jsx global>{`
+  table, thead, tbody, tr, td, th {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+  }
+  table ::selection,
+  tr::selection, tr *::selection,
+  td::selection, td *::selection,
+  th::selection, th *::selection,
+  button::selection, button *::selection,
+  span::selection {
+    background: transparent !important;
+    color: inherit !important;
+  }
+  button, th, select, input, a, tr, td, span, [role='button'] {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    outline: none !important;
+  }
+  button::-moz-focus-inner {
+    border: 0 !important;
+  }
+  th, th:focus, th:active {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+`}</style>
+      <div
+        className="flex-1 overflow-y-auto px-8 py-8 [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
         <div className="max-w-[1600px] mx-auto w-full space-y-8 pb-20">
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -476,10 +496,6 @@ export default function ExpensesPage() {
           <div className="bg-surface rounded-3xl shadow-sm border border-outline-variant/30 overflow-hidden flex flex-col">
             <div className="p-4 md:p-6 border-b border-outline-variant/30 bg-surface-container-lowest/50 flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
-                <div className="flex items-center gap-2 bg-surface-container-low px-4 py-2.5 rounded-xl border border-outline-variant/30 flex-1 md:flex-none">
-                  <span className="material-symbols-outlined text-on-surface-variant/50 text-[20px]">storefront</span>
-                  <span className="text-sm font-semibold text-on-surface">Branch Expenses</span>
-                </div>
                 <div className="flex items-center gap-2 text-sm text-on-surface-variant">
                   <span>Show</span>
                   <select
@@ -508,7 +524,7 @@ export default function ExpensesPage() {
 
             {/* High-Fidelity Data Table */}
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed text-left border-collapse whitespace-nowrap">
+              <table className="w-full table-fixed text-left border-separate border-spacing-0 whitespace-nowrap">
                 <thead>
                   <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
                     <th className={`${sortHeaderClass('date')} w-1/6`} onClick={() => handleSort('date')}>
@@ -634,19 +650,9 @@ export default function ExpensesPage() {
                 >
                   Previous
                 </button>
-                {pageNumbers.map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
-                      page === currentPage
-                        ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
-                        : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+                  {currentPage}
+                </span>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
@@ -823,8 +829,7 @@ export default function ExpensesPage() {
                   <p className="text-sm text-error font-medium">{categoryError}</p>
                 </div>
               )}
-
-              <table className="w-full text-left border-collapse bg-surface border border-outline-variant/20 rounded-xl overflow-hidden shadow-sm">
+<table className="w-full text-left border-separate border-spacing-0 bg-surface border border-outline-variant/20 rounded-xl overflow-hidden shadow-sm">
                 <thead>
                   <tr className="bg-surface-container-low text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-outline-variant/20">
                     <th className="px-4 py-3">Category Name</th>
@@ -939,7 +944,6 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

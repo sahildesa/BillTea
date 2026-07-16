@@ -345,7 +345,7 @@ export default function EditQuotationPage() {
             return;
           }
           ctx.drawImage(img, 0, 0, width, height);
-          
+
           canvas.toBlob((blob) => {
             if (!blob) {
               resolve(file); // fallback
@@ -366,16 +366,16 @@ export default function EditQuotationPage() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    
+
     setError(''); // clear previous errors
     const allowedTypes = [
-      'application/pdf', 
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
     const MAX_SIZE_MB = 5;
     const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-    
+
     const validFiles: File[] = [];
     const errors: string[] = [];
 
@@ -388,7 +388,7 @@ export default function EditQuotationPage() {
         errors.push(`${file.name}: Exceeds ${MAX_SIZE_MB}MB.`);
         continue;
       }
-      
+
       try {
         if (file.type.startsWith('image/')) {
           const compressed = await compressImage(file);
@@ -404,11 +404,11 @@ export default function EditQuotationPage() {
     if (errors.length > 0) {
       setError(`Attachment errors:\n• ${errors.join('\n• ')}`);
     }
-    
+
     if (validFiles.length > 0) {
       setAttachments(prev => [...prev, ...validFiles]);
     }
-    
+
     e.target.value = ''; // reset input
   };
 
@@ -472,7 +472,8 @@ export default function EditQuotationPage() {
 
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
@@ -491,480 +492,479 @@ export default function EditQuotationPage() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
-      {/* Header Section */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
-        <div className="max-w-2xl">
-          <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-4">
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to List
-          </button>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
-            <span className="material-symbols-outlined text-[14px]">edit_document</span>
-            Edit Quotation
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
-            <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
-              Update Details
-            </span>
-          </h1>
-          <div className="flex flex-col gap-2">
-            <p className="text-on-surface-variant text-lg leading-relaxed">
-              Modify the quotation details below and save your changes.
-            </p>
-            {quotationNumber && (
-              <span className="text-sm font-bold text-primary inline-flex items-center gap-1.5 bg-primary/5 px-2 py-1 rounded w-max border border-primary/10">
-                <span className="material-symbols-outlined text-[14px]">tag</span> {quotationNumber}
+        {/* Header Section */}
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="max-w-2xl">
+            <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-4">
+              <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to List
+            </button>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+              <span className="material-symbols-outlined text-[14px]">edit_document</span>
+              Edit Quotation
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+              <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+                Update Details
               </span>
-            )}
+            </h1>
+            <div className="flex flex-col gap-2">
+              <p className="text-on-surface-variant text-lg leading-relaxed">
+                Modify the quotation details below and save your changes.
+              </p>
+              {quotationNumber && (
+                <span className="text-sm font-bold text-primary inline-flex items-center gap-1.5 bg-primary/5 px-2 py-1 rounded w-max border border-primary/10">
+                  <span className="material-symbols-outlined text-[14px]">tag</span> {quotationNumber}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-        <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="group relative h-14 px-8 rounded-2xl bg-primary text-on-primary font-bold flex items-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
-          <div className="absolute inset-0 w-full h-full bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
-          {isSaving ? <span className="material-symbols-outlined animate-spin">refresh</span> : <span className="material-symbols-outlined">save</span>}
-          <span>Update Quotation</span>
-        </button>
-      </header>
+          <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="group relative h-14 px-8 rounded-2xl bg-primary text-on-primary font-bold flex items-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+            <div className="absolute inset-0 w-full h-full bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
+            {isSaving ? <span className="material-symbols-outlined animate-spin">refresh</span> : <span className="material-symbols-outlined">save</span>}
+            <span>Update Quotation</span>
+          </button>
+        </header>
 
-      {error && (
-        <div ref={errorRef} className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
-          <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
-          <div className="text-sm text-red-700 font-medium whitespace-pre-line leading-relaxed">{error}</div>
-        </div>
-      )}
+        {error && (
+          <div ref={errorRef} className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
+            <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
+            <div className="text-sm text-red-700 font-medium whitespace-pre-line leading-relaxed">{error}</div>
+          </div>
+        )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 relative z-10 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
-        <div className="col-span-2 space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 relative z-10 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
+          <div className="col-span-2 space-y-6">
 
-          {/* Customer & Address Section */}
-          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30 overflow-visible relative">
-            <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">person</span> Customer Information
-            </h2>
+            {/* Customer & Address Section */}
+            <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30 overflow-visible relative">
+              <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">person</span> Customer Information
+              </h2>
 
-            <div className="mb-6 relative">
-              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Search Customer *</label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50">search</span>
-                <input 
-                  type="text" 
-                  value={customerSearch} 
-                  onChange={(e) => { setCustomerSearch(e.target.value); if (e.target.value === '') setSelectedCustomerDetails(null); }} 
-                  onFocus={() => setShowCustomerDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
-                  className="glass-input pl-10 pr-4 py-2.5 rounded-lg text-sm text-on-surface w-full focus:ring-primary/50 font-semibold" 
-                  placeholder="Type to search..." 
-                />
-                {showCustomerDropdown && customerResults.length > 0 && (
-                  <div className="absolute top-full left-0 w-full mt-2 bg-surface/95 backdrop-blur-xl shadow-2xl rounded-xl border border-outline-variant/30 z-[100] max-h-60 overflow-y-auto overflow-x-hidden flex flex-col p-1">
-                    {customerResults.map(c => (
-                      <div key={c.id} onMouseDown={(e) => { e.preventDefault(); handleCustomerSelect(c); }} className="px-3 py-2.5 hover:bg-primary/5 rounded-lg cursor-pointer transition-all duration-200 group flex items-center gap-3 border-b border-outline-variant/10 last:border-0">
-                        <div className="text-primary/70 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-[20px]">person</span>
+              <div className="mb-6 relative">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Search Customer *</label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50">search</span>
+                  <input
+                    type="text"
+                    value={customerSearch}
+                    onChange={(e) => { setCustomerSearch(e.target.value); if (e.target.value === '') setSelectedCustomerDetails(null); }}
+                    onFocus={() => setShowCustomerDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                    className="glass-input pl-10 pr-4 py-2.5 rounded-lg text-sm text-on-surface w-full focus:ring-primary/50 font-semibold"
+                    placeholder="Type to search..."
+                  />
+                  {showCustomerDropdown && customerResults.length > 0 && (
+                    <div className="absolute top-full left-0 w-full mt-2 bg-surface/95 backdrop-blur-xl shadow-2xl rounded-xl border border-outline-variant/30 z-[100] max-h-60 overflow-y-auto overflow-x-hidden flex flex-col p-1">
+                      {customerResults.map(c => (
+                        <div key={c.id} onMouseDown={(e) => { e.preventDefault(); handleCustomerSelect(c); }} className="px-3 py-2.5 hover:bg-primary/5 rounded-lg cursor-pointer transition-all duration-200 group flex items-center gap-3 border-b border-outline-variant/10 last:border-0">
+                          <div className="text-primary/70 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[20px]">person</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{c.customerName}</span>
+                            <span className="text-[11px] text-on-surface-variant">
+                              {[c.companyName, c.email, c.mobileNumber].filter(Boolean).join(' • ')}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{c.customerName}</span>
-                          <span className="text-[11px] text-on-surface-variant">
-                            {[c.companyName, c.email, c.mobileNumber].filter(Boolean).join(' • ')}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {selectedCustomerDetails && (
+                <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-lg bg-surface-container/30 border border-outline-variant/20">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant">Email</span>
+                    <div className="text-sm text-on-surface font-semibold">{selectedCustomerDetails.email || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant">Phone</span>
+                    <div className="text-sm text-on-surface font-semibold">{selectedCustomerDetails.mobileNumber || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant">Company Name</span>
+                    <div className="text-sm text-on-surface font-semibold">{selectedCustomerDetails.companyName || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant">{selectedCustomerDetails.businessLabel || 'Business Label'}</span>
+                    <div className="text-sm text-on-surface font-semibold">{selectedCustomerDetails.businessLabelValue || 'N/A'}</div>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant">Billing Address (Read Only)</span>
+                    <div className="text-sm text-on-surface">{billingAddress.address || 'N/A'}</div>
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t border-primary/10 pt-4">
+                <label className="flex items-center gap-2 cursor-pointer mb-4">
+                  <input type="checkbox" checked={formData.shippingSameAsBilling} onChange={(e) => setFormData({ ...formData, shippingSameAsBilling: e.target.checked })} className="rounded text-primary focus:ring-primary/50 bg-surface-container" />
+                  <span className="text-sm font-semibold text-on-surface">Shipping address is same as billing address</span>
+                </label>
+
+                {!formData.shippingSameAsBilling && (
+                  <div className="p-4 rounded-lg bg-surface-container/30 border border-outline-variant/20 space-y-3">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Manual Shipping Address</label>
+                    <textarea value={shippingAddress.address} onChange={(e) => setShippingAddress({ ...shippingAddress, address: e.target.value })} className="glass-input w-full p-3 rounded-lg text-sm text-on-surface" placeholder="Enter complete shipping address..." rows={3}></textarea>
                   </div>
                 )}
               </div>
             </div>
 
-            {selectedCustomerDetails && (
-              <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-lg bg-surface-container/30 border border-outline-variant/20">
+            {/* Master Configurations */}
+            <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
+              <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">settings</span> Discount & Tax Rules
+              </h2>
+              <div className="grid grid-cols-2 gap-10">
+                {/* Discount Rules */}
+                <div className="flex flex-col">
+                  <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4">Discount Method</h3>
+                  <div className="flex gap-6 mb-5">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="discMode" checked={formData.discountConfiguration.mode === 'FIXED'} onChange={() => setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, mode: 'FIXED' } })} className="text-primary w-4 h-4" />
+                      <span className="text-sm font-semibold text-on-surface">Fixed for all</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="discMode" checked={formData.discountConfiguration.mode === 'PER_PRODUCT'} onChange={() => setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, mode: 'PER_PRODUCT' } })} className="text-primary w-4 h-4" />
+                      <span className="text-sm font-semibold text-on-surface">Per Product</span>
+                    </label>
+                  </div>
+
+                  <div className="h-[70px]">
+                    {formData.discountConfiguration.mode === 'FIXED' && (
+                      <div className="flex">
+                        <input type="number" value={formData.discountConfiguration.value} onChange={(e) => setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, value: parseFloat(e.target.value) || 0 } })} className="glass-input px-4 py-2.5 rounded-l-lg w-full text-sm font-semibold border-r-0 focus:ring-0 focus:border-primary/50" placeholder="Amount" />
+                        <select value={formData.discountConfiguration.type} onChange={(e: any) => setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, type: e.target.value } })} className="glass-input px-3 py-2.5 rounded-r-lg text-sm font-bold bg-surface-container cursor-pointer focus:ring-0 focus:border-primary/50">
+                          <option value="PERCENTAGE">%</option>
+                          <option value="AMOUNT">₹</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tax Rules */}
+                <div className="flex flex-col">
+                  <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4">Tax Method</h3>
+                  <div className="flex gap-6 mb-5">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="taxMode" checked={formData.taxConfiguration.mode === 'FIXED'} onChange={() => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, mode: 'FIXED' } })} className="text-primary w-4 h-4" />
+                      <span className="text-sm font-semibold text-on-surface">Fixed for all</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="taxMode" checked={formData.taxConfiguration.mode === 'PER_PRODUCT'} onChange={() => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, mode: 'PER_PRODUCT' } })} className="text-primary w-4 h-4" />
+                      <span className="text-sm font-semibold text-on-surface">Per Product</span>
+                    </label>
+                  </div>
+
+                  <div className="h-[70px]">
+                    {formData.taxConfiguration.mode === 'FIXED' && (
+                      <div className="flex flex-col gap-2 relative">
+                        {formData.taxConfiguration.customTaxActive ? (
+                          <div className="flex items-center gap-2">
+                            <input type="text" placeholder="Custom Tax Name" value={formData.taxConfiguration.label} onChange={(e) => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, label: e.target.value } })} className="glass-input px-4 py-2.5 rounded-lg w-full text-sm font-semibold focus:ring-0 focus:border-primary/50" />
+                            <div className="relative w-32">
+                              <input type="number" placeholder="0" value={formData.taxConfiguration.value} onChange={(e) => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, value: parseFloat(e.target.value) || 0 } })} className="glass-input pl-4 pr-8 py-2.5 rounded-lg w-full text-sm font-semibold focus:ring-0 focus:border-primary/50 text-right" />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-on-surface-variant">%</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <select className="glass-input px-4 py-2.5 rounded-lg w-full text-sm font-semibold cursor-pointer focus:ring-0 focus:border-primary/50 appearance-none bg-surface-container/30">
+                            <option value={branchTaxConfig.tax}>{branchTaxConfig.label} ({branchTaxConfig.tax}%)</option>
+                          </select>
+                        )}
+
+                        <label className="absolute -top-7 right-0 flex items-center gap-1.5 cursor-pointer">
+                          <input type="checkbox" checked={formData.taxConfiguration.customTaxActive} onChange={(e) => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, customTaxActive: e.target.checked } })} className="rounded text-primary w-3.5 h-3.5" />
+                          <span className="text-[11px] font-bold text-on-surface-variant uppercase">Custom</span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Items Table */}
+            <div className="glass-panel rounded-3xl shadow-sm border border-outline-variant/30 overflow-hidden relative overflow-visible">
+              <h2 className="text-lg font-bold text-on-surface m-6 mb-2 border-b border-primary/10 pb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">inventory_2</span> Quotation Items
+              </h2>
+              <div className="p-6 pt-2 flex flex-col gap-4">
+                {items.map((item, index) => {
+                  const calcItem = calculatedItems[index];
+                  return (
+                    <div key={item.id} className="relative group bg-surface-container/20 border border-outline-variant/10 rounded-xl p-4 md:p-5 hover:bg-surface-container/40 transition-colors shadow-sm">
+                      {/* Delete Button */}
+                      <button onClick={() => removeItem(item.id)} className="absolute top-2 right-2 text-error hover:bg-error/10 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10" title="Remove Item">
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                      </button>
+
+                      <div className="flex flex-col md:flex-row gap-5">
+                        {/* Left: Image Box */}
+                        <div className="relative group/img w-20 h-20 md:w-24 md:h-24 rounded-lg border border-outline-variant/30 bg-surface-container overflow-hidden shrink-0 shadow-sm mx-auto md:mx-0 mt-2">
+                          {/* Placeholder (Always in background) */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 z-0">
+                            <span className="material-symbols-outlined text-primary/40 text-3xl mb-1">inventory_2</span>
+                            <span className="text-[9px] font-bold text-primary/50 uppercase tracking-widest">No Image</span>
+                          </div>
+
+                          {/* Image (Renders on top if available) */}
+                          {item.image && item.image !== 'null' && item.image !== 'undefined' && (
+                            <img src={getImageUrl(item.image)} alt="Product" className="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-300" onError={(e) => { e.currentTarget.style.opacity = '0'; }} />
+                          )}
+
+                          <label className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center cursor-pointer backdrop-blur-sm z-20">
+                            <span className="material-symbols-outlined text-white text-[24px]">upload</span>
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = () => updateItem(item.id, 'image', reader.result as string);
+                                reader.readAsDataURL(file);
+                              }
+                            }} />
+                          </label>
+                        </div>
+
+                        {/* Right: Grid of Inputs */}
+                        <div className="flex-1 flex flex-col gap-4">
+                          {/* Row 1: Search, Qty, Price */}
+                          <div className="grid grid-cols-12 gap-3 md:gap-4 items-start">
+                            <div className="col-span-12 md:col-span-6 relative">
+                              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Product Search</label>
+                              <input
+                                type="text"
+                                value={productSearchRows[item.id]?.query ?? item.name}
+                                onChange={(e) => handleProductSearch(e.target.value, item.id)}
+                                onFocus={() => handleProductSearch(productSearchRows[item.id]?.query ?? item.name, item.id)}
+                                onBlur={() => setTimeout(() => setProductSearchRows(prev => ({ ...prev, [item.id]: { ...prev[item.id], show: false } })), 200)}
+                                className="glass-input px-3 py-2 rounded-lg text-sm w-full font-bold text-primary"
+                                placeholder="Type to search..."
+                              />
+                              {productSearchRows[item.id]?.show && (productSearchRows[item.id]?.results?.length || 0) > 0 && (
+                                <div className="absolute top-full left-0 w-full mt-2 bg-surface/95 backdrop-blur-xl shadow-2xl rounded-xl border border-outline-variant/30 z-[100] max-h-60 overflow-y-auto overflow-x-hidden p-1">
+                                  {productSearchRows[item.id].results.map(p => (
+                                    <div key={p.id} onMouseDown={(e) => { e.preventDefault(); handleProductSelect(p, item.id); }} className="px-3 py-2.5 hover:bg-primary/5 rounded-lg cursor-pointer transition-all duration-200 group flex justify-between items-center border-b border-outline-variant/10 last:border-0">
+                                      <div className="flex items-center gap-3">
+                                        <div className="text-primary/70 flex items-center justify-center">
+                                          <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+                                        </div>
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{p.name}</span>
+                                          {(p.sku || p.hsnCode) && (
+                                            <span className="text-[11px] text-on-surface-variant">
+                                              {[p.sku && `SKU: ${p.sku}`, p.hsnCode && `HSN: ${p.hsnCode}`].filter(Boolean).join(' • ')}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded">₹{p.price}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {(item.sku || item.hsnCode) && (
+                                <div className="flex gap-2 mt-2">
+                                  {item.sku && <span className="text-[10px] font-bold text-on-surface-variant bg-surface-container/80 border border-outline-variant/20 px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">SKU: {item.sku}</span>}
+                                  {item.hsnCode && <span className="text-[10px] font-bold text-on-surface-variant bg-surface-container/80 border border-outline-variant/20 px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">HSN: {item.hsnCode}</span>}
+                                </div>
+                              )}
+                            </div>
+                            <div className="col-span-4 md:col-span-2">
+                              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Qty</label>
+                              <input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)} className="glass-input px-3 py-2 rounded-lg text-sm w-full text-center font-semibold" />
+                            </div>
+                            <div className="col-span-8 md:col-span-4">
+                              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Unit Price (₹)</label>
+                              <input type="number" step="0.01" value={item.price} onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)} className="glass-input px-3 py-2 rounded-lg text-sm w-full text-right font-bold text-on-surface" />
+                              {item.productId && item.price !== item.originalPrice && (
+                                <div className="text-[10px] text-on-surface-variant/50 italic mt-1 text-right line-through">₹{item.originalPrice}</div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Row 2: Description, Discount, Tax, Total */}
+                          <div className="grid grid-cols-12 gap-3 md:gap-4 items-end">
+                            <div className={`col-span-12 ${(formData.discountConfiguration.mode === 'PER_PRODUCT' && formData.taxConfiguration.mode === 'PER_PRODUCT') ? 'md:col-span-4' :
+                                (formData.discountConfiguration.mode === 'PER_PRODUCT' ? 'md:col-span-6' :
+                                  (formData.taxConfiguration.mode === 'PER_PRODUCT' ? 'md:col-span-7' : 'md:col-span-9'))
+                              }`}>
+                              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Description</label>
+                              <input type="text" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="glass-input px-3 py-2 rounded-lg text-sm w-full text-on-surface" placeholder="Line item details..." />
+                              {item.productId && item.description !== item.originalDescription && (
+                                <div className="text-[10px] text-on-surface-variant/50 italic mt-1 truncate max-w-full">Orig: {item.originalDescription}</div>
+                              )}
+                            </div>
+
+                            {formData.discountConfiguration.mode === 'PER_PRODUCT' && (
+                              <div className="col-span-6 md:col-span-3">
+                                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Discount</label>
+                                <div className="flex items-center gap-1">
+                                  <input type="number" value={item.discount?.value || 0} onChange={(e) => updateItem(item.id, 'discount', { ...item.discount, value: parseFloat(e.target.value) || 0 })} className="glass-input px-3 py-2 rounded-lg text-sm w-full font-semibold" />
+                                  <select value={item.discount?.type || 'PERCENTAGE'} onChange={(e) => updateItem(item.id, 'discount', { ...item.discount, type: e.target.value })} className="glass-input p-2 rounded-lg text-xs font-bold bg-surface-container cursor-pointer">
+                                    <option value="PERCENTAGE">%</option>
+                                    <option value="AMOUNT">₹</option>
+                                  </select>
+                                </div>
+                              </div>
+                            )}
+
+                            {formData.taxConfiguration.mode === 'PER_PRODUCT' && (
+                              <div className="col-span-6 md:col-span-2">
+                                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Tax %</label>
+                                <div className="relative">
+                                  <input type="number" step="0.1" value={item.tax} onChange={(e) => updateItem(item.id, 'tax', parseFloat(e.target.value) || 0)} className="glass-input pl-3 pr-7 py-2 rounded-lg text-sm w-full text-center font-semibold" placeholder="0" />
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant">%</span>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="col-span-12 md:col-span-3 text-right mt-4 md:mt-0 flex flex-col justify-end">
+                              <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider block mb-1">Item Total (Preview)</span>
+                              <div className="text-xl font-bold text-primary relative inline-block self-end">
+                                {isCalculating && <span className="absolute -left-4 top-1/2 -translate-y-1/2 flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span></span>}
+                                ₹ {calcItem?.total?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <button onClick={addItem} className="mt-2 text-sm font-bold text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20 border-dashed py-4 rounded-xl flex items-center justify-center gap-2 transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">add_circle</span> Add Another Item
+                </button>
+              </div>
+            </div>
+
+            {/* Terms and Conditions */}
+            <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
+              <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">description</span> Terms & Conditions
+              </h2>
+              <textarea value={formData.termsAndConditions} onChange={(e) => setFormData({ ...formData, termsAndConditions: e.target.value })} className="glass-input w-full p-4 rounded-xl text-sm text-on-surface font-medium leading-relaxed" rows={4} placeholder="Enter quotation-specific terms here..."></textarea>
+            </div>
+
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Summary */}
+            <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
+              <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Quotation Summary</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between items-center text-on-surface-variant">
+                  <span>Subtotal</span>
+                  <span className="font-semibold text-on-surface">₹ {calculatedTotals.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between items-center text-on-surface-variant">
+                  <span>Total Discount</span>
+                  <span className="font-semibold text-error">- ₹ {calculatedTotals.discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between items-center text-on-surface-variant">
+                  <span>Total Tax</span>
+                  <span className="font-semibold text-on-surface">₹ {calculatedTotals.taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="pt-4 mt-2 border-t border-primary/10 flex justify-between items-center">
+                  <span className="font-bold text-on-surface text-base">Grand Total</span>
+                  <div className="flex items-center gap-2">
+                    {isCalculating && <span className="material-symbols-outlined animate-spin text-primary text-[16px]">refresh</span>}
+                    <span className="font-bold text-primary text-xl tracking-tight">₹ {calculatedTotals.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dates */}
+            <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
+              <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Timeline</h3>
+              <div className="space-y-4">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-on-surface-variant">Email</span>
-                  <div className="text-sm text-on-surface font-semibold">{selectedCustomerDetails.email || 'N/A'}</div>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Quotation Date</label>
+                  <input type="date" value={formData.quotationDate} onChange={(e) => setFormData({ ...formData, quotationDate: e.target.value })} className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" />
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-on-surface-variant">Phone</span>
-                  <div className="text-sm text-on-surface font-semibold">{selectedCustomerDetails.mobileNumber || 'N/A'}</div>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Expiry Date (+2 Months)</label>
+                  <input type="date" value={formData.expiryDate} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className="glass-input px-4 py-2.5 rounded-lg text-sm text-error w-full font-semibold" />
                 </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-on-surface-variant">Company Name</span>
-                  <div className="text-sm text-on-surface font-semibold">{selectedCustomerDetails.companyName || 'N/A'}</div>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-on-surface-variant">{selectedCustomerDetails.businessLabel || 'Business Label'}</span>
-                  <div className="text-sm text-on-surface font-semibold">{selectedCustomerDetails.businessLabelValue || 'N/A'}</div>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-[10px] uppercase font-bold text-on-surface-variant">Billing Address (Read Only)</span>
-                  <div className="text-sm text-on-surface">{billingAddress.address || 'N/A'}</div>
+              </div>
+            </div>
+
+            {/* Existing Attachments */}
+            {existingAttachments.length > 0 && (
+              <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
+                <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Existing Attachments</h3>
+                <div className="space-y-2">
+                  {existingAttachments.map((att: any) => (
+                    <div key={att.id} className="flex justify-between items-center p-3 rounded-lg bg-surface-container/50 border border-outline-variant/10">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary text-[18px]">attach_file</span>
+                        <span className="text-xs text-on-surface font-semibold truncate max-w-[180px]">{att.fileName}</span>
+                      </div>
+                      <span className="text-[10px] text-on-surface-variant">{(att.fileSize / 1024).toFixed(1)} KB</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            <div className="border-t border-primary/10 pt-4">
-              <label className="flex items-center gap-2 cursor-pointer mb-4">
-                <input type="checkbox" checked={formData.shippingSameAsBilling} onChange={(e) => setFormData({ ...formData, shippingSameAsBilling: e.target.checked })} className="rounded text-primary focus:ring-primary/50 bg-surface-container" />
-                <span className="text-sm font-semibold text-on-surface">Shipping address is same as billing address</span>
-              </label>
+            {/* Attachments Dropzone */}
+            <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
+              <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Add Attachments</h3>
+              <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center hover:bg-primary/5 transition-colors relative group cursor-pointer">
+                <input type="file" multiple accept=".pdf,.xlsx,.docx,.png,.jpg,.jpeg,.ppt,.pptx" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                <span className="material-symbols-outlined text-primary text-[32px] mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
+                <p className="text-sm font-bold text-on-surface">Click or drag files to attach</p>
+                <p className="text-xs text-on-surface-variant mt-1">PDF, Excel, Word, PPT, Images</p>
+              </div>
 
-              {!formData.shippingSameAsBilling && (
-                <div className="p-4 rounded-lg bg-surface-container/30 border border-outline-variant/20 space-y-3">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Manual Shipping Address</label>
-                  <textarea value={shippingAddress.address} onChange={(e) => setShippingAddress({ ...shippingAddress, address: e.target.value })} className="glass-input w-full p-3 rounded-lg text-sm text-on-surface" placeholder="Enter complete shipping address..." rows={3}></textarea>
+              {attachments.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {attachments.map((file, i) => (
+                    <div key={i} className="flex justify-between items-center p-2 rounded-md bg-surface-container/50 border border-outline-variant/10">
+                      <span className="text-xs text-on-surface font-semibold truncate max-w-[200px]">{file.name}</span>
+                      <button onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} className="text-on-surface-variant hover:text-error">
+                        <span className="material-symbols-outlined text-[14px]">close</span>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Master Configurations */}
-          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
-            <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">settings</span> Discount & Tax Rules
-            </h2>
-            <div className="grid grid-cols-2 gap-10">
-              {/* Discount Rules */}
-              <div className="flex flex-col">
-                <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4">Discount Method</h3>
-                <div className="flex gap-6 mb-5">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="discMode" checked={formData.discountConfiguration.mode === 'FIXED'} onChange={() => setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, mode: 'FIXED' } })} className="text-primary w-4 h-4" />
-                    <span className="text-sm font-semibold text-on-surface">Fixed for all</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="discMode" checked={formData.discountConfiguration.mode === 'PER_PRODUCT'} onChange={() => setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, mode: 'PER_PRODUCT' } })} className="text-primary w-4 h-4" />
-                    <span className="text-sm font-semibold text-on-surface">Per Product</span>
-                  </label>
-                </div>
-                
-                <div className="h-[70px]">
-                  {formData.discountConfiguration.mode === 'FIXED' && (
-                    <div className="flex">
-                      <input type="number" value={formData.discountConfiguration.value} onChange={(e) => setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, value: parseFloat(e.target.value) || 0 } })} className="glass-input px-4 py-2.5 rounded-l-lg w-full text-sm font-semibold border-r-0 focus:ring-0 focus:border-primary/50" placeholder="Amount" />
-                      <select value={formData.discountConfiguration.type} onChange={(e: any) => setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, type: e.target.value } })} className="glass-input px-3 py-2.5 rounded-r-lg text-sm font-bold bg-surface-container cursor-pointer focus:ring-0 focus:border-primary/50">
-                        <option value="PERCENTAGE">%</option>
-                        <option value="AMOUNT">₹</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Tax Rules */}
-              <div className="flex flex-col">
-                <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4">Tax Method</h3>
-                <div className="flex gap-6 mb-5">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="taxMode" checked={formData.taxConfiguration.mode === 'FIXED'} onChange={() => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, mode: 'FIXED' } })} className="text-primary w-4 h-4" />
-                    <span className="text-sm font-semibold text-on-surface">Fixed for all</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="taxMode" checked={formData.taxConfiguration.mode === 'PER_PRODUCT'} onChange={() => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, mode: 'PER_PRODUCT' } })} className="text-primary w-4 h-4" />
-                    <span className="text-sm font-semibold text-on-surface">Per Product</span>
-                  </label>
-                </div>
-                
-                <div className="h-[70px]">
-                  {formData.taxConfiguration.mode === 'FIXED' && (
-                    <div className="flex flex-col gap-2 relative">
-                      {formData.taxConfiguration.customTaxActive ? (
-                        <div className="flex items-center gap-2">
-                          <input type="text" placeholder="Custom Tax Name" value={formData.taxConfiguration.label} onChange={(e) => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, label: e.target.value } })} className="glass-input px-4 py-2.5 rounded-lg w-full text-sm font-semibold focus:ring-0 focus:border-primary/50" />
-                          <div className="relative w-32">
-                            <input type="number" placeholder="0" value={formData.taxConfiguration.value} onChange={(e) => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, value: parseFloat(e.target.value) || 0 } })} className="glass-input pl-4 pr-8 py-2.5 rounded-lg w-full text-sm font-semibold focus:ring-0 focus:border-primary/50 text-right" />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-on-surface-variant">%</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <select className="glass-input px-4 py-2.5 rounded-lg w-full text-sm font-semibold cursor-pointer focus:ring-0 focus:border-primary/50 appearance-none bg-surface-container/30">
-                          <option value={branchTaxConfig.tax}>{branchTaxConfig.label} ({branchTaxConfig.tax}%)</option>
-                        </select>
-                      )}
-                      
-                      <label className="absolute -top-7 right-0 flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={formData.taxConfiguration.customTaxActive} onChange={(e) => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, customTaxActive: e.target.checked } })} className="rounded text-primary w-3.5 h-3.5" />
-                        <span className="text-[11px] font-bold text-on-surface-variant uppercase">Custom</span>
-                      </label>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Items Table */}
-          <div className="glass-panel rounded-3xl shadow-sm border border-outline-variant/30 overflow-hidden relative overflow-visible">
-            <h2 className="text-lg font-bold text-on-surface m-6 mb-2 border-b border-primary/10 pb-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">inventory_2</span> Quotation Items
-            </h2>
-            <div className="p-6 pt-2 flex flex-col gap-4">
-              {items.map((item, index) => {
-                const calcItem = calculatedItems[index];
-                return (
-                  <div key={item.id} className="relative group bg-surface-container/20 border border-outline-variant/10 rounded-xl p-4 md:p-5 hover:bg-surface-container/40 transition-colors shadow-sm">
-                    {/* Delete Button */}
-                    <button onClick={() => removeItem(item.id)} className="absolute top-2 right-2 text-error hover:bg-error/10 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10" title="Remove Item">
-                      <span className="material-symbols-outlined text-[20px]">delete</span>
-                    </button>
-
-                    <div className="flex flex-col md:flex-row gap-5">
-                      {/* Left: Image Box */}
-                      <div className="relative group/img w-20 h-20 md:w-24 md:h-24 rounded-lg border border-outline-variant/30 bg-surface-container overflow-hidden shrink-0 shadow-sm mx-auto md:mx-0 mt-2">
-                        {/* Placeholder (Always in background) */}
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 z-0">
-                          <span className="material-symbols-outlined text-primary/40 text-3xl mb-1">inventory_2</span>
-                          <span className="text-[9px] font-bold text-primary/50 uppercase tracking-widest">No Image</span>
-                        </div>
-                        
-                        {/* Image (Renders on top if available) */}
-                        {item.image && item.image !== 'null' && item.image !== 'undefined' && (
-                          <img src={getImageUrl(item.image)} alt="Product" className="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-300" onError={(e) => { e.currentTarget.style.opacity = '0'; }} />
-                        )}
-
-                        <label className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center cursor-pointer backdrop-blur-sm z-20">
-                          <span className="material-symbols-outlined text-white text-[24px]">upload</span>
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = () => updateItem(item.id, 'image', reader.result as string);
-                              reader.readAsDataURL(file);
-                            }
-                          }} />
-                        </label>
-                      </div>
-
-                      {/* Right: Grid of Inputs */}
-                      <div className="flex-1 flex flex-col gap-4">
-                        {/* Row 1: Search, Qty, Price */}
-                        <div className="grid grid-cols-12 gap-3 md:gap-4 items-start">
-                          <div className="col-span-12 md:col-span-6 relative">
-                            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Product Search</label>
-                            <input 
-                              type="text" 
-                              value={productSearchRows[item.id]?.query ?? item.name} 
-                              onChange={(e) => handleProductSearch(e.target.value, item.id)} 
-                              onFocus={() => handleProductSearch(productSearchRows[item.id]?.query ?? item.name, item.id)}
-                              onBlur={() => setTimeout(() => setProductSearchRows(prev => ({ ...prev, [item.id]: { ...prev[item.id], show: false } })), 200)}
-                              className="glass-input px-3 py-2 rounded-lg text-sm w-full font-bold text-primary" 
-                              placeholder="Type to search..." 
-                            />
-                            {productSearchRows[item.id]?.show && (productSearchRows[item.id]?.results?.length || 0) > 0 && (
-                              <div className="absolute top-full left-0 w-full mt-2 bg-surface/95 backdrop-blur-xl shadow-2xl rounded-xl border border-outline-variant/30 z-[100] max-h-60 overflow-y-auto overflow-x-hidden p-1">
-                                {productSearchRows[item.id].results.map(p => (
-                                  <div key={p.id} onMouseDown={(e) => { e.preventDefault(); handleProductSelect(p, item.id); }} className="px-3 py-2.5 hover:bg-primary/5 rounded-lg cursor-pointer transition-all duration-200 group flex justify-between items-center border-b border-outline-variant/10 last:border-0">
-                                    <div className="flex items-center gap-3">
-                                      <div className="text-primary/70 flex items-center justify-center">
-                                        <span className="material-symbols-outlined text-[20px]">inventory_2</span>
-                                      </div>
-                                      <div className="flex flex-col gap-0.5">
-                                        <span className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{p.name}</span>
-                                        {(p.sku || p.hsnCode) && (
-                                          <span className="text-[11px] text-on-surface-variant">
-                                            {[p.sku && `SKU: ${p.sku}`, p.hsnCode && `HSN: ${p.hsnCode}`].filter(Boolean).join(' • ')}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded">₹{p.price}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            {(item.sku || item.hsnCode) && (
-                              <div className="flex gap-2 mt-2">
-                                {item.sku && <span className="text-[10px] font-bold text-on-surface-variant bg-surface-container/80 border border-outline-variant/20 px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">SKU: {item.sku}</span>}
-                                {item.hsnCode && <span className="text-[10px] font-bold text-on-surface-variant bg-surface-container/80 border border-outline-variant/20 px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">HSN: {item.hsnCode}</span>}
-                              </div>
-                            )}
-                          </div>
-                          <div className="col-span-4 md:col-span-2">
-                            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Qty</label>
-                            <input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)} className="glass-input px-3 py-2 rounded-lg text-sm w-full text-center font-semibold" />
-                          </div>
-                          <div className="col-span-8 md:col-span-4">
-                            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Unit Price (₹)</label>
-                            <input type="number" step="0.01" value={item.price} onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)} className="glass-input px-3 py-2 rounded-lg text-sm w-full text-right font-bold text-on-surface" />
-                            {item.productId && item.price !== item.originalPrice && (
-                              <div className="text-[10px] text-on-surface-variant/50 italic mt-1 text-right line-through">₹{item.originalPrice}</div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Row 2: Description, Discount, Tax, Total */}
-                        <div className="grid grid-cols-12 gap-3 md:gap-4 items-end">
-                          <div className={`col-span-12 ${
-                            (formData.discountConfiguration.mode === 'PER_PRODUCT' && formData.taxConfiguration.mode === 'PER_PRODUCT') ? 'md:col-span-4' :
-                            (formData.discountConfiguration.mode === 'PER_PRODUCT' ? 'md:col-span-6' :
-                            (formData.taxConfiguration.mode === 'PER_PRODUCT' ? 'md:col-span-7' : 'md:col-span-9'))
-                          }`}>
-                            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Description</label>
-                            <input type="text" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="glass-input px-3 py-2 rounded-lg text-sm w-full text-on-surface" placeholder="Line item details..." />
-                            {item.productId && item.description !== item.originalDescription && (
-                              <div className="text-[10px] text-on-surface-variant/50 italic mt-1 truncate max-w-full">Orig: {item.originalDescription}</div>
-                            )}
-                          </div>
-
-                          {formData.discountConfiguration.mode === 'PER_PRODUCT' && (
-                            <div className="col-span-6 md:col-span-3">
-                              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Discount</label>
-                              <div className="flex items-center gap-1">
-                                <input type="number" value={item.discount?.value || 0} onChange={(e) => updateItem(item.id, 'discount', { ...item.discount, value: parseFloat(e.target.value) || 0 })} className="glass-input px-3 py-2 rounded-lg text-sm w-full font-semibold" />
-                                <select value={item.discount?.type || 'PERCENTAGE'} onChange={(e) => updateItem(item.id, 'discount', { ...item.discount, type: e.target.value })} className="glass-input p-2 rounded-lg text-xs font-bold bg-surface-container cursor-pointer">
-                                  <option value="PERCENTAGE">%</option>
-                                  <option value="AMOUNT">₹</option>
-                                </select>
-                              </div>
-                            </div>
-                          )}
-
-                          {formData.taxConfiguration.mode === 'PER_PRODUCT' && (
-                            <div className="col-span-6 md:col-span-2">
-                              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Tax %</label>
-                              <div className="relative">
-                                <input type="number" step="0.1" value={item.tax} onChange={(e) => updateItem(item.id, 'tax', parseFloat(e.target.value) || 0)} className="glass-input pl-3 pr-7 py-2 rounded-lg text-sm w-full text-center font-semibold" placeholder="0" />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant">%</span>
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="col-span-12 md:col-span-3 text-right mt-4 md:mt-0 flex flex-col justify-end">
-                            <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider block mb-1">Item Total (Preview)</span>
-                            <div className="text-xl font-bold text-primary relative inline-block self-end">
-                              {isCalculating && <span className="absolute -left-4 top-1/2 -translate-y-1/2 flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span></span>}
-                              ₹ {calcItem?.total?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              <button onClick={addItem} className="mt-2 text-sm font-bold text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20 border-dashed py-4 rounded-xl flex items-center justify-center gap-2 transition-colors">
-                <span className="material-symbols-outlined text-[20px]">add_circle</span> Add Another Item
-              </button>
-            </div>
-          </div>
-
-          {/* Terms and Conditions */}
-          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
-            <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">description</span> Terms & Conditions
-            </h2>
-            <textarea value={formData.termsAndConditions} onChange={(e) => setFormData({ ...formData, termsAndConditions: e.target.value })} className="glass-input w-full p-4 rounded-xl text-sm text-on-surface font-medium leading-relaxed" rows={4} placeholder="Enter quotation-specific terms here..."></textarea>
-          </div>
-
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Summary */}
-          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
-            <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Quotation Summary</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between items-center text-on-surface-variant">
-                <span>Subtotal</span>
-                <span className="font-semibold text-on-surface">₹ {calculatedTotals.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center text-on-surface-variant">
-                <span>Total Discount</span>
-                <span className="font-semibold text-error">- ₹ {calculatedTotals.discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center text-on-surface-variant">
-                <span>Total Tax</span>
-                <span className="font-semibold text-on-surface">₹ {calculatedTotals.taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="pt-4 mt-2 border-t border-primary/10 flex justify-between items-center">
-                <span className="font-bold text-on-surface text-base">Grand Total</span>
-                <div className="flex items-center gap-2">
-                  {isCalculating && <span className="material-symbols-outlined animate-spin text-primary text-[16px]">refresh</span>}
-                  <span className="font-bold text-primary text-xl tracking-tight">₹ {calculatedTotals.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Dates */}
-          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
-            <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Timeline</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Quotation Date</label>
-                <input type="date" value={formData.quotationDate} onChange={(e) => setFormData({ ...formData, quotationDate: e.target.value })} className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Expiry Date (+2 Months)</label>
-                <input type="date" value={formData.expiryDate} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className="glass-input px-4 py-2.5 rounded-lg text-sm text-error w-full font-semibold" />
-              </div>
-            </div>
-          </div>
-
-          {/* Existing Attachments */}
-          {existingAttachments.length > 0 && (
+            {/* Notes & Reminder */}
             <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
-              <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Existing Attachments</h3>
-              <div className="space-y-2">
-                {existingAttachments.map((att: any) => (
-                  <div key={att.id} className="flex justify-between items-center p-3 rounded-lg bg-surface-container/50 border border-outline-variant/10">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-primary text-[18px]">attach_file</span>
-                      <span className="text-xs text-on-surface font-semibold truncate max-w-[180px]">{att.fileName}</span>
-                    </div>
-                    <span className="text-[10px] text-on-surface-variant">{(att.fileSize / 1024).toFixed(1)} KB</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Attachments Dropzone */}
-          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
-            <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Add Attachments</h3>
-            <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center hover:bg-primary/5 transition-colors relative group cursor-pointer">
-              <input type="file" multiple accept=".pdf,.xlsx,.docx,.png,.jpg,.jpeg,.ppt,.pptx" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-              <span className="material-symbols-outlined text-primary text-[32px] mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
-              <p className="text-sm font-bold text-on-surface">Click or drag files to attach</p>
-              <p className="text-xs text-on-surface-variant mt-1">PDF, Excel, Word, PPT, Images</p>
-            </div>
-
-            {attachments.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {attachments.map((file, i) => (
-                  <div key={i} className="flex justify-between items-center p-2 rounded-md bg-surface-container/50 border border-outline-variant/10">
-                    <span className="text-xs text-on-surface font-semibold truncate max-w-[200px]">{file.name}</span>
-                    <button onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} className="text-on-surface-variant hover:text-error">
-                      <span className="material-symbols-outlined text-[14px]">close</span>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Notes & Reminder */}
-          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
-            <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Notes & Reminder</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Notes</label>
-                <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="glass-input w-full p-3 rounded-lg text-sm text-on-surface" placeholder="Internal notes..." rows={2}></textarea>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Follow Up Date</label>
-                <input type="date" value={formData.followUpDate} onChange={(e) => setFormData({ ...formData, followUpDate: e.target.value })} className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" />
+              <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Notes & Reminder</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Notes</label>
+                  <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="glass-input w-full p-3 rounded-lg text-sm text-on-surface" placeholder="Internal notes..." rows={2}></textarea>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Follow Up Date</label>
+                  <input type="date" value={formData.followUpDate} onChange={(e) => setFormData({ ...formData, followUpDate: e.target.value })} className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold" />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Footer Decoration */}
-      <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-12 mb-4">
-        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
-        <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
-          BillTea Dashboard • Edit Quotation
-        </p>
-        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
-      </footer>
-    </div>
+        {/* Footer Decoration */}
+        <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-12 mb-4">
+          <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+          <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+            BillTea • Edit Quotation
+          </p>
+          <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+        </footer>
+      </div>
     </div>
   );
 }

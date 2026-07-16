@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MapPin, Edit2, RefreshCw, Trash2, Plus } from 'lucide-react-native';
 import { useTheme } from '../../../hooks/useTheme';
@@ -64,7 +64,10 @@ export default function UserManagementScreen() {
             <Text style={[styles.title, { color: colors.text }]}>{USERS.length} Users configured</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Manage access and roles</Text>
           </View>
-          <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary + '1A', borderColor: colors.primary + '4D' }]}>
+          <TouchableOpacity 
+            onPress={() => router.push('/settings/create-staff')}
+            style={[styles.addButton, { backgroundColor: colors.primary + '1A', borderColor: colors.primary + '4D' }]}
+          >
             <Plus color={colors.primary} size={20} />
             <Text style={[styles.addButtonText, { color: colors.primary }]}>Add User</Text>
           </TouchableOpacity>

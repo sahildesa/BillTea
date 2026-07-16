@@ -266,17 +266,6 @@ export default function ProductsPage() {
     return sortedProducts.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
   }, [sortedProducts, currentPage, entriesPerPage]);
 
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    if (totalPages <= maxButtons) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxButtons - 1);
-    start = Math.max(1, end - maxButtons + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [totalPages, currentPage]);
-
   const handleEntriesPerPageChange = (n: number) => {
     setEntriesPerPage(n);
     setCurrentPage(1);
@@ -294,7 +283,10 @@ export default function ProductsPage() {
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto p-8 z-0 relative">
+      <div
+        className="flex-1 overflow-y-auto p-8 z-0 relative [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
         {/* Background Ambient Effects */}
         <div className="absolute top-1/4 right-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(251,146,60,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
         <div className="absolute bottom-1/4 left-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
@@ -398,7 +390,7 @@ export default function ProductsPage() {
 
           {/* High-Fidelity Data Table */}
           <div className="overflow-x-auto">
-            <table className="w-full table-fixed text-left border-collapse whitespace-nowrap">
+            <table className="w-full table-fixed text-left border-separate border-spacing-0 whitespace-nowrap">
               <thead>
                 <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
                   <th className={`${sortHeaderClass('name')} w-1/6`} onClick={() => handleSort('name')}>
@@ -528,19 +520,9 @@ export default function ProductsPage() {
               >
                 Previous
               </button>
-              {pageNumbers.map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
-                    page === currentPage
-                      ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
-                      : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+                {currentPage}
+              </span>
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}

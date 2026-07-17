@@ -30,7 +30,7 @@ export default function DashboardHome() {
   const [branches, setBranches] = useState<any[]>([]);
 
   const [viewerPdfUrl, setViewerPdfUrl] = useState<{ url: string; title: string; id: string, type: 'quotation' | 'invoice' } | null>(null);
-
+  
   const [isSendingId, setIsSendingId] = useState<string | null>(null);
   const [notesModalData, setNotesModalData] = useState<{ id: string, notes: string, followUpDate: string } | null>(null);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
@@ -44,7 +44,7 @@ export default function DashboardHome() {
       const res = await apiFetch(`/quotations/${notesModalData.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify({ 
           notes: notesModalData.notes,
           followUpDate: notesModalData.followUpDate ? new Date(notesModalData.followUpDate).toISOString() : null,
         }),
@@ -83,7 +83,7 @@ export default function DashboardHome() {
       setIsSendingId(null);
     }
   };
-
+  
   const handleViewPdf = async (id: string, numberStr: string, type: 'quotation' | 'invoice' = 'quotation') => {
     try {
       const endpoint = type === 'quotation' ? `/quotations/${id}/pdf` : `/invoices/${id}/pdf`;
@@ -674,8 +674,8 @@ export default function DashboardHome() {
                     <div className="text-on-surface-variant text-sm py-8 text-center">No overdue or unpaid invoices.</div>
                   ) : (
                     stats?.invoiceReminders?.map((inv: any) => (
-                      <div
-                        key={inv.id}
+                      <div 
+                        key={inv.id} 
                         onClick={() => handleViewPdf(inv.id, inv.invoiceNumber, 'invoice')}
                         className="p-4 rounded-2xl bg-surface-bright/50 border border-outline-variant/30 flex gap-4 hover:bg-surface-bright hover:border-outline-variant/50 transition-all cursor-pointer group hover:-translate-y-0.5"
                       >
@@ -716,8 +716,8 @@ export default function DashboardHome() {
                     <div className="text-on-surface-variant text-sm py-8 text-center">No quotations need follow-up.</div>
                   ) : (
                     stats?.quotationFollowups?.map((quo: any) => (
-                      <div
-                        key={quo.id}
+                      <div 
+                        key={quo.id} 
                         onClick={() => handleViewPdf(quo.id, quo.quotationNumber)}
                         className="p-4 rounded-2xl bg-surface-bright/50 border border-outline-variant/30 flex gap-4 hover:bg-surface-bright hover:border-outline-variant/50 transition-all cursor-pointer group hover:-translate-y-0.5"
                       >
@@ -767,7 +767,7 @@ export default function DashboardHome() {
                   <button onClick={() => handleSend(activeQuotation.id, 'quotation')} disabled={isSendingId === activeQuotation.id} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip disabled:opacity-50" title="Send">
                     {isSendingId === activeQuotation.id ? <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[20px]">send</span>}
                   </button>
-                  <button
+                  <button 
                     onClick={() => {
                       closePdfViewer();
                       setNotesModalData({
@@ -800,10 +800,10 @@ export default function DashboardHome() {
       )}
 
       {/* Payment Modal */}
-      <PaymentModal
-        isOpen={!!paymentModalInvoice}
-        onClose={() => setPaymentModalInvoice(null)}
-        invoice={paymentModalInvoice}
+      <PaymentModal 
+        isOpen={!!paymentModalInvoice} 
+        onClose={() => setPaymentModalInvoice(null)} 
+        invoice={paymentModalInvoice} 
         onSuccess={() => {
           setRefreshKey(prev => prev + 1);
         }}
@@ -841,13 +841,13 @@ export default function DashboardHome() {
               </div>
             </div>
             <div className="px-6 py-4 border-t border-outline-variant/20 bg-surface-bright/50 flex justify-end gap-3">
-              <button
+              <button 
                 onClick={() => setNotesModalData(null)}
                 className="px-4 py-2 rounded-xl text-sm font-bold text-on-surface-variant hover:bg-surface-container transition-all"
               >
                 Cancel
               </button>
-              <button
+              <button 
                 onClick={handleSaveNotes}
                 disabled={isSavingNotes}
                 className="px-6 py-2 rounded-xl text-sm font-bold bg-primary text-on-primary hover:shadow-[0_0_15px_rgba(var(--primary),0.4)] transition-all flex items-center gap-2 disabled:opacity-50"

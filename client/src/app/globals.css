@@ -493,11 +493,3 @@
   filter: invert(1) brightness(1.5);
   cursor: pointer;
 }
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}

@@ -64,6 +64,12 @@ export default function CustomersPage() {
   const [invoiceFilter, setInvoiceFilter] = useState<CountFilter>('all');
   const [quotationFilter, setQuotationFilter] = useState<CountFilter>('all');
 
+  const [activeDropdown, setActiveDropdown] = useState<'status' | 'type' | 'invoice' | 'quotation' | 'entries' | null>(null);
+
+  const toggleDropdown = (name: 'status' | 'type' | 'invoice' | 'quotation' | 'entries') => {
+    setActiveDropdown(prev => prev === name ? null : name);
+  };
+
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (statusFilter !== 'all') count++;
@@ -311,8 +317,14 @@ export default function CustomersPage() {
 
   return (
     <>
+      {activeDropdown && (
+        <div 
+          className="fixed inset-0 z-40 cursor-default" 
+          onClick={() => setActiveDropdown(null)} 
+        />
+      )}
       <div
-        className="flex-1 overflow-y-auto p-8 z-0 relative [&::-webkit-scrollbar]:hidden"
+        className="flex-1 overflow-y-auto p-8 z-0 relative no-scrollbar"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
       <style jsx global>{`
@@ -437,7 +449,7 @@ export default function CustomersPage() {
 </div>
 
       {/* Filters Section */}
-      <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-hidden animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] mb-8 z-10" style={{ animationDelay: '0.2s' }}>
+      <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-visible animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] mb-8 z-20" style={{ animationDelay: '0.2s' }}>
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
 
         <div className="flex items-center justify-between gap-3 mb-6 flex-wrap relative z-10">
@@ -456,67 +468,163 @@ export default function CustomersPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
-          <div className="space-y-2">
+          {/* Status Filter */}
+          <div className="space-y-2 relative" style={{ zIndex: activeDropdown === 'status' ? 50 : 10 }}>
             <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Status</label>
             <div className="relative">
-              <select
-                className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              <button
+                type="button"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between"
+                onClick={() => toggleDropdown('status')}
               >
-                <option value="all">All status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                <span>
+                  {statusFilter === 'all' ? 'All status' : statusFilter === 'active' ? 'Active' : 'Inactive'}
+                </span>
+                <span className={`material-symbols-outlined text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'status' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+              
+              {activeDropdown === 'status' && (
+                <div className="absolute top-full left-0 right-0 mt-2 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div 
+                    onClick={() => { setStatusFilter('all'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${statusFilter === 'all' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    All status
+                  </div>
+                  <div 
+                    onClick={() => { setStatusFilter('active'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${statusFilter === 'active' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Active
+                  </div>
+                  <div 
+                    onClick={() => { setStatusFilter('inactive'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${statusFilter === 'inactive' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Inactive
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="space-y-2">
+          {/* Customer Type Filter */}
+          <div className="space-y-2 relative" style={{ zIndex: activeDropdown === 'type' ? 50 : 10 }}>
             <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Customer Type</label>
             <div className="relative">
-              <select
-                className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
+              <button
+                type="button"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between"
+                onClick={() => toggleDropdown('type')}
               >
-                <option value="all">All types</option>
-                <option value="company">Company</option>
-                <option value="individual">Individual</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                <span>
+                  {typeFilter === 'all' ? 'All types' : typeFilter === 'company' ? 'Company' : 'Individual'}
+                </span>
+                <span className={`material-symbols-outlined text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'type' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+              
+              {activeDropdown === 'type' && (
+                <div className="absolute top-full left-0 right-0 mt-2 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div 
+                    onClick={() => { setTypeFilter('all'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${typeFilter === 'all' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    All types
+                  </div>
+                  <div 
+                    onClick={() => { setTypeFilter('company'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${typeFilter === 'company' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Company
+                  </div>
+                  <div 
+                    onClick={() => { setTypeFilter('individual'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${typeFilter === 'individual' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Individual
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="space-y-2">
+          {/* Invoices Filter */}
+          <div className="space-y-2 relative" style={{ zIndex: activeDropdown === 'invoice' ? 50 : 10 }}>
             <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Invoices</label>
             <div className="relative">
-              <select
-                className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
-                value={invoiceFilter}
-                onChange={(e) => setInvoiceFilter(e.target.value as CountFilter)}
+              <button
+                type="button"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between"
+                onClick={() => toggleDropdown('invoice')}
               >
-                <option value="all">Any</option>
-                <option value="with">With invoices</option>
-                <option value="without">Without invoices</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                <span>
+                  {invoiceFilter === 'all' ? 'Any' : invoiceFilter === 'with' ? 'With invoices' : 'Without invoices'}
+                </span>
+                <span className={`material-symbols-outlined text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'invoice' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+              
+              {activeDropdown === 'invoice' && (
+                <div className="absolute top-full left-0 right-0 mt-2 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div 
+                    onClick={() => { setInvoiceFilter('all'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${invoiceFilter === 'all' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Any
+                  </div>
+                  <div 
+                    onClick={() => { setInvoiceFilter('with'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${invoiceFilter === 'with' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    With invoices
+                  </div>
+                  <div 
+                    onClick={() => { setInvoiceFilter('without'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${invoiceFilter === 'without' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Without invoices
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="space-y-2">
+          {/* Quotations Filter */}
+          <div className="space-y-2 relative" style={{ zIndex: activeDropdown === 'quotation' ? 50 : 10 }}>
             <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Quotations</label>
             <div className="relative">
-              <select
-                className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
-                value={quotationFilter}
-                onChange={(e) => setQuotationFilter(e.target.value as CountFilter)}
+              <button
+                type="button"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between"
+                onClick={() => toggleDropdown('quotation')}
               >
-                <option value="all">Any</option>
-                <option value="with">With quotations</option>
-                <option value="without">Without quotations</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                <span>
+                  {quotationFilter === 'all' ? 'Any' : quotationFilter === 'with' ? 'With quotations' : 'Without quotations'}
+                </span>
+                <span className={`material-symbols-outlined text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'quotation' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+              
+              {activeDropdown === 'quotation' && (
+                <div className="absolute top-full left-0 right-0 mt-2 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div 
+                    onClick={() => { setQuotationFilter('all'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${quotationFilter === 'all' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Any
+                  </div>
+                  <div 
+                    onClick={() => { setQuotationFilter('with'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${quotationFilter === 'with' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    With quotations
+                  </div>
+                  <div 
+                    onClick={() => { setQuotationFilter('without'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${quotationFilter === 'without' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Without quotations
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -538,19 +646,40 @@ export default function CustomersPage() {
       <section className="glass-panel rounded-xl overflow-hidden mb-12 relative z-10 border border-primary/10 shadow-lg">
         {/* Table Controls */}
         <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 relative" style={{ zIndex: activeDropdown === 'entries' ? 50 : 10 }}>
             <span className="text-sm text-on-surface-variant">Show</span>
             <div className="relative">
-              <select
-                value={entriesPerPage}
-                onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
-                className="glass-input text-sm pl-3 pr-9 py-1.5 rounded-lg text-on-surface focus:ring-0 cursor-pointer bg-surface-container-highest appearance-none"
+              <button
+                type="button"
+                className="glass-input text-sm pl-3 pr-9 py-1.5 rounded-lg text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary/50 cursor-pointer bg-surface-container-highest flex items-center justify-between min-w-[70px]"
+                onClick={() => toggleDropdown('entries')}
               >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[16px]">expand_more</span>
+                <span>{entriesPerPage}</span>
+                <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px] transition-transform duration-200 ${activeDropdown === 'entries' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+              
+              {activeDropdown === 'entries' && (
+                <div className="absolute top-full left-0 mt-1 z-[60] bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 min-w-[70px]">
+                  <div 
+                    onClick={() => { handleEntriesPerPageChange(10); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 10 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    10
+                  </div>
+                  <div 
+                    onClick={() => { handleEntriesPerPageChange(25); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 25 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    25
+                  </div>
+                  <div 
+                    onClick={() => { handleEntriesPerPageChange(50); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 50 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    50
+                  </div>
+                </div>
+              )}
             </div>
             <span className="text-sm text-on-surface-variant">entries</span>
           </div>
@@ -566,8 +695,8 @@ export default function CustomersPage() {
           </div>
         </div>
 
-        {/* High-Fidelity Data Table */}
-        <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        {/* Desktop-Only Data Table */}
+        <div className="hidden md:block overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           <table className="w-full text-left border-separate border-spacing-0 whitespace-nowrap">
             <thead>
               <tr className="bg-surface-container-low/50 text-xs font-semibold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
@@ -657,7 +786,7 @@ export default function CustomersPage() {
                         <button onClick={() => handleOpenEditModal(customer)} className="glass-button-icon p-1 rounded-md transition-all cursor-pointer hover:text-primary hover:border-primary/30 hover:bg-primary/10 outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]" title="Edit">
                           <span className="material-symbols-outlined text-[16px]">edit</span>
                         </button>
-                        <button onClick={() => handleDeleteCustomer(customer.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 cursor-pointer outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]" title="Delete">
+                        <button onClick={() => handleDeleteCustomer(customer.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 cursor-pointer" title="Delete">
                           <span className="material-symbols-outlined text-[16px]">delete</span>
                         </button>
                       </div>
@@ -667,6 +796,78 @@ export default function CustomersPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile-Only Customer Card List */}
+        <div className="block md:hidden divide-y divide-primary/5">
+          {isLoadingBranches || loading ? (
+            <div className="px-6 py-8 text-center text-on-surface-variant">
+              <div className="flex justify-center items-center gap-2">
+                <span className="material-symbols-outlined animate-spin">refresh</span> Loading customers...
+              </div>
+            </div>
+          ) : paginatedCustomers.length === 0 ? (
+            <div className="px-6 py-8 text-center text-on-surface-variant">
+              {searchQuery || activeFilterCount > 0 ? 'No matching customers found.' : 'No customers found for this branch. Create one to get started!'}
+            </div>
+          ) : (
+            paginatedCustomers.map((customer) => (
+              <div key={customer.id} className="p-5 space-y-4 hover:bg-primary/5 transition-colors duration-200">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500/30 to-purple-500/30 border border-indigo-400/20 flex items-center justify-center text-primary font-bold shadow-lg shrink-0">
+                      {customer.customerName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-on-surface">{customer.customerName}</div>
+                      <div className="text-xs text-on-surface-variant/70">{customer.companyName || 'Individual'}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={() => handleOpenEditModal(customer)} className="glass-button-icon p-2 rounded-md transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 cursor-pointer outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]" title="Edit">
+                      <span className="material-symbols-outlined text-[16px]">edit</span>
+                    </button>
+                    <button onClick={() => handleDeleteCustomer(customer.id)} className="glass-button-icon p-2 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 cursor-pointer outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]" title="Delete">
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs border-t border-primary/5 pt-3">
+                  <div className="space-y-1">
+                    <span className="text-on-surface-variant/60 block text-[10px] uppercase font-bold tracking-wider">Contact Details</span>
+                    <div className="text-on-surface flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">phone_iphone</span> {customer.mobileNumber || 'N/A'}
+                    </div>
+                    {customer.email && (
+                      <div className="text-on-surface-variant/80 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs">mail</span> {customer.email}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {customer.businessLabel ? (
+                    <div className="space-y-1">
+                      <span className="text-on-surface-variant/60 block text-[10px] uppercase font-bold tracking-wider">{customer.businessLabel}</span>
+                      <div className="text-on-surface font-medium flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs">sell</span> {customer.businessLabelValue}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-secondary-container/45 text-secondary text-xs font-medium border border-secondary/10">
+                    <span className="material-symbols-outlined text-xs">description</span> Invoices: {customer._count?.invoices || 0}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-tertiary-container/45 text-tertiary text-xs font-medium border border-tertiary/10">
+                    <span className="material-symbols-outlined text-xs">request_quote</span> Quotations: {customer._count?.quotations || 0}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Pagination */}
@@ -782,11 +983,11 @@ export default function CustomersPage() {
               </form>
             </div>
             
-            <div className="p-6 sm:px-8 border-t border-primary/10 flex justify-end gap-4 bg-surface-container/30 relative z-10">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 rounded-xl glass-button text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">
+            <div className="p-6 sm:px-8 border-t border-primary/10 flex flex-col-reverse sm:flex-row justify-end gap-3 bg-surface-container/30 relative z-10">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto px-6 py-2.5 rounded-xl glass-button text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer text-center">
                 Cancel
               </button>
-              <button type="submit" form="customerForm" disabled={saving} className="px-6 py-2.5 rounded-xl bg-primary text-white text-sm font-bold shadow-[0_0_15px_rgba(125,211,252,0.4)] hover:shadow-[0_0_25px_rgba(125,211,252,0.6)] hover:brightness-110 hover:-translate-y-0.5 transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer">
+              <button type="submit" form="customerForm" disabled={saving} className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-primary text-white text-sm font-bold shadow-[0_0_15px_rgba(125,211,252,0.4)] hover:shadow-[0_0_25px_rgba(125,211,252,0.6)] hover:brightness-110 hover:-translate-y-0.5 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer">
                 {saving ? (
                   <><span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Saving...</>
                 ) : (

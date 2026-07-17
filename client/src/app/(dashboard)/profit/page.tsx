@@ -50,11 +50,17 @@ export default function ProfitReportPage() {
   const [entriesPerPage, setEntriesPerPage] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
+  // ---- Default date range (used both to initialize and to detect "nothing to reset") ----
+  const defaultDateRange = useMemo(() => {
     const today = new Date();
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    setFromDate(formatDateInput(firstDayOfMonth));
-    setToDate(formatDateInput(today));
+    return { from: formatDateInput(firstDayOfMonth), to: formatDateInput(today) };
+  }, []);
+
+  useEffect(() => {
+    setFromDate(defaultDateRange.from);
+    setToDate(defaultDateRange.to);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -269,11 +275,17 @@ export default function ProfitReportPage() {
     setCurrentPage(1);
   };
 
+  // ---- Whether there's anything for Reset to actually clear ----
+  const hasActiveFilters = Boolean(
+    fromDate !== defaultDateRange.from ||
+    toDate !== defaultDateRange.to ||
+    searchQuery ||
+    sortConfig
+  );
+
   const handleResetFilters = () => {
-    const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    setFromDate(formatDateInput(firstDayOfMonth));
-    setToDate(formatDateInput(today));
+    setFromDate(defaultDateRange.from);
+    setToDate(defaultDateRange.to);
     setSearchQuery('');
     setSortConfig(null);
     setCurrentPage(1);
@@ -355,30 +367,6 @@ export default function ProfitReportPage() {
           </div>
         </header>
 
-        {/* Filters Section */}
-        <section className="glass-panel rounded-3xl p-6 transition-transform duration-300 hover:-translate-y-1 animate-fade-slide-up relative overflow-hidden shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.15s' }}>
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
-          <div className="flex flex-wrap items-end gap-6 relative z-10">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">From Date</label>
-              <div className="relative">
-                <input className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-              </div>
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">To Date</label>
-              <div className="relative">
-                <input className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={handleResetFilters} className="h-[46px] px-8 rounded-xl font-bold bg-surface-container-highest text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/80 transition-all cursor-pointer border border-outline-variant/30 hover:border-outline-variant/50 flex items-center justify-center">
-                Reset
-              </button>
-            </div>
-          </div>
-        </section>
-
         {/* Summary Grid */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
           {/* Total Income */}
@@ -420,6 +408,58 @@ export default function ProfitReportPage() {
             </div>
           </div>
         </section>
+
+       {/* Filters Section */}
+<section
+  className="glass-panel rounded-3xl p-6 transition-transform duration-300 hover:-translate-y-1 animate-fade-slide-up relative overflow-hidden shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]"
+  style={{ animationDelay: '0.15s' }}
+>
+  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+
+  {/* Header */}
+  <div className="flex items-center gap-3 mb-6 relative z-10">
+    <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">
+      filter_list
+    </span>
+    <h2 className="text-xl font-bold text-on-surface">Filters</h2>
+  </div>
+
+  {/* Filter Controls */}
+  <div className="flex flex-wrap items-end gap-6 relative z-10">
+    <div className="flex-1 min-w-[200px]">
+      <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">
+        From Date
+      </label>
+      <input
+        className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all"
+        type="date"
+        value={fromDate}
+        onChange={(e) => setFromDate(e.target.value)}
+      />
+    </div>
+
+    <div className="flex-1 min-w-[200px]">
+      <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">
+        To Date
+      </label>
+      <input
+        className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all"
+        type="date"
+        value={toDate}
+        onChange={(e) => setToDate(e.target.value)}
+      />
+    </div>
+
+    <button
+      onClick={handleResetFilters}
+      disabled={!hasActiveFilters}
+      className="h-[46px] px-6 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-on-surface-variant disabled:hover:border-outline-variant/20"
+    >
+                  <span className="material-symbols-outlined text-[18px]">undo</span>
+      Reset Filters
+    </button>
+  </div>
+</section>
 
         {/* Data Table Section */}
         <section className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] flex flex-col" style={{ animationDelay: '0.3s' }}>

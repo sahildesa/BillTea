@@ -105,6 +105,16 @@ export default function ReportsPage() {
     setCurrentPage(1);
   };
 
+  // ---- Whether there's anything for Clear Filters to actually clear ----
+  const hasActiveFilters = Boolean(
+    fromDate ||
+    toDate ||
+    selectedCustomerId !== 'ALL' ||
+    selectedStatus !== 'ALL' ||
+    searchQuery ||
+    sortConfig
+  );
+
   // Derived state for Customers Dropdown
   const uniqueCustomers = useMemo(() => {
     const map = new Map<string, Invoice['customer']>();
@@ -269,6 +279,15 @@ export default function ReportsPage() {
           opacity: 0;
           animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
+        .no-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
+        }
       `}} />
 
       {/* Premium Background */}
@@ -304,6 +323,46 @@ export default function ReportsPage() {
             </button>
           </Link>
         </header>
+
+
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.3s' }}>
+          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
+              <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt</span>
+            </div>
+            <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{filteredInvoices.length}</p>
+          </div>
+          
+          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-blue-500/40 hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.15)] hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors duration-500"></div>
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Amount</p>
+              <span className="material-symbols-outlined text-blue-500 p-2 rounded-lg bg-blue-500/10">payments</span>
+            </div>
+            <p className="text-3xl font-bold text-blue-500 tracking-tight relative z-10 whitespace-nowrap" title={formatINR(stats.totalAmount)}>{formatINR(stats.totalAmount, true)}</p>
+          </div>
+          
+          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-emerald-500/40 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Paid</p>
+              <span className="material-symbols-outlined text-emerald-500 p-2 rounded-lg bg-emerald-500/10">verified_user</span>
+            </div>
+            <p className="text-3xl font-bold text-emerald-500 tracking-tight relative z-10 whitespace-nowrap" title={formatINR(stats.totalPaid)}>{formatINR(stats.totalPaid, true)}</p>
+          </div>
+          
+          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Pending</p>
+              <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">pending_actions</span>
+            </div>
+            <p className="text-3xl font-bold text-tertiary tracking-tight relative z-10 whitespace-nowrap" title={formatINR(stats.totalPending)}>{formatINR(stats.totalPending, true)}</p>
+          </div>
+        </div>
 
         {/* Filters Section */}
         <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-hidden animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.2s' }}>
@@ -382,53 +441,15 @@ export default function ReportsPage() {
           
           <div className="mt-8 flex flex-wrap gap-4 relative z-10">
             <button 
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center gap-2"
+              disabled={!hasActiveFilters}
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-on-surface-variant disabled:hover:border-outline-variant/20"
               onClick={handleClearFilters}
             >
-              <span className="material-symbols-outlined text-[18px]">clear_all</span>
-              Clear Filters
+                  <span className="material-symbols-outlined text-[18px]">undo</span>
+              Reset Filters
             </button>
           </div>
         </section>
-
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.3s' }}>
-          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-            <div className="flex justify-between items-start mb-4 relative z-10">
-              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
-              <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt</span>
-            </div>
-            <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{filteredInvoices.length}</p>
-          </div>
-          
-          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-blue-500/40 hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.15)] hover:-translate-y-1 transition-all duration-300">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors duration-500"></div>
-            <div className="flex justify-between items-start mb-4 relative z-10">
-              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Amount</p>
-              <span className="material-symbols-outlined text-blue-500 p-2 rounded-lg bg-blue-500/10">payments</span>
-            </div>
-            <p className="text-3xl font-bold text-blue-500 tracking-tight relative z-10 whitespace-nowrap" title={formatINR(stats.totalAmount)}>{formatINR(stats.totalAmount, true)}</p>
-          </div>
-          
-          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-emerald-500/40 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
-            <div className="flex justify-between items-start mb-4 relative z-10">
-              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Paid</p>
-              <span className="material-symbols-outlined text-emerald-500 p-2 rounded-lg bg-emerald-500/10">verified_user</span>
-            </div>
-            <p className="text-3xl font-bold text-emerald-500 tracking-tight relative z-10 whitespace-nowrap" title={formatINR(stats.totalPaid)}>{formatINR(stats.totalPaid, true)}</p>
-          </div>
-          
-          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-            <div className="flex justify-between items-start mb-4 relative z-10">
-              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Pending</p>
-              <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">pending_actions</span>
-            </div>
-            <p className="text-3xl font-bold text-tertiary tracking-tight relative z-10 whitespace-nowrap" title={formatINR(stats.totalPending)}>{formatINR(stats.totalPending, true)}</p>
-          </div>
-        </div>
 
         {/* Glassmorphic Data Table Container */}
         <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.4s' }}>
@@ -466,7 +487,7 @@ export default function ReportsPage() {
           </div>
 
           {/* The Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
               <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
                 <tr>

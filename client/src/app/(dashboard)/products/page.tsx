@@ -21,6 +21,9 @@ interface SortConfig {
   direction: SortDirection;
 }
 
+type StatusFilter = 'all' | 'active' | 'inactive';
+type PresenceFilter = 'all' | 'with' | 'without';
+
 export default function ProductsPage() {
   const { selectedBranchId, isLoadingBranches } = useBranch();
   const [products, setProducts] = useState<Product[]>([]);
@@ -47,6 +50,29 @@ export default function ProductsPage() {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // ---- Filters ----
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [hsnFilter, setHsnFilter] = useState<PresenceFilter>('all');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (statusFilter !== 'all') count++;
+    if (hsnFilter !== 'all') count++;
+    if (minPrice !== '') count++;
+    if (maxPrice !== '') count++;
+    return count;
+  }, [statusFilter, hsnFilter, minPrice, maxPrice]);
+
+  const handleClearFilters = () => {
+    setStatusFilter('all');
+    setHsnFilter('all');
+    setMinPrice('');
+    setMaxPrice('');
+    setCurrentPage(1);
+  };
 
   const stats = React.useMemo(() => {
     const total = products.length;
@@ -200,7 +226,7 @@ export default function ProductsPage() {
   };
 
   // ---- Search ----
-  const filteredProducts = useMemo(() => {
+  const searchedProducts = useMemo(() => {
     if (!searchQuery) return products;
     const query = searchQuery.toLowerCase();
     return products.filter((p) => {
@@ -211,6 +237,26 @@ export default function ProductsPage() {
       return nameMatch || skuMatch || hsnMatch || priceMatch;
     });
   }, [products, searchQuery]);
+
+  // ---- Filters ----
+  const filteredProducts = useMemo(() => {
+    const min = minPrice !== '' ? parseFloat(minPrice) : null;
+    const max = maxPrice !== '' ? parseFloat(maxPrice) : null;
+
+    return searchedProducts.filter((p) => {
+      if (statusFilter === 'active' && !p.isActive) return false;
+      if (statusFilter === 'inactive' && p.isActive) return false;
+
+      if (hsnFilter === 'with' && !p.hsnNumber) return false;
+      if (hsnFilter === 'without' && p.hsnNumber) return false;
+
+      const price = p.price || 0;
+      if (min !== null && !Number.isNaN(min) && price < min) return false;
+      if (max !== null && !Number.isNaN(max) && price > max) return false;
+
+      return true;
+    });
+  }, [searchedProducts, statusFilter, hsnFilter, minPrice, maxPrice]);
 
   // ---- Sorting ----
   const handleSort = useCallback((key: string) => {
@@ -257,7 +303,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, statusFilter, hsnFilter, minPrice, maxPrice]);
 
   const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
   const endIndex = Math.min(currentPage * entriesPerPage, totalCount);
@@ -279,14 +325,14 @@ export default function ProductsPage() {
     const isActive = sortConfig?.key === key;
     const icon = !isActive ? 'unfold_more' : sortConfig!.direction === 'asc' ? 'expand_less' : 'expand_more';
     const ariaSort = isActive ? (sortConfig!.direction === 'asc' ? 'ascending' : 'descending') : 'none';
-    
+
     let justify = 'justify-start';
     if (align === 'right') justify = 'justify-end';
     if (align === 'center') justify = 'justify-center';
 
     return (
       <th
-        className={`px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group select-none ${isActive ? 'text-primary' : ''} ${align === 'right' ? 'text-right pr-6' : align === 'center' ? 'text-center' : 'text-left'}`}
+        className={`px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group select-none ${isActive ? 'text-primary' : ''} ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'}`}
         scope="col"
         role="columnheader"
         aria-sort={ariaSort as React.AriaAttributes['aria-sort']}
@@ -301,6 +347,11 @@ export default function ProductsPage() {
       </th>
     );
   };
+
+  const filterInputClass =
+    'w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium';
+  const filterSelectClass =
+    'w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium';
 
   return (
     <div
@@ -407,6 +458,99 @@ export default function ProductsPage() {
           </div>
         </div>
 
+        {/* Filters Section */}
+        <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-hidden animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.25s' }}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+
+          <div className="flex items-center justify-between gap-3 mb-6 flex-wrap relative z-10">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">filter_list</span>
+              <h2 className="text-xl font-bold text-on-surface">Filters</h2>
+              {activeFilterCount > 0 && (
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-on-primary text-[11px] font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Min Price</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm font-medium">₹</span>
+                <input
+                  className={`${filterInputClass} pl-8`}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Max Price</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm font-medium">₹</span>
+                <input
+                  className={`${filterInputClass} pl-8`}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Any"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Status</label>
+              <div className="relative">
+                <select
+                  className={filterSelectClass}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">HSN Code</label>
+              <div className="relative">
+                <select
+                  className={filterSelectClass}
+                  value={hsnFilter}
+                  onChange={(e) => setHsnFilter(e.target.value as PresenceFilter)}
+                >
+                  <option value="all">All Products</option>
+                  <option value="with">With HSN Code</option>
+                  <option value="without">Without HSN Code</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-4 relative z-10">
+            <button
+              disabled={activeFilterCount === 0}
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-on-surface-variant disabled:hover:border-outline-variant/20"
+              onClick={handleClearFilters}
+            >
+                  <span className="material-symbols-outlined text-[18px]">undo</span>
+              Reset Filters
+            </button>
+          </div>
+        </section>
+
         {/* Glassmorphic Data Table Container */}
         <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.3s' }}>
           {/* Glow Accent */}
@@ -444,7 +588,15 @@ export default function ProductsPage() {
 
           {/* High-Fidelity Data Table */}
           <div className="overflow-x-auto">
-            <table className="w-full table-fixed text-left text-sm whitespace-nowrap border-separate border-spacing-0">
+            <table className="w-full table-fixed text-left text-sm border-separate border-spacing-0">
+              <colgroup>
+                <col className="w-[26%]" />
+                <col className="w-[15%]" />
+                <col className="w-[15%]" />
+                <col className="w-[15%]" />
+                <col className="w-[13%]" />
+                <col className="w-[16%]" />
+              </colgroup>
               <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
                 <tr>
                   {renderSortableHeader('Product Details', 'name', 'left')}
@@ -452,7 +604,7 @@ export default function ProductsPage() {
                   {renderSortableHeader('HSN', 'hsn', 'left')}
                   {renderSortableHeader('Price', 'price', 'right')}
                   {renderSortableHeader('Status', 'status', 'center')}
-                  <th className="px-6 py-4 font-semibold tracking-wider text-right pr-8" scope="col">
+                  <th className="px-6 py-4 font-semibold tracking-wider text-right" scope="col">
                     Actions
                   </th>
                 </tr>
@@ -472,15 +624,15 @@ export default function ProductsPage() {
                       <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
                         <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-60">inventory_2</span>
                       </div>
-                      <h3 className="text-2xl text-on-surface font-bold mb-3">{searchQuery ? 'No matching products found' : 'No products yet'}</h3>
-                      <p className="text-on-surface-variant max-w-md mx-auto text-lg">{searchQuery ? 'Try adjusting your search filters.' : 'Create your first product for this branch.'}</p>
+                      <h3 className="text-2xl text-on-surface font-bold mb-3">{searchQuery || activeFilterCount > 0 ? 'No matching products found' : 'No products yet'}</h3>
+                      <p className="text-on-surface-variant max-w-md mx-auto text-lg">{searchQuery || activeFilterCount > 0 ? 'Try adjusting your search or filters.' : 'Create your first product for this branch.'}</p>
                     </td>
                   </tr>
                 ) : (
                   paginatedProducts.map((product) => (
                     <tr key={product.id} className="hover:bg-primary/5 transition-colors duration-200 group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
+                      <td className="px-6 py-4 align-middle">
+                        <div className="flex items-center gap-4 min-w-0">
                           <div className="relative w-12 h-12 rounded-2xl bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center text-on-surface-variant/40 shadow-sm overflow-hidden shrink-0 group-hover:border-primary/30 transition-all">
                             {product.image ? (
                               <img src={getImageUrl(product.image)!} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
@@ -496,7 +648,7 @@ export default function ProductsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 align-middle truncate">
                         {product.skuNumber ? (
                           <span className="text-on-surface font-medium">
                             {product.skuNumber}
@@ -505,7 +657,7 @@ export default function ProductsPage() {
                           <span className="text-on-surface-variant/40 italic">N/A</span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 align-middle truncate">
                         {product.hsnNumber ? (
                           <span className="text-on-surface font-medium">
                             {product.hsnNumber}
@@ -514,10 +666,10 @@ export default function ProductsPage() {
                           <span className="text-on-surface-variant/40 italic">N/A</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right pr-6">
+                      <td className="px-6 py-4 align-middle text-right">
                         <div className="font-bold text-on-surface">₹ {product.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-4 align-middle text-center">
                         {product.isActive ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-emerald-400/10 text-emerald-400 border-emerald-400/20">
                             Active
@@ -528,7 +680,7 @@ export default function ProductsPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right pr-8">
+                      <td className="px-6 py-4 align-middle text-right">
                         <div className="flex justify-end gap-2">
                           <button onClick={() => handleOpenEditModal(product)} className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 tooltip cursor-pointer" title="Edit">
                             <span className="material-symbols-outlined text-[16px]">edit</span>

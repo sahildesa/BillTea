@@ -24,6 +24,9 @@ export default function CompanySettingsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editLogo, setEditLogo] = useState<string | null>(null);
+  const [editTagline, setEditTagline] = useState("");
+  const [editUniqueIdName, setEditUniqueIdName] = useState("");
+  const [editUniqueIdValue, setEditUniqueIdValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -38,6 +41,19 @@ export default function CompanySettingsPage() {
         const data = await res.json();
         setCompany(data.company);
         setEditName(data.company.name || "");
+        
+        const ids = data.company.identifiers || [];
+        const taglineObj = ids.find((i: any) => i.label === 'TAGLINE' || i.key === 'TAGLINE');
+        setEditTagline(taglineObj ? taglineObj.value : "");
+        
+        const uniqueIdObj = ids.find((i: any) => (i.label || i.key) && (i.label !== 'TAGLINE' && i.key !== 'TAGLINE'));
+        if (uniqueIdObj) {
+          setEditUniqueIdName(uniqueIdObj.label || uniqueIdObj.key || "");
+          setEditUniqueIdValue(uniqueIdObj.value || "");
+        } else {
+          setEditUniqueIdName("");
+          setEditUniqueIdValue("");
+        }
       }
     } catch (err) {
       console.error('Failed to fetch company', err);
@@ -61,7 +77,18 @@ export default function CompanySettingsPage() {
     if (!editName.trim()) return;
     setIsSaving(true);
     try {
-      const payload: any = { name: editName };
+      const newIdentifiers = [];
+      if (editTagline.trim()) {
+        newIdentifiers.push({ label: 'TAGLINE', value: editTagline.trim() });
+      }
+      if (editUniqueIdName.trim() && editUniqueIdValue.trim()) {
+        newIdentifiers.push({ label: editUniqueIdName.trim(), value: editUniqueIdValue.trim() });
+      }
+      
+      const payload: any = { 
+        name: editName,
+        identifiers: newIdentifiers
+      };
       if (editLogo) payload.logo = editLogo;
       
       const res = await apiFetch('/company', {
@@ -74,18 +101,28 @@ export default function CompanySettingsPage() {
         setEditLogo(null);
         fetchCompany();
       } else {
-        alert("Failed to save changes. Make sure you have OWNER permissions.");
+        const errorData = await res.json().catch(() => null);
+        console.error("Backend error:", res.status, errorData);
+        if (res.status === 413) {
+          alert("Image is too large. Please upload a smaller image.");
+        } else {
+          alert(`Failed to save changes: ${errorData?.message || res.statusText || 'Make sure you have OWNER permissions.'}`);
+        }
       }
     } catch (err) {
-      console.error(err);
-      alert("Error saving changes.");
+      console.error("Save error:", err);
+      alert("Error saving changes. Please check console for details.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const location = company?.branches?.[0] ? `${company.branches[0].city}, ${company.branches[0].state}` : 'Location Not Set';
-  const identifiers = company?.identifiers || [];
+  
+  // Display variables
+  const displayTagline = company?.identifiers?.find((i: any) => i.label === 'TAGLINE' || i.key === 'TAGLINE')?.value || '';
+  const displayIdentifiers = company?.identifiers?.filter((i: any) => i.label !== 'TAGLINE' && i.key !== 'TAGLINE') || [];
+  
   const isActive = company?.subscription?.status === 'ACTIVE' || company?.subscription?.status === 'TRIAL';
 
   return (
@@ -177,25 +214,47 @@ export default function CompanySettingsPage() {
                     </label>
                   </div>
                   
-                  <div className="text-center md:text-left space-y-3 mt-2">
-                    <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="text-3xl font-bold tracking-tight bg-surface-container border border-primary/40 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-primary/20 w-full max-w-sm"
-                          autoFocus
-                        />
-                      ) : (
-                        <h2 className="text-3xl font-bold text-on-surface tracking-tight">{company?.name || 'Company Name'}</h2>
-                      )}
-                      {isActive ? (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">ACTIVE</span>
-                      ) : (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-red-500/10 text-red-600 border border-red-500/20">INACTIVE</span>
-                      )}
-                    </div>
+                    <div className="text-center md:text-left space-y-3 mt-2">
+                      <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="text-3xl font-bold tracking-tight bg-surface-container border border-primary/40 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-primary/20 w-full max-w-sm"
+                            autoFocus
+                          />
+                        ) : (
+                          <h2 className="text-3xl font-bold text-on-surface tracking-tight">{company?.name || 'Company Name'}</h2>
+                        )}
+                        {isActive ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">ACTIVE</span>
+                        ) : (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-red-500/10 text-red-600 border border-red-500/20">INACTIVE</span>
+                        )}
+                      </div>
+                      
+                      <div className="min-h-[24px]">
+                        {isEditing ? (
+                          <div className="flex flex-col gap-1 w-full max-w-md">
+                            <input
+                              type="text"
+                              maxLength={100}
+                              value={editTagline}
+                              onChange={(e) => setEditTagline(e.target.value)}
+                              placeholder="Company Tagline (e.g. Smart Billing Solutions)"
+                              className="text-sm font-medium text-on-surface bg-surface-container border border-primary/40 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20 w-full"
+                            />
+                            <span className="text-[10px] font-bold text-on-surface-variant ml-1">{editTagline.length}/100 characters</span>
+                          </div>
+                        ) : (
+                          displayTagline && (
+                            <p className="text-base text-on-surface-variant font-medium italic">
+                              "{displayTagline}"
+                            </p>
+                          )
+                        )}
+                      </div>
                     
                     <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-on-surface-variant font-medium mt-4">
                       <div className="flex items-center gap-2">
@@ -297,19 +356,44 @@ export default function CompanySettingsPage() {
                     </div>
                     
                     {/* Dynamic Identifiers */}
-                    {identifiers.map((ident: any, idx: number) => (
-                      <div key={idx} className="space-y-2">
-                        <label className="block text-sm font-bold text-on-surface capitalize">{ident.key.replace(/_/g, ' ')}</label>
-                        <div className="relative group">
+                    {isEditing ? (
+                      <>
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-on-surface">Unique Id Name</label>
                           <input
                             type="text"
-                            readOnly
-                            defaultValue={ident.value}
-                            className="w-full bg-surface-container border-2 border-transparent rounded-xl px-5 py-4 text-on-surface font-mono uppercase opacity-80 transition-all font-medium"
+                            value={editUniqueIdName}
+                            onChange={(e) => setEditUniqueIdName(e.target.value)}
+                            placeholder="e.g. GSTIN, Registration No."
+                            className="w-full bg-surface-container border border-primary/40 focus:ring-2 focus:ring-primary/20 rounded-xl px-5 py-4 text-on-surface font-medium outline-none transition-all"
                           />
                         </div>
-                      </div>
-                    ))}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-on-surface">Unique ID Number</label>
+                          <input
+                            type="text"
+                            value={editUniqueIdValue}
+                            onChange={(e) => setEditUniqueIdValue(e.target.value)}
+                            placeholder="e.g. 29ABCDE1234F1Z5"
+                            className="w-full bg-surface-container border border-primary/40 focus:ring-2 focus:ring-primary/20 rounded-xl px-5 py-4 text-on-surface font-mono uppercase font-medium outline-none transition-all"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      displayIdentifiers.map((ident: any, idx: number) => (
+                        <div key={idx} className="space-y-2">
+                          <label className="block text-sm font-bold text-on-surface capitalize">{(ident.label || ident.key || '').replace(/_/g, ' ')}</label>
+                          <div className="relative group">
+                            <input
+                              type="text"
+                              readOnly
+                              defaultValue={ident.value}
+                              className="w-full bg-surface-container border-2 border-transparent rounded-xl px-5 py-4 text-on-surface font-mono uppercase opacity-80 transition-all font-medium"
+                            />
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
 
                </div>

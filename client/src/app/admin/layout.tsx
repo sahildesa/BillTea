@@ -16,8 +16,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     setMounted(true);
+    
+    if (pathname === '/admin/auth' || pathname === '/') return;
+
     if (!isLoggedIn()) {
-      router.push('/login');
+      router.push('/admin/auth');
       return;
     }
     
@@ -31,7 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
       } catch (e) {}
     }
-  }, [router]);
+  }, [router, pathname]);
 
   const handleLogout = () => {
     logout();
@@ -39,6 +42,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   if (!mounted) return null;
+
+  if (pathname === '/admin/auth' || pathname === '/') {
+    return <>{children}</>;
+  }
 
   return (
     <div className="bg-background text-on-surface font-body min-h-screen flex overflow-hidden antialiased transition-colors duration-300">
@@ -55,6 +62,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
         <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto custom-scrollbar">
+          <Link href="/dashboard" title={!sidebarOpen ? 'Dashboard' : undefined} className={`nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 overflow-hidden whitespace-nowrap ${pathname === '/admin/dashboard' || pathname === '/dashboard' ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]' : 'text-on-surface-variant border border-transparent hover:bg-surface-container-highest hover:text-on-surface hover:translate-x-1'}`}>
+            <span className="material-symbols-outlined shrink-0 text-[20px] transition-transform duration-300 group-hover:scale-110">dashboard</span>
+            <span className={`transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>Dashboard</span>
+          </Link>
           <Link href="/admin/plans" title={!sidebarOpen ? 'Plans' : undefined} className={`nav-item group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 overflow-hidden whitespace-nowrap ${pathname === '/admin/plans' ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]' : 'text-on-surface-variant border border-transparent hover:bg-surface-container-highest hover:text-on-surface hover:translate-x-1'}`}>
             <span className="material-symbols-outlined shrink-0 text-[20px] transition-transform duration-300 group-hover:scale-110">card_membership</span>
             <span className={`transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>Subscription Plans</span>

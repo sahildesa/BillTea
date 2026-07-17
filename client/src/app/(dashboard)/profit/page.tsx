@@ -279,65 +279,100 @@ export default function ProfitReportPage() {
     setCurrentPage(1);
   };
 
-  const sortHeaderClass = (key: SortKey, align: 'left' | 'right' = 'left') =>
-    `px-6 py-4 text-xs font-bold uppercase tracking-widest border-b border-outline/10 cursor-pointer hover:text-primary transition-colors group select-none ${
-      align === 'right' ? 'text-right' : ''
-    } ${sortConfig?.key === key ? 'text-primary' : 'text-on-surface-variant'}`;
+  const renderSortableHeader = (label: string, key: SortKey, align: 'left' | 'right' = 'left') => {
+    const isActive = sortConfig?.key === key;
+    const icon = !isActive ? 'unfold_more' : sortConfig!.direction === 'asc' ? 'expand_less' : 'expand_more';
+    const ariaSort = isActive ? (sortConfig!.direction === 'asc' ? 'ascending' : 'descending') : 'none';
 
-  const sortIconClass = (key: SortKey) =>
-    `material-symbols-outlined text-[12px] transition-opacity ${
-      sortConfig?.key === key ? 'opacity-100 text-primary' : 'opacity-50 group-hover:opacity-100'
-    }`;
+    return (
+      <th
+        className={`px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group select-none ${isActive ? 'text-primary' : ''} ${align === 'right' ? 'text-right' : 'text-left'}`}
+        scope="col"
+        role="columnheader"
+        aria-sort={ariaSort as React.AriaAttributes['aria-sort']}
+        onClick={() => handleSort(key)}
+      >
+        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}>
+          {label}
+          <span className={`material-symbols-outlined text-[12px] transition-opacity ${isActive ? 'opacity-100 text-primary' : 'opacity-50 group-hover:opacity-100'}`}>
+            {icon}
+          </span>
+        </div>
+      </th>
+    );
+  };
 
   return (
     <div
-      className="flex-1 overflow-y-auto p-8 z-0 relative overflow-x-hidden [&::-webkit-scrollbar]:hidden"
+      className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
-      {/* Background Ambient Effects */}
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+      `}} />
 
-      <div className="relative z-10 max-w-[1440px] mx-auto flex flex-col gap-8">
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
         {/* Header Section */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div>
-           <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
-                <span className="text-on-surface">Profit </span>
-              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Report
-                </span>
-              </h1>
-            <p className="text-on-surface-variant text-lg">Financial performance and net earnings analysis</p>
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+              <span className="material-symbols-outlined text-[14px]">analytics</span>
+              Profit & Loss
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+              <span className="text-on-surface">Profit </span>
+              <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+                Report
+              </span>
+            </h1>
+            <p className="text-on-surface-variant text-lg leading-relaxed">
+              Financial performance and net earnings analysis. Monitor your income and expenses over time.
+            </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button className="glass-panel px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium text-on-surface hover:bg-primary/10 transition-all duration-300 cursor-pointer">
-              <span className="material-symbols-outlined text-primary text-xl">picture_as_pdf</span>
-              Export PDF
+            <button className="group relative h-12 px-6 rounded-2xl bg-surface-container-highest text-on-surface font-bold flex items-center gap-2 overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 border border-outline-variant/30 hover:border-primary/30 hover:text-primary">
+              <span className="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+              <span>Export PDF</span>
             </button>
-            <button className="glass-panel px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium text-on-surface hover:bg-primary/10 transition-all duration-300 cursor-pointer">
-              <span className="material-symbols-outlined text-primary text-xl">table_view</span>
-              Export Excel
+            <button className="group relative h-12 px-6 rounded-2xl bg-surface-container-highest text-on-surface font-bold flex items-center gap-2 overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 border border-outline-variant/30 hover:border-primary/30 hover:text-primary">
+              <span className="material-symbols-outlined text-[20px]">table_view</span>
+              <span>Export Excel</span>
             </button>
           </div>
         </header>
 
         {/* Filters Section */}
-        <section className="glass-elevated rounded-2xl p-6 transition-transform duration-300 hover:-translate-y-1 hover:scale-[1.01]">
-          <div className="flex flex-wrap items-end gap-6">
+        <section className="glass-panel rounded-3xl p-6 transition-transform duration-300 hover:-translate-y-1 animate-fade-slide-up relative overflow-hidden shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.15s' }}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+          <div className="flex flex-wrap items-end gap-6 relative z-10">
             <div className="flex-1 min-w-[200px]">
               <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">From Date</label>
-            <div className="relative">
-                <input className="w-full bg-surface-container/50 border border-outline/20 rounded-xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <div className="relative">
+                <input className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               </div>
             </div>
             <div className="flex-1 min-w-[200px]">
               <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">To Date</label>
               <div className="relative">
-                <input className="w-full bg-surface-container/50 border border-outline/20 rounded-xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+                <input className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={handleResetFilters} className="glass-panel px-8 py-3 rounded-xl font-medium text-on-surface-variant hover:text-on-surface transition-all cursor-pointer">
+              <button onClick={handleResetFilters} className="h-[46px] px-8 rounded-xl font-bold bg-surface-container-highest text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/80 transition-all cursor-pointer border border-outline-variant/30 hover:border-outline-variant/50 flex items-center justify-center">
                 Reset
               </button>
             </div>
@@ -345,80 +380,74 @@ export default function ProfitReportPage() {
         </section>
 
         {/* Summary Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
           {/* Total Income */}
-          <div className="glass-elevated rounded-2xl p-6 relative overflow-hidden group transition-transform duration-300 hover:-translate-y-1 hover:scale-[1.01]">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <span className="material-symbols-outlined text-6xl text-primary">currency_rupee</span>
+          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Income</p>
+              <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
             </div>
-            <p className="text-on-surface-variant text-sm font-semibold uppercase tracking-widest mb-4">Total Income</p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
-              </div>
-              <h3 className="text-3xl font-bold text-on-surface tracking-tight">₹{formatCurrency(totalIncome)}</h3>
-            </div>
-            <div className="mt-4 h-1 w-full bg-primary/5 rounded-full overflow-hidden">
-              <div className="h-full bg-primary opacity-40" style={{ width: `${totalIncomeBar}%` }}></div>
+            <h3 className="text-3xl font-bold text-on-surface tracking-tight relative z-10">₹{formatCurrency(totalIncome)}</h3>
+            <div className="mt-5 h-1 w-full bg-primary/10 rounded-full overflow-hidden relative z-10">
+              <div className="h-full bg-primary opacity-60 rounded-full transition-all duration-1000 ease-out" style={{ width: `${totalIncomeBar}%` }}></div>
             </div>
           </div>
+
           {/* Total Expense */}
-          <div className="glass-elevated rounded-2xl p-6 relative overflow-hidden group transition-transform duration-300 hover:-translate-y-1 hover:scale-[1.01]">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <span className="material-symbols-outlined text-6xl text-error">currency_rupee</span>
+          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-error/40 hover:shadow-[0_20px_40px_-15px_rgba(239,68,68,0.15)] hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-error/5 rounded-full blur-2xl group-hover:bg-error/10 transition-colors duration-500"></div>
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Expense</p>
+              <span className="material-symbols-outlined text-error p-2 rounded-lg bg-error/10" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
             </div>
-            <p className="text-on-surface-variant text-sm font-semibold uppercase tracking-widest mb-4">Total Expense</p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-error/10 flex items-center justify-center border border-error/20">
-                <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
-              </div>
-              <h3 className="text-3xl font-bold text-on-surface tracking-tight">₹{formatCurrency(totalExpense)}</h3>
-            </div>
-            <div className="mt-4 h-1 w-full bg-error/5 rounded-full overflow-hidden">
-              <div className="h-full bg-error opacity-40" style={{ width: `${totalExpenseBar}%` }}></div>
+            <h3 className="text-3xl font-bold text-on-surface tracking-tight relative z-10">₹{formatCurrency(totalExpense)}</h3>
+            <div className="mt-5 h-1 w-full bg-error/10 rounded-full overflow-hidden relative z-10">
+              <div className="h-full bg-error opacity-60 rounded-full transition-all duration-1000 ease-out" style={{ width: `${totalExpenseBar}%` }}></div>
             </div>
           </div>
+
           {/* Net Profit */}
-          <div className="glass-elevated rounded-2xl p-6 relative overflow-hidden group border-primary/30 shadow-[0_0_20px_rgba(125,211,252,0.2)] transition-transform duration-300 hover:-translate-y-1 hover:scale-[1.01]">
-            <div className="absolute top-0 right-0 p-4 opacity-20">
-              <span className="material-symbols-outlined text-6xl text-primary">analytics</span>
+          <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-emerald-500/40 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Net Profit</p>
+              <span className="material-symbols-outlined text-emerald-500 p-2 rounded-lg bg-emerald-500/10" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
             </div>
-            <p className="text-on-surface-variant text-sm font-semibold uppercase tracking-widest mb-4">Net Profit</p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/40">
-                <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
-              </div>
-              <h3 className="text-3xl font-bold text-primary tracking-tight">₹{formatCurrency(netProfit)}</h3>
-            </div>
-            <div className="mt-4 h-1 w-full bg-primary/10 rounded-full overflow-hidden">
-              <div className="h-full bg-primary" style={{ width: `${netProfitBar}%` }}></div>
+            <h3 className="text-3xl font-bold text-emerald-500 tracking-tight relative z-10">₹{formatCurrency(netProfit)}</h3>
+            <div className="mt-5 h-1 w-full bg-emerald-500/10 rounded-full overflow-hidden relative z-10">
+              <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000 ease-out" style={{ width: `${netProfitBar}%` }}></div>
             </div>
           </div>
         </section>
 
         {/* Data Table Section */}
-        <section className="glass-elevated rounded-2xl overflow-hidden border border-outline/10 transition-transform duration-300 hover:-translate-y-1 hover:scale-[1.01] flex flex-col mb-12">
-          {/* Table Header Controls */}
-          <div className="p-6 border-b border-outline/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
-            <div className="flex items-center gap-4 w-full sm:w-auto">
-              <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-                <span>Show</span>
+        <section className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] flex flex-col" style={{ animationDelay: '0.3s' }}>
+          {/* Glow Accent */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+          
+          {/* Table Controls */}
+          <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
+            <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant">
+              <span>Show</span>
+              <div className="relative">
                 <select
                   value={entriesPerPage}
                   onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
-                  className="bg-surface-container border border-outline/20 rounded px-2 py-1 text-xs focus:ring-0 focus:border-primary/50 cursor-pointer outline-none"
+                  className="bg-surface-container border border-outline-variant/30 rounded-xl py-2 pl-4 pr-10 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm cursor-pointer appearance-none hover:bg-surface-container-high transition-colors font-semibold"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
                 </select>
-                <span>entries</span>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
               </div>
+              <span>entries</span>
             </div>
-            <div className="relative w-full sm:w-64">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
+            <div className="relative w-full sm:w-auto">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
               <input
-                className="w-full bg-surface-container/50 border border-outline/20 rounded-xl pl-10 pr-4 py-2 text-sm text-on-surface focus:outline-none focus:border-primary/50 transition-all placeholder:text-on-surface-variant/50"
+                className="w-full sm:w-80 bg-surface-container border border-outline-variant/30 pl-11 pr-4 py-2.5 rounded-xl text-sm font-medium text-on-surface placeholder-on-surface-variant/60 focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all"
                 placeholder="Search dates..."
                 type="text"
                 value={searchQuery}
@@ -426,57 +455,46 @@ export default function ProfitReportPage() {
               />
             </div>
           </div>
+          
           {/* Table Body */}
           <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        <table className="w-full text-left border-separate border-spacing-0 whitespace-nowrap">
-              <thead className="bg-surface-container/30">
+            <table className="w-full text-left border-separate border-spacing-0 whitespace-nowrap text-sm">
+              <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
                 <tr>
-                  <th className={sortHeaderClass('date')} onClick={() => handleSort('date')}>
-                    <div className="flex items-center gap-1">
-                      Date <span className={sortIconClass('date')}>{getSortIcon('date')}</span>
-                    </div>
-                  </th>
-                  <th className={sortHeaderClass('income', 'right')} onClick={() => handleSort('income')}>
-                    <div className="flex items-center justify-end gap-1">
-                      Income (₹) <span className={sortIconClass('income')}>{getSortIcon('income')}</span>
-                    </div>
-                  </th>
-                  <th className={sortHeaderClass('expense', 'right')} onClick={() => handleSort('expense')}>
-                    <div className="flex items-center justify-end gap-1">
-                      Expense (₹) <span className={sortIconClass('expense')}>{getSortIcon('expense')}</span>
-                    </div>
-                  </th>
-                  <th className={sortHeaderClass('profit', 'right')} onClick={() => handleSort('profit')}>
-                    <div className="flex items-center justify-end gap-1">
-                      Profit (₹) <span className={sortIconClass('profit')}>{getSortIcon('profit')}</span>
-                    </div>
-                  </th>
+                  {renderSortableHeader('Date', 'date')}
+                  {renderSortableHeader('Income (₹)', 'income', 'right')}
+                  {renderSortableHeader('Expense (₹)', 'expense', 'right')}
+                  {renderSortableHeader('Profit (₹)', 'profit', 'right')}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline/5 text-sm">
+              <tbody className="divide-y divide-primary/5">
                 {paginatedRows.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-on-surface-variant">
-                      {searchQuery ? 'No matching dates found.' : 'No data for the selected date range.'}
+                    <td colSpan={4} className="px-6 py-24 text-center">
+                      <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
+                        <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-60">analytics</span>
+                      </div>
+                      <h3 className="text-2xl text-on-surface font-bold mb-3">{searchQuery ? 'No matching dates found' : 'No data for the selected date range'}</h3>
+                      <p className="text-on-surface-variant max-w-md mx-auto text-lg">{searchQuery ? 'Try adjusting your search filters.' : 'There are no financial records for this period.'}</p>
                     </td>
                   </tr>
                 ) : (
                   paginatedRows.map((row) => (
                     <tr key={row.date} className="hover:bg-primary/5 transition-colors group cursor-pointer active:scale-[0.995]">
-                      <td className="px-6 py-5 font-medium text-on-surface">
+                      <td className="px-6 py-5 font-semibold text-primary">
                         {new Date(row.date).toLocaleDateString('en-IN', {
                           day: '2-digit',
                           month: 'short',
                           year: 'numeric',
                         })}
                       </td>
-                      <td className="px-6 py-5 font-bold text-primary text-right">
+                      <td className="px-6 py-5 font-bold text-on-surface text-right">
                         ₹{formatCurrency(row.income)}
                       </td>
                       <td className="px-6 py-5 font-medium text-error text-right">
                         ₹{formatCurrency(row.expense)}
                       </td>
-                      <td className="px-6 py-5 font-bold text-on-surface text-right">
+                      <td className="px-6 py-5 font-bold text-emerald-500 text-right">
                         ₹{formatCurrency(row.income - row.expense)}
                       </td>
                     </tr>
@@ -484,43 +502,58 @@ export default function ProfitReportPage() {
                 )}
               </tbody>
               <tfoot>
-                <tr className="bg-surface-container/50 border-t-2 border-primary/20">
+                <tr className="bg-surface-container-lowest border-t border-primary/20">
                   <td className="px-6 py-5 text-sm font-black uppercase tracking-wider text-on-surface">TOTAL:</td>
-                  <td className="px-6 py-5 text-lg font-black text-primary text-right">₹{formatCurrency(totalIncome)}</td>
+                  <td className="px-6 py-5 text-lg font-black text-on-surface text-right">₹{formatCurrency(totalIncome)}</td>
                   <td className="px-6 py-5 text-lg font-black text-error text-right">₹{formatCurrency(totalExpense)}</td>
-                  <td className="px-6 py-5 text-lg font-black text-on-surface text-right">₹{formatCurrency(netProfit)}</td>
+                  <td className="px-6 py-5 text-lg font-black text-emerald-500 text-right">₹{formatCurrency(netProfit)}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
+          
           {/* Pagination Footer */}
-          <div className="p-6 border-t border-outline/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/10">
-            <p className="text-sm text-on-surface-variant">
-              {totalEntries === 0
-                ? 'Showing 0 entries'
-                : `Showing ${startIndex} to ${endIndex} of ${totalEntries} entries`}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-primary/10 hover:text-on-surface transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer border border-outline/20"
-              >
-                Previous
-              </button>
-              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
-                {currentPage}
+          <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
+              <span className="text-sm text-on-surface-variant">
+                {totalEntries === 0
+                  ? 'Showing 0 entries'
+                  : `Showing ${startIndex} to ${endIndex} of ${totalEntries} entries`}
               </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-primary/10 hover:text-on-surface transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer border border-outline/20"
-              >
-                Next
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Previous
+                </button>
+                
+                <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+                  {currentPage}
+                </span>
+                
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </section>
+
+        {/* Footer Decoration */}
+        <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-2">
+          <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+          <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+            BillTea Dashboard • Profit Report
+          </p>
+          <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+        </footer>
+
       </div>
     </div>
   );

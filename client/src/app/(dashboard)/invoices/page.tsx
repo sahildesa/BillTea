@@ -390,142 +390,171 @@ export default function InvoicesPage() {
 
   return (
     <div
-      className="flex-1 overflow-y-auto p-8 [&::-webkit-scrollbar]:hidden"
+      className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
-    <style jsx global>{`
-  table, thead, tbody, tr, td, th {
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    user-select: none !important;
-  }
-  table ::selection,
-  tr::selection, tr *::selection,
-  td::selection, td *::selection,
-  th::selection, th *::selection,
-  button::selection, button *::selection,
-  span::selection {
-    background: transparent !important;
-    color: inherit !important;
-  }
-  button, th, select, input, a, tr, td, span, [role='button'] {
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    outline: none !important;
-  }
-  button::-moz-focus-inner {
-    border: 0 !important;
-  }
-  th, th:focus, th:active,
-  button:focus, button:active,
-  select:focus, select:active {
-    outline: none !important;
-    box-shadow: none !important;
-  }
-`}</style>
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
-              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Invoices</span></h1>
-          <p className="text-on-surface-variant text-lg">Manage and track your invoices.</p>
-          </div>
-        <Link href="/invoices/new">
-          <button
-            disabled={!selectedBranchId}
-            className="glass-button-primary rounded-lg py-2.5 px-5 flex items-center gap-2 text-sm font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-            Create Invoice
-          </button>
-        </Link>
+      <style jsx global>{`
+        table, thead, tbody, tr, td, th {
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          user-select: none !important;
+        }
+        table ::selection,
+        tr::selection, tr *::selection,
+        td::selection, td *::selection,
+        th::selection, th *::selection,
+        button::selection, button *::selection,
+        span::selection {
+          background: transparent !important;
+          color: inherit !important;
+        }
+        button, th, select, input, a, tr, td, span, [role='button'] {
+          -webkit-tap-highlight-color: transparent !important;
+          -webkit-touch-callout: none !important;
+          outline: none !important;
+        }
+        button::-moz-focus-inner {
+          border: 0 !important;
+        }
+        th, th:focus, th:active,
+        button:focus, button:active,
+        select:focus, select:active {
+          outline: none !important;
+          box-shadow: none !important;
+        }
+      `}</style>
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+      `}} />
+
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
       </div>
 
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+            <span className="material-symbols-outlined text-[14px]">receipt_long</span>
+            Invoices Management
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+            <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+              Invoices
+            </span>
+          </h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed">
+            Manage and track your invoices. Create new invoices, monitor their status, and record payments.
+          </p>
+        </div>
+        <Link href="/invoices/new">
+          <button 
+            disabled={!selectedBranchId}
+            className="group relative h-14 px-8 rounded-2xl bg-primary text-on-primary font-bold flex items-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="absolute inset-0 w-full h-full bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
+            <span className="material-symbols-outlined">add</span>
+            <span>Create Invoice</span>
+          </button>
+        </Link>
+      </header>
+
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3 relative z-10">
+        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3 relative z-10 animate-fade-slide-up">
           <span className="material-symbols-outlined text-error mt-0.5">error</span>
           <p className="text-sm text-error font-medium">{error}</p>
         </div>
       )}
 
-     {/* Metrics Grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
-  </div>
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{stats.total}</p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">for this branch</p>
+        </div>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Unpaid / Overdue</p>
-      <span className="material-symbols-outlined text-red-500 p-2 rounded-lg bg-red-500/10">error_outline</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.unpaid}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">
-      {stats.total > 0 ? `${Math.round((stats.unpaid / stats.total) * 100)}% of total` : 'no data yet'}
-    </p>
-  </div>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Unpaid / Overdue</p>
+            <span className="material-symbols-outlined text-red-500 p-2 rounded-lg bg-red-500/10">error_outline</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{stats.unpaid}</p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">
+            {stats.total > 0 ? `${Math.round((stats.unpaid / stats.total) * 100)}% of total` : 'no data yet'}
+          </p>
+        </div>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Billed</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">payments</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">
-      ₹ {stats.totalBilled.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-    </p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">across all invoices</p>
-  </div>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Billed</p>
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">payments</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">
+            ₹ {stats.totalBilled.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">across all invoices</p>
+        </div>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Outstanding</p>
-      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">account_balance_wallet</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">
-      ₹ {stats.totalOutstanding.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-    </p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">yet to be collected</p>
-  </div>
-</div>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Outstanding</p>
+            <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">account_balance_wallet</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">
+            ₹ {stats.totalOutstanding.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">yet to be collected</p>
+        </div>
+      </div>
 
       {/* Glassmorphic Data Table Container */}
-      <div className="glass-panel rounded-xl overflow-hidden shadow-lg border border-primary/10 relative z-10">
+      <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.3s' }}>
         {/* Glow Accent */}
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
-
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+        
         {/* Table Controls */}
-        <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
-          <div className="flex items-center gap-3 text-sm text-on-surface-variant">
+        <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
+          <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant">
             <span>Show</span>
             <div className="relative">
               <select
                 value={entriesPerPage}
                 onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
-                className="glass-input rounded-md py-1.5 pl-3 pr-8 text-on-surface focus:ring-0 focus:border-primary/50 text-sm cursor-pointer appearance-none bg-surface-container-highest outline-none [-webkit-tap-highlight-color:transparent]"
+                className="bg-surface-container border border-outline-variant/30 rounded-xl py-2 pl-4 pr-10 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm cursor-pointer appearance-none hover:bg-surface-container-high transition-colors font-semibold"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
                 <option value={50}>50</option>
               </select>
-              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
             </div>
             <span>entries</span>
           </div>
           <div className="relative w-full sm:w-auto">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
-            <input
-              className="glass-input pl-9 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder-on-surface-variant/50 w-full sm:w-72 focus:outline-none transition-all"
-              placeholder="Search invoices..."
-              type="text"
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+            <input 
+              className="w-full sm:w-80 bg-surface-container border border-outline-variant/30 pl-11 pr-4 py-2.5 rounded-xl text-sm font-medium text-on-surface placeholder-on-surface-variant/60 focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all" 
+              placeholder="Search invoices..." 
+              type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -534,7 +563,7 @@ export default function InvoicesPage() {
 
         {/* The Table */}
         <div className="overflow-x-auto">
-         <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
+          <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
             <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
               <tr>
                 <th className={sortHeaderClass('invoiceNumber')} scope="col" onClick={() => handleSort('invoiceNumber')}>
@@ -573,12 +602,12 @@ export default function InvoicesPage() {
                 </tr>
               ) : paginatedInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
-                      <span className="material-symbols-outlined text-[32px]">request_quote</span>
+                  <td colSpan={5} className="px-6 py-24 text-center">
+                    <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
+                      <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-60">receipt_long</span>
                     </div>
-                    <h3 className="text-lg font-bold text-on-surface">{searchQuery ? 'No matching invoices found' : 'No invoices yet'}</h3>
-                    <p className="text-sm text-on-surface-variant mt-1">{searchQuery ? 'Try adjusting your search filters.' : 'Create your first invoice for this branch.'}</p>
+                    <h3 className="text-2xl text-on-surface font-bold mb-3">{searchQuery ? 'No matching invoices found' : 'No invoices yet'}</h3>
+                    <p className="text-on-surface-variant max-w-md mx-auto text-lg">{searchQuery ? 'Try adjusting your search filters.' : 'Create your first invoice for this branch.'}</p>
                   </td>
                 </tr>
               ) : (
@@ -693,7 +722,7 @@ export default function InvoicesPage() {
         </div>
 
         {/* Pagination */}
-        <div className="p-6 border-t border-primary/10 bg-surface-container/30 flex flex-col gap-4">
+        <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
             <span className="text-sm text-on-surface-variant">
               {totalCount === 0
@@ -891,6 +920,16 @@ export default function InvoicesPage() {
           </div>
         </div>
       )}
+
+      {/* Footer Decoration */}
+      <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-8">
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+        <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+          BillTea Dashboard • Invoices
+        </p>
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+      </footer>
+      </div>
     </div>
   );
 }

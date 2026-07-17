@@ -46,6 +46,11 @@ export default function QuotationsPage() {
   const [isSendingId, setIsSendingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // ---- Filters state (Customer / Date range) ----
+  const [customerFilter, setCustomerFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
   // ---- Sorting state (asc <-> desc toggle, same as Invoices/Customers/Products) ----
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
@@ -218,17 +223,67 @@ export default function QuotationsPage() {
     }
   };
 
-  // ---- Search / filter ----
-  const filteredQuotations = quotations.filter((q) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    const customerName = q.customer?.customerName?.toLowerCase() || '';
-    const companyName = q.customer?.companyName?.toLowerCase() || '';
-    const quotationNumber = q.quotationNumber?.toLowerCase() || '';
-    const amount = q.totals?.grandTotal?.toString() || '';
+  // ---- Unique customer list for the filter dropdown ----
+  const uniqueCustomers = useMemo(() => {
+    const names = new Set<string>();
+    quotations.forEach((q) => {
+      if (q.customer?.customerName) names.add(q.customer.customerName);
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [quotations]);
 
-    return customerName.includes(query) || companyName.includes(query) || quotationNumber.includes(query) || amount.includes(query);
+  // ---- Search / filter (text search + customer + date range) ----
+  const filteredQuotations = quotations.filter((q) => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const customerName = q.customer?.customerName?.toLowerCase() || '';
+      const companyName = q.customer?.companyName?.toLowerCase() || '';
+      const quotationNumber = q.quotationNumber?.toLowerCase() || '';
+      const amount = q.totals?.grandTotal?.toString() || '';
+
+      const matchesSearch =
+        customerName.includes(query) ||
+        companyName.includes(query) ||
+        quotationNumber.includes(query) ||
+        amount.includes(query);
+
+      if (!matchesSearch) return false;
+    }
+
+    if (customerFilter && q.customer?.customerName !== customerFilter) {
+      return false;
+    }
+
+    if (fromDate || toDate) {
+      const qDate = new Date(q.quotationDate);
+
+      if (fromDate) {
+        const from = new Date(fromDate);
+        from.setHours(0, 0, 0, 0);
+        if (qDate < from) return false;
+      }
+
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999);
+        if (qDate > to) return false;
+      }
+    }
+
+    return true;
   });
+const hasActiveFilters = Boolean(
+  searchQuery || customerFilter || fromDate || toDate
+);
+const handleClearFilters = () => {
+  setCustomerFilter('');
+  setFromDate('');
+  setToDate('');
+  setSearchQuery('');
+  setCurrentPage(1);
+};
+
+
 
   // The "most recent" quotation is the one you're allowed to delete.
   // Derived from actual quotationDate (not row position/index), so it stays
@@ -288,10 +343,10 @@ export default function QuotationsPage() {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [totalPages, currentPage]);
 
-  // Reset to page 1 whenever the search query changes.
+  // Reset to page 1 whenever the search query or filters change.
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, customerFilter, fromDate, toDate]);
 
   const paginatedQuotations = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -440,11 +495,92 @@ export default function QuotationsPage() {
         </div>
       </div>
 
+            {/* Filters Section */}
+      <section
+        className="glass-panel rounded-3xl p-6 transition-transform duration-300 hover:-translate-y-1 animate-fade-slide-up relative overflow-hidden shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]"
+        style={{ animationDelay: '0.15s' }}
+      >
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 mb-6 relative z-10">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">
+              filter_list
+            </span>
+            <h2 className="text-xl font-bold text-on-surface">Filters</h2>
+          </div>
+          {hasActiveFilters && (
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold">
+              <span className="material-symbols-outlined text-[14px]">check_circle</span>
+              Active
+            </span>
+          )}
+        </div>
+
+        {/* Filter Controls */}
+        <div className="flex flex-wrap items-end gap-6 relative z-10">
+          <div className="flex-1 min-w-[220px]">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">
+              Customer
+            </label>
+            <div className="relative">
+              <select
+                value={customerFilter}
+                onChange={(e) => setCustomerFilter(e.target.value)}
+                className="w-full bg-surface-container border border-outline-variant/30 rounded-xl pl-4 pr-10 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">All Customers</option>
+                {uniqueCustomers.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+            </div>
+          </div>
+
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">
+              From Date
+            </label>
+            <input
+              className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all"
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+            />
+          </div>
+
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">
+              To Date
+            </label>
+            <input
+              className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all"
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+            />
+          </div>
+
+         <div className="mt-8 flex flex-wrap gap-4 relative z-10">
+          <button
+            disabled={!hasActiveFilters}
+            className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-on-surface-variant disabled:hover:border-outline-variant/20"
+            onClick={handleClearFilters}
+          >
+        <span className="material-symbols-outlined text-[18px]">undo</span>
+            Reset Filters
+          </button>
+        </div>
+        </div>
+      </section>
+
       {/* Glassmorphic Data Table Container */}
       <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.3s' }}>
         {/* Glow Accent */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
-        
+               
         {/* Table Controls */}
         <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
           <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant">
@@ -504,8 +640,8 @@ export default function QuotationsPage() {
                     <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
                       <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-60">request_quote</span>
                     </div>
-                    <h3 className="text-2xl text-on-surface font-bold mb-3">{searchQuery ? 'No matching quotations found' : 'No quotations yet'}</h3>
-                    <p className="text-on-surface-variant max-w-md mx-auto text-lg">{searchQuery ? 'Try adjusting your search filters.' : 'Create your first quotation for this branch.'}</p>
+                    <h3 className="text-2xl text-on-surface font-bold mb-3">{searchQuery || hasActiveFilters ? 'No matching quotations found' : 'No quotations yet'}</h3>
+                    <p className="text-on-surface-variant max-w-md mx-auto text-lg">{searchQuery || hasActiveFilters ? 'Try adjusting your search or filters.' : 'Create your first quotation for this branch.'}</p>
                   </td>
                 </tr>
               ) : (
@@ -537,7 +673,7 @@ export default function QuotationsPage() {
                     <td className="px-6 py-4">
                       {openActionId === quotation.id ? (
                         <div className="flex items-center justify-end gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                          <button onClick={() => handleViewPdf(quotation.id, quotation.quotationNumber)} disabled={isLoadingPdf} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer disabled:opacity-50" title="View">
+                          <button onClick={() => handleViewPdf(quotation.id, quotation.quotationNumber)} disabled={isLoadingPdf} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" title="View">
                             <span className="material-symbols-outlined text-[16px]">visibility</span>
                           </button>
                           <Link href={`/quotations/${quotation.id}/edit`}>
@@ -555,7 +691,7 @@ export default function QuotationsPage() {
                               <span className="material-symbols-outlined text-[16px]">receipt_long</span>
                             </button>
                           </Link>
-                          <button onClick={() => handleSend(quotation.id)} disabled={isSendingId === quotation.id} className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer disabled:opacity-50" title="Send">
+                          <button onClick={() => handleSend(quotation.id)} disabled={isSendingId === quotation.id} className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" title="Send">
                             {isSendingId === quotation.id ? <span className="material-symbols-outlined text-[16px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[16px]">send</span>}
                           </button>
                           <button 
@@ -572,11 +708,18 @@ export default function QuotationsPage() {
                             className="glass-button-icon p-1 rounded-md transition-all hover:text-amber-400 hover:border-amber-400/30 hover:bg-amber-400/10 tooltip cursor-pointer" title="Notes & Reminder">
                             <span className="material-symbols-outlined text-[16px]">sticky_note_2</span>
                           </button>
-                          {isMostRecent && (
-                            <button onClick={() => setQuotationToDelete(quotation.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
-                              <span className="material-symbols-outlined text-[16px]">delete</span>
-                            </button>
-                          )}
+                          <button
+                            onClick={() => isMostRecent && setQuotationToDelete(quotation.id)}
+                            disabled={!isMostRecent}
+                            className={`glass-button-icon p-1 rounded-md transition-all tooltip ${
+                              isMostRecent
+                                ? 'hover:text-error hover:border-error/30 hover:bg-error/10 cursor-pointer'
+                                : 'opacity-30 cursor-not-allowed'
+                            }`}
+                            title={isMostRecent ? 'Delete' : 'Only the most recent quotation can be deleted'}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
                           <div className="w-px h-4 bg-primary/20 mx-1"></div>
                           <button 
                             onClick={() => setOpenActionId(null)}
@@ -586,7 +729,7 @@ export default function QuotationsPage() {
                         </div>
                       ) : (
                         <div className="flex items-center justify-end gap-2 animate-in fade-in duration-300">
-                          <button onClick={() => handleViewPdf(quotation.id, quotation.quotationNumber)} disabled={isLoadingPdf} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer disabled:opacity-50" title="View">
+                          <button onClick={() => handleViewPdf(quotation.id, quotation.quotationNumber)} disabled={isLoadingPdf} className="glass-button-icon p-1 rounded-md transition-all hover:text-blue-400 hover:bg-blue-400/10 tooltip cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" title="View">
                             <span className="material-symbols-outlined text-[16px]">visibility</span>
                           </button>
                           <Link href={`/invoices/new?copyFromQuotation=${quotation.id}`}>
@@ -594,7 +737,7 @@ export default function QuotationsPage() {
                               <span className="material-symbols-outlined text-[16px]">receipt_long</span>
                             </button>
                           </Link>
-                          <button onClick={() => handleSend(quotation.id)} disabled={isSendingId === quotation.id} className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer disabled:opacity-50" title="Send">
+                          <button onClick={() => handleSend(quotation.id)} disabled={isSendingId === quotation.id} className="glass-button-icon p-1 rounded-md transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 tooltip cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" title="Send">
                             {isSendingId === quotation.id ? <span className="material-symbols-outlined text-[16px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[16px]">send</span>}
                           </button>
                           <div className="w-px h-4 bg-primary/20 mx-1"></div>
@@ -765,7 +908,7 @@ export default function QuotationsPage() {
                     <span className="material-symbols-outlined text-[20px]">receipt_long</span>
                   </button>
                 </Link>
-                <button onClick={() => handleSend(activeQuotation.id)} disabled={isSendingId === activeQuotation.id} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip disabled:opacity-50" title="Send">
+                <button onClick={() => handleSend(activeQuotation.id)} disabled={isSendingId === activeQuotation.id} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip disabled:opacity-50 disabled:cursor-not-allowed" title="Send">
                   {isSendingId === activeQuotation.id ? <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[20px]">send</span>}
                 </button>
                 <button 

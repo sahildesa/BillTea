@@ -71,6 +71,12 @@ export default function ReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  const [activeDropdown, setActiveDropdown] = useState<'customer' | 'status' | 'entries' | null>(null);
+
+  const toggleDropdown = (name: 'customer' | 'status' | 'entries') => {
+    setActiveDropdown(prev => prev === name ? null : name);
+  };
+
   useEffect(() => {
     if (selectedBranchId) {
       fetchInvoices();
@@ -266,10 +272,17 @@ export default function ReportsPage() {
     }`;
 
   return (
-    <div
-      className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-    >
+    <>
+      {activeDropdown && (
+        <div 
+          className="fixed inset-0 z-40 cursor-default" 
+          onClick={() => setActiveDropdown(null)} 
+        />
+      )}
+      <div
+        className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -315,8 +328,8 @@ export default function ReportsPage() {
               Financial overview and tracking for Indux Technology. Analyze invoices, payments, and track outstanding balances.
             </p>
           </div>
-          <Link href="/profit">
-            <button className="group relative h-14 px-8 rounded-2xl bg-surface-container-highest border border-primary/20 text-primary font-bold flex items-center gap-3 overflow-hidden shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:shadow-[0_0_25px_rgba(125,211,252,0.3)] transition-all hover:-translate-y-0.5 hover:border-primary/40 cursor-pointer">
+          <Link href="/profit" className="w-full md:w-auto">
+            <button className="w-full md:w-auto group relative h-14 px-8 rounded-2xl bg-surface-container-highest border border-primary/20 text-primary font-bold flex items-center justify-center gap-3 overflow-hidden shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:shadow-[0_0_25px_rgba(125,211,252,0.3)] transition-all hover:-translate-y-0.5 hover:border-primary/40 cursor-pointer">
               <div className="absolute inset-0 w-full h-full bg-primary/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
               <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">analytics</span>
               <span>Profit & Loss Report</span>
@@ -365,7 +378,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Filters Section */}
-        <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-hidden animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.2s' }}>
+        <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-visible animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] z-20" style={{ animationDelay: '0.2s' }}>
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
           
           <div className="flex items-center justify-between gap-3 mb-6 flex-wrap relative z-10">
@@ -387,7 +400,7 @@ export default function ReportsPage() {
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">From Date</label>
               <input 
-                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                className="w-full h-12 px-4 rounded-xl glass-input text-on-surface focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all font-medium"
                 type="date" 
                 value={fromDate}
                 onChange={(e) => { setFromDate(e.target.value); setCurrentPage(1); }}
@@ -396,45 +409,97 @@ export default function ReportsPage() {
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">To Date</label>
               <input 
-                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                className="w-full h-12 px-4 rounded-xl glass-input text-on-surface focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all font-medium"
                 type="date" 
                 value={toDate}
                 onChange={(e) => { setToDate(e.target.value); setCurrentPage(1); }}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative" style={{ zIndex: activeDropdown === 'customer' ? 50 : 10 }}>
               <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Customer</label>
               <div className="relative">
-                <select 
-                  className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
-                  value={selectedCustomerId}
-                  onChange={(e) => { setSelectedCustomerId(e.target.value); setCurrentPage(1); }}
+                <button
+                  type="button"
+                  className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between"
+                  onClick={() => toggleDropdown('customer')}
                 >
-                  <option value="ALL">All Customers</option>
-                  {uniqueCustomers.map(customer => (
-                    <option key={customer?.id} value={customer?.id}>
-                      {customer?.customerName} {customer?.companyName ? `(${customer.companyName})` : ''}
-                    </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                  <span className="truncate pr-4">
+                    {selectedCustomerId === 'ALL' 
+                      ? 'All Customers' 
+                      : uniqueCustomers.find(c => c?.id === selectedCustomerId)?.customerName || 'All Customers'}
+                  </span>
+                  <span className={`material-symbols-outlined text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'customer' ? 'rotate-180' : ''}`}>expand_more</span>
+                </button>
+                
+                {activeDropdown === 'customer' && (
+                  <div className="absolute top-full left-0 right-0 mt-2 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-y-auto max-h-60 shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 no-scrollbar">
+                    <div 
+                      onClick={() => { setSelectedCustomerId('ALL'); setCurrentPage(1); setActiveDropdown(null); }} 
+                      className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedCustomerId === 'ALL' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      All Customers
+                    </div>
+                    {uniqueCustomers.map(customer => (
+                      <div 
+                        key={customer?.id}
+                        onClick={() => { if (customer?.id) { setSelectedCustomerId(customer.id); setCurrentPage(1); } setActiveDropdown(null); }} 
+                        className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedCustomerId === customer?.id ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                      >
+                        {customer?.customerName} {customer?.companyName ? `(${customer.companyName})` : ''}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative" style={{ zIndex: activeDropdown === 'status' ? 50 : 10 }}>
               <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Payment Status</label>
               <div className="relative">
-                <select 
-                  className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
-                  value={selectedStatus}
-                  onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
+                <button
+                  type="button"
+                  className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between"
+                  onClick={() => toggleDropdown('status')}
                 >
-                  <option value="ALL">All Status</option>
-                  <option value="PAID">Paid</option>
-                  <option value="UNPAID">Pending</option>
-                  <option value="PARTIAL">Partial</option>
-                  <option value="OVERDUE">Overdue</option>
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                  <span>
+                    {selectedStatus === 'ALL' ? 'All Status' : getStatusText(selectedStatus)}
+                  </span>
+                  <span className={`material-symbols-outlined text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'status' ? 'rotate-180' : ''}`}>expand_more</span>
+                </button>
+                
+                {activeDropdown === 'status' && (
+                  <div className="absolute top-full left-0 right-0 mt-2 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div 
+                      onClick={() => { setSelectedStatus('ALL'); setCurrentPage(1); setActiveDropdown(null); }} 
+                      className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedStatus === 'ALL' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      All Status
+                    </div>
+                    <div 
+                      onClick={() => { setSelectedStatus('PAID'); setCurrentPage(1); setActiveDropdown(null); }} 
+                      className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedStatus === 'PAID' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      Paid
+                    </div>
+                    <div 
+                      onClick={() => { setSelectedStatus('UNPAID'); setCurrentPage(1); setActiveDropdown(null); }} 
+                      className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedStatus === 'UNPAID' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      Pending
+                    </div>
+                    <div 
+                      onClick={() => { setSelectedStatus('PARTIAL'); setCurrentPage(1); setActiveDropdown(null); }} 
+                      className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedStatus === 'PARTIAL' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      Partial
+                    </div>
+                    <div 
+                      onClick={() => { setSelectedStatus('OVERDUE'); setCurrentPage(1); setActiveDropdown(null); }} 
+                      className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedStatus === 'OVERDUE' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      Overdue
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -461,16 +526,37 @@ export default function ReportsPage() {
             <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant">
               <span>Show</span>
               <div className="relative">
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                  className="bg-surface-container border border-outline-variant/30 rounded-xl py-2 pl-4 pr-10 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm cursor-pointer appearance-none hover:bg-surface-container-high transition-colors font-semibold"
+                <button
+                  type="button"
+                  className="bg-surface-container border border-outline-variant/30 rounded-xl py-2 pl-4 pr-10 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm cursor-pointer appearance-none hover:bg-surface-container-high transition-colors font-semibold flex items-center justify-between min-w-[70px]"
+                  onClick={() => toggleDropdown('entries')}
                 >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                  <span>{itemsPerPage}</span>
+                  <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'entries' ? 'rotate-180' : ''}`}>expand_more</span>
+                </button>
+                
+                {activeDropdown === 'entries' && (
+                  <div className="absolute top-full left-0 mt-1 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 min-w-[70px]">
+                    <div 
+                      onClick={() => { handleItemsPerPageChange(10); setActiveDropdown(null); }} 
+                      className={`px-4 py-2 text-sm cursor-pointer transition-colors ${itemsPerPage === 10 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      10
+                    </div>
+                    <div 
+                      onClick={() => { handleItemsPerPageChange(25); setActiveDropdown(null); }} 
+                      className={`px-4 py-2 text-sm cursor-pointer transition-colors ${itemsPerPage === 25 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      25
+                    </div>
+                    <div 
+                      onClick={() => { handleItemsPerPageChange(50); setActiveDropdown(null); }} 
+                      className={`px-4 py-2 text-sm cursor-pointer transition-colors ${itemsPerPage === 50 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      50
+                    </div>
+                  </div>
+                )}
               </div>
               <span>entries</span>
             </div>
@@ -487,7 +573,7 @@ export default function ReportsPage() {
           </div>
 
           {/* The Table */}
-          <div className="overflow-x-auto no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="hidden md:block overflow-x-auto no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
               <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
                 <tr>
@@ -586,6 +672,68 @@ export default function ReportsPage() {
             </table>
           </div>
 
+          {/* Mobile-Only Invoice Cards List */}
+          <div className="block md:hidden divide-y divide-primary/5">
+            {isLoadingBranches || loading ? (
+              <div className="px-6 py-8 text-center text-on-surface-variant font-medium">
+                <div className="flex justify-center items-center gap-2">
+                  <span className="material-symbols-outlined animate-spin">refresh</span> Loading invoices...
+                </div>
+              </div>
+            ) : paginatedInvoices.length === 0 ? (
+              <div className="px-6 py-24 text-center">
+                <div className="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-4">
+                  <span className="material-symbols-outlined text-4xl text-on-surface-variant opacity-60">search_off</span>
+                </div>
+                <h3 className="text-xl text-on-surface font-bold mb-2">No invoices found</h3>
+                <p className="text-on-surface-variant max-w-xs mx-auto text-sm">Try adjusting your filters.</p>
+              </div>
+            ) : (
+              paginatedInvoices.map((invoice, idx) => (
+                <div key={invoice.id} className="p-5 space-y-4 hover:bg-primary/5 transition-colors duration-200">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-on-surface-variant font-bold">#{(currentPage - 1) * itemsPerPage + idx + 1}</span>
+                      <span className="text-sm font-semibold text-primary">{invoice.invoiceNumber}</span>
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${getStatusColor(invoice.status)}`}>
+                      {getStatusText(invoice.status)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 border-t border-primary/5 pt-3">
+                    <div className="w-8 h-8 rounded-full bg-surface-container-highest border border-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                      {invoice.customer?.customerName?.substring(0, 2).toUpperCase() || 'NA'}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-on-surface">{invoice.customer?.customerName || 'Unknown'}</div>
+                      <div className="text-xs text-on-surface-variant/70">{invoice.customer?.companyName}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-xs border-t border-primary/5 pt-3">
+                    <div>
+                      <span className="text-on-surface-variant/60 block text-[10px] uppercase font-bold tracking-wider mb-0.5">Total</span>
+                      <span className="text-on-surface font-bold">{formatINR(invoice.totals?.grandTotal || 0)}</span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant/60 block text-[10px] uppercase font-bold tracking-wider mb-0.5">Paid</span>
+                      <span className="text-on-surface font-semibold">{formatINR(invoice.amountPaid || 0)}</span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant/60 block text-[10px] uppercase font-bold tracking-wider mb-0.5">Pending</span>
+                      <span className="text-tertiary font-bold">{formatINR(invoice.amountDue || 0)}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-on-surface-variant/70 text-right">
+                    Date: {new Date(invoice.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
           {/* Pagination */}
           <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
@@ -630,5 +778,6 @@ export default function ReportsPage() {
 
       </div>
     </div>
-  );
+  </>
+);
 }

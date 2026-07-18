@@ -463,7 +463,7 @@ export default function CreateQuotationPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
+    <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 w-full max-w-full min-w-0">
       <style dangerouslySetInnerHTML={{
         __html: `
         @keyframes fadeSlideUp {
@@ -483,7 +483,7 @@ export default function CreateQuotationPage() {
         <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16 w-full max-w-full min-w-0">
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
           <div className="max-w-2xl">
@@ -503,7 +503,7 @@ export default function CreateQuotationPage() {
               Fill in the details below to create a new quotation for your customer.
             </p>
           </div>
-          <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="group relative h-14 px-8 rounded-2xl bg-primary text-on-primary font-bold flex items-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+          <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="group relative h-14 px-8 rounded-2xl bg-primary text-on-primary font-bold flex items-center justify-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto">
             <div className="absolute inset-0 w-full h-full bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
             {isSaving ? <span className="material-symbols-outlined animate-spin">refresh</span> : <span className="material-symbols-outlined">save</span>}
             <span>Save Quotation</span>
@@ -560,7 +560,7 @@ export default function CreateQuotationPage() {
               </div>
 
               {selectedCustomerDetails && (
-                <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-lg bg-surface-container/30 border border-outline-variant/20">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 p-4 rounded-lg bg-surface-container/30 border border-outline-variant/20">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-on-surface-variant">Email</span>
                     <div className="text-sm text-on-surface font-semibold">{selectedCustomerDetails.email || 'N/A'}</div>
@@ -604,7 +604,7 @@ export default function CreateQuotationPage() {
               <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">settings</span> Discount & Tax Rules
               </h2>
-              <div className="grid grid-cols-2 gap-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
                 {/* Discount Rules */}
                 <div className="flex flex-col">
                   <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4">Discount Method</h3>

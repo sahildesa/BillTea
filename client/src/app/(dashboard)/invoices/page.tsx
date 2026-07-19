@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import PdfViewerModal from '@/components/PdfViewerModal';
 import { apiFetch } from '@/lib/auth';
@@ -14,6 +13,7 @@ interface Invoice {
   invoiceDate: string;
   dueDate: string;
   customer: {
+    id: string;
     customerName: string;
     companyName: string;
   };
@@ -38,6 +38,13 @@ export default function InvoicesPage() {
   const [viewerPdfUrl, setViewerPdfUrl] = useState<{url: string, title: string, id: string} | null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
+  // Filter States
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState('ALL');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Payment Modal State
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<Invoice | null>(null);
@@ -52,7 +59,6 @@ export default function InvoicesPage() {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const stats = React.useMemo(() => {
     const total = invoices.length;
@@ -292,16 +298,67 @@ export default function InvoicesPage() {
     }
   };
 
+  // ---- Unique customers for the filter dropdown ----
+  const uniqueCustomers = useMemo(() => {
+    const map = new Map<string, { id: string; customerName: string; companyName: string }>();
+    invoices.forEach((inv) => {
+      const c = inv.customer;
+      if (c?.id && !map.has(c.id)) {
+        map.set(c.id, { id: c.id, customerName: c.customerName, companyName: c.companyName });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.customerName.localeCompare(b.customerName));
+  }, [invoices]);
+
+  const hasActiveFilters = Boolean(
+    searchQuery || fromDate || toDate || selectedCustomerId !== 'ALL' || selectedStatus !== 'ALL'
+  );
+
+  const handleClearFilters = () => {
+    setFromDate('');
+    setToDate('');
+    setSelectedCustomerId('ALL');
+    setSelectedStatus('ALL');
+    setSearchQuery('');
+    setCurrentPage(1);
+  };
+
+  // ---- Search + Filters (customer, date range, status) ----
   const filteredInvoices = invoices.filter(invoice => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const nameMatch = invoice.customer?.customerName?.toLowerCase().includes(query) ||
+                        invoice.customer?.companyName?.toLowerCase().includes(query);
+      const amountMatch = invoice.totals?.grandTotal?.toString().includes(query);
+      const invoiceNumberMatch = invoice.invoiceNumber?.toLowerCase().includes(query);
+      if (!(nameMatch || amountMatch || invoiceNumberMatch)) return false;
+    }
 
-    const nameMatch = invoice.customer?.customerName?.toLowerCase().includes(query) ||
-                      invoice.customer?.companyName?.toLowerCase().includes(query);
-    const amountMatch = invoice.totals?.grandTotal?.toString().includes(query);
-    const invoiceNumberMatch = invoice.invoiceNumber?.toLowerCase().includes(query);
+    if (selectedCustomerId !== 'ALL' && invoice.customer?.id !== selectedCustomerId) {
+      return false;
+    }
 
-    return nameMatch || amountMatch || invoiceNumberMatch;
+    if (selectedStatus !== 'ALL' && invoice.status !== selectedStatus) {
+      return false;
+    }
+
+    if (fromDate || toDate) {
+      const invDate = new Date(invoice.invoiceDate);
+
+      if (fromDate) {
+        const from = new Date(fromDate);
+        from.setHours(0, 0, 0, 0);
+        if (invDate < from) return false;
+      }
+
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999);
+        if (invDate > to) return false;
+      }
+    }
+
+    return true;
   });
 
   // The "most recent" invoice is the one you're allowed to delete/fully-edit inline.
@@ -361,10 +418,10 @@ export default function InvoicesPage() {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [totalPages, currentPage]);
 
-  // Reset to page 1 whenever the search query changes.
+  // Reset to page 1 whenever the search query or any filter changes.
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, fromDate, toDate, selectedCustomerId, selectedStatus]);
 
   const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
   const endIndex = Math.min(currentPage * entriesPerPage, totalCount);
@@ -526,6 +583,99 @@ export default function InvoicesPage() {
         </div>
       </div>
 
+       {/* Filters Section */}
+        <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-hidden animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.2s' }}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+          
+          <div className="flex items-center justify-between gap-3 mb-6 flex-wrap relative z-10">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">filter_list</span>
+              <h2 className="text-xl font-bold text-on-surface">Filters</h2>
+              {hasActiveFilters && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold">
+                  <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                  Active
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 hover:text-primary transition-colors tooltip cursor-pointer" title="Export PDF">
+                <span className="material-symbols-outlined">picture_as_pdf</span>
+              </button>
+              <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 hover:text-primary transition-colors tooltip cursor-pointer" title="Export Excel">
+                <span className="material-symbols-outlined">table_view</span>
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">From Date</label>
+              <input 
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                type="date" 
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">To Date</label>
+              <input 
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                type="date" 
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Customer</label>
+              <div className="relative">
+                <select 
+                  className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                >
+                  <option value="ALL">All Customers</option>
+                  {uniqueCustomers.map(customer => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.customerName} {customer.companyName ? `(${customer.companyName})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Payment Status</label>
+              <div className="relative">
+                <select 
+                  className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="PAID">Paid</option>
+                  <option value="UNPAID">Pending</option>
+                  <option value="PARTIAL">Partial</option>
+                  <option value="OVERDUE">Overdue</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-8 flex flex-wrap gap-4 relative z-10">
+            <button 
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleClearFilters}
+              disabled={!hasActiveFilters}
+            >
+                  <span className="material-symbols-outlined text-[18px]">undo</span>
+              Reset Filters
+            </button>
+          </div>
+        </section>
+
       {/* Glassmorphic Data Table Container */}
       <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.3s' }}>
         {/* Glow Accent */}
@@ -606,8 +756,8 @@ export default function InvoicesPage() {
                     <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
                       <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-60">receipt_long</span>
                     </div>
-                    <h3 className="text-2xl text-on-surface font-bold mb-3">{searchQuery ? 'No matching invoices found' : 'No invoices yet'}</h3>
-                    <p className="text-on-surface-variant max-w-md mx-auto text-lg">{searchQuery ? 'Try adjusting your search filters.' : 'Create your first invoice for this branch.'}</p>
+                    <h3 className="text-2xl text-on-surface font-bold mb-3">{hasActiveFilters ? 'No matching invoices found' : 'No invoices yet'}</h3>
+                    <p className="text-on-surface-variant max-w-md mx-auto text-lg">{hasActiveFilters ? 'Try adjusting your search or filters.' : 'Create your first invoice for this branch.'}</p>
                   </td>
                 </tr>
               ) : (

@@ -44,6 +44,19 @@ export default function ProductsPage() {
     skuNumber: '',
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
+const fetchProducts = async () => {
+  try {
+    const res = await apiFetch(`/products`);
+    setProducts(res.data || []);
+  } catch (err) {
+    console.error("Failed to fetch products:", err);
+    setProducts([]);
+  }
+};
+
+useEffect(() => {
+  fetchProducts();
+}, []);
 
   // ---- Table controls: search, sorting, pagination ----
   const [searchQuery, setSearchQuery] = useState('');
@@ -293,24 +306,33 @@ export default function ProductsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredProducts, sortConfig]);
 
-  // ---- Pagination ----
-  const totalCount = sortedProducts.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / entriesPerPage));
+// ---- Pagination ----
+const totalCount = sortedProducts.length;
+const totalPages = Math.max(1, Math.ceil(totalCount / entriesPerPage));
 
-  useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [totalPages, currentPage]);
+// Clamp currentPage safely without looping
+useEffect(() => {
+  if (currentPage > totalPages) {
+    setCurrentPage(totalPages);
+  }
+}, [totalPages]); // only run when totalPages changes
 
-  useEffect(() => {
+// Reset page when filters/search change
+useEffect(() => {
+  if (currentPage !== 1) {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, hsnFilter, minPrice, maxPrice]);
+  }
+}, [searchQuery, statusFilter, hsnFilter, minPrice, maxPrice]);
 
-  const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
-  const endIndex = Math.min(currentPage * entriesPerPage, totalCount);
+// Use safePage for calculations
+const safePage = Math.min(currentPage, totalPages);
+const startIndex = totalCount === 0 ? 0 : (safePage - 1) * entriesPerPage + 1;
+const endIndex = Math.min(safePage * entriesPerPage, totalCount);
 
-  const paginatedProducts = useMemo(() => {
-    return sortedProducts.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
-  }, [sortedProducts, currentPage, entriesPerPage]);
+const paginatedProducts = useMemo(() => {
+  return sortedProducts.slice((safePage - 1) * entriesPerPage, safePage * entriesPerPage);
+}, [sortedProducts, safePage, entriesPerPage]);
+
 
   const handleEntriesPerPageChange = (n: number) => {
     setEntriesPerPage(n);
@@ -587,115 +609,23 @@ export default function ProductsPage() {
           </div>
 
           {/* High-Fidelity Data Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed text-left text-sm border-separate border-spacing-0">
-              <colgroup>
-                <col className="w-[26%]" />
-                <col className="w-[15%]" />
-                <col className="w-[15%]" />
-                <col className="w-[15%]" />
-                <col className="w-[13%]" />
-                <col className="w-[16%]" />
-              </colgroup>
-              <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
-                <tr>
-                  {renderSortableHeader('Product Details', 'name', 'left')}
-                  {renderSortableHeader('SKU', 'sku', 'left')}
-                  {renderSortableHeader('HSN', 'hsn', 'left')}
-                  {renderSortableHeader('Price', 'price', 'right')}
-                  {renderSortableHeader('Status', 'status', 'center')}
-                  <th className="px-6 py-4 font-semibold tracking-wider text-right" scope="col">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-primary/5">
-                {isLoadingBranches || loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-on-surface-variant">
-                      <div className="flex justify-center items-center gap-2">
-                        <span className="material-symbols-outlined animate-spin">refresh</span> Loading products...
-                      </div>
-                    </td>
-                  </tr>
-                ) : paginatedProducts.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-24 text-center">
-                      <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
-                        <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-60">inventory_2</span>
-                      </div>
-                      <h3 className="text-2xl text-on-surface font-bold mb-3">{searchQuery || activeFilterCount > 0 ? 'No matching products found' : 'No products yet'}</h3>
-                      <p className="text-on-surface-variant max-w-md mx-auto text-lg">{searchQuery || activeFilterCount > 0 ? 'Try adjusting your search or filters.' : 'Create your first product for this branch.'}</p>
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedProducts.map((product) => (
-                    <tr key={product.id} className="hover:bg-primary/5 transition-colors duration-200 group">
-                      <td className="px-6 py-4 align-middle">
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div className="relative w-12 h-12 rounded-2xl bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center text-on-surface-variant/40 shadow-sm overflow-hidden shrink-0 group-hover:border-primary/30 transition-all">
-                            {product.image ? (
-                              <img src={getImageUrl(product.image)!} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                            ) : (
-                              <span className="material-symbols-outlined text-[24px]">inventory_2</span>
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[15px] font-semibold text-on-surface truncate group-hover:text-primary transition-colors">{product.name}</div>
-                            <div className="text-xs text-on-surface-variant/70 truncate mt-0.5" title={product.description}>
-                              {product.description || 'No description provided'}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 align-middle truncate">
-                        {product.skuNumber ? (
-                          <span className="text-on-surface font-medium">
-                            {product.skuNumber}
-                          </span>
-                        ) : (
-                          <span className="text-on-surface-variant/40 italic">N/A</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 align-middle truncate">
-                        {product.hsnNumber ? (
-                          <span className="text-on-surface font-medium">
-                            {product.hsnNumber}
-                          </span>
-                        ) : (
-                          <span className="text-on-surface-variant/40 italic">N/A</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 align-middle text-right">
-                        <div className="font-bold text-on-surface">₹ {product.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                      </td>
-                      <td className="px-6 py-4 align-middle text-center">
-                        {product.isActive ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-emerald-400/10 text-emerald-400 border-emerald-400/20">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-red-500/10 text-red-500 border-red-500/20">
-                            Inactive
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 align-middle text-right">
-                        <div className="flex justify-end gap-2">
-                          <button onClick={() => handleOpenEditModal(product)} className="glass-button-icon p-1 rounded-md transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 tooltip cursor-pointer" title="Edit">
-                            <span className="material-symbols-outlined text-[16px]">edit</span>
-                          </button>
-                          <button onClick={() => setProductToDelete(product.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 tooltip cursor-pointer" title="Delete">
-                            <span className="material-symbols-outlined text-[16px]">delete</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <div className="overflow-x-auto w-full">
+  <table className="min-w-[700px] text-left border-separate border-spacing-0">
+    <thead>
+      <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
+        <th className="px-2 py-2 sm:px-4 sm:py-3 w-[200px] sm:w-1/4">Product Details</th>
+        <th className="px-2 py-2 sm:px-4 sm:py-3 w-[120px] sm:w-1/6">SKU</th>
+        <th className="px-2 py-2 sm:px-4 sm:py-3 w-[120px] sm:w-1/6">HSN/Price</th>
+        <th className="px-2 py-2 sm:px-4 sm:py-3 w-[100px] sm:w-1/6">Status</th>
+        <th className="px-2 py-2 sm:px-4 sm:py-3 w-[100px] sm:w-1/6">Action</th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-primary/5 text-xs sm:text-sm break-words">
+      {/* keep your loading, empty, and product rows here */}
+    </tbody>
+  </table>
+</div>
+
 
           {/* Pagination */}
           <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">

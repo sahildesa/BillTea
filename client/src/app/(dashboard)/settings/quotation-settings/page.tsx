@@ -15,24 +15,16 @@ function Toggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in mt-1">
+    <label className="relative inline-flex items-center cursor-pointer shrink-0">
       <input
+        type="checkbox"
+        id={id}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className={`absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0.5 transition-all duration-300 ${checked ? 'border-primary' : 'border-outline-variant'}`}
-        style={{
-          left: checked ? "auto" : "2px",
-          right: checked ? "2px" : "auto",
-        }}
-        id={id}
-        name={id}
-        type="checkbox"
+        className="sr-only peer"
       />
-      <label
-        className={`block overflow-hidden h-6 rounded-full border cursor-pointer transition-colors duration-300 ${checked ? 'bg-primary/20 border-primary shadow-[0_0_8px_var(--color-primary)]' : 'bg-surface-variant border-outline-variant'}`}
-        htmlFor={id}
-      />
-    </div>
+      <div className="w-11 h-6 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[20px] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary border border-outline-variant/30" />
+    </label>
   );
 }
 
@@ -284,11 +276,11 @@ export default function QuotationConfigurationPage() {
             </div>
 
             {/* Action Bar */}
-            <div className="pt-6 flex justify-end gap-4 mt-8 border-t border-primary/10">
-              <button className="px-6 py-3 rounded-lg font-medium text-sm transition-colors text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50">
+            <div className="pt-6 flex flex-col sm:flex-row justify-end gap-3 mt-8 border-t border-primary/10">
+              <button className="w-full sm:w-auto px-6 py-3 rounded-lg font-medium text-sm transition-colors text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50 text-center">
                 Discard Changes
               </button>
-              <button className="px-8 py-3 rounded-lg font-medium text-sm transition-all relative overflow-hidden group glass-button-primary btn-login-glow">
+              <button className="w-full sm:w-auto px-8 py-3 rounded-lg font-medium text-sm transition-all relative overflow-hidden group glass-button-primary btn-login-glow text-center flex items-center justify-center">
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                 Save Configuration
               </button>

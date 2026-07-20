@@ -135,6 +135,10 @@ export default function WhatsAppSettingsPage() {
     useState(QUOTATION_TEMPLATE);
   const [isLinked, setIsLinked] = useState(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const toggleDropdown = (name: string) => {
+    setActiveDropdown(prev => prev === name ? null : name);
+  };
   const [nextPlaceholderIndex, setNextPlaceholderIndex] = useState(0);
 
   const invoiceRef = useRef<HTMLTextAreaElement | null>(null);
@@ -288,6 +292,12 @@ export default function WhatsAppSettingsPage() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative bg-background text-on-surface">
+      {activeDropdown && (
+        <div 
+          className="fixed inset-0 z-40 cursor-default" 
+          onClick={() => setActiveDropdown(null)} 
+        />
+      )}
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] -z-10 pointer-events-none transform translate-x-1/3 -translate-y-1/3" />
       <div className="absolute bottom-0 left-0 w-[520px] h-[520px] bg-tertiary/5 rounded-full blur-[120px] -z-10 pointer-events-none -translate-x-1/4 translate-y-1/4" />
 
@@ -520,17 +530,38 @@ export default function WhatsAppSettingsPage() {
                     </h2>
                   </div>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={selectedTemplate}
-                      onChange={(e) =>
-                        setSelectedTemplate(e.target.value as TemplateKey)
-                      }
-                      className="bg-surface-container-low border border-primary/20 text-on-surface text-sm rounded-lg py-1.5 pl-3 pr-8 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                    >
-                      <option value="standard">Standard Professional</option>
-                      <option value="friendly">Friendly Reminder</option>
-                      <option value="overdue">Overdue Notice</option>
-                    </select>
+                    <div className="relative" style={{ zIndex: activeDropdown === 'selectedTemplate' ? 50 : 10 }}>
+                      <button
+                        type="button"
+                        className="bg-surface-container-low border border-primary/20 text-on-surface text-sm rounded-lg py-1.5 pl-3 pr-8 focus:ring-1 focus:ring-primary focus:border-primary outline-none flex items-center gap-1.5 cursor-pointer"
+                        onClick={() => toggleDropdown('selectedTemplate')}
+                      >
+                        <span>
+                          {selectedTemplate === 'standard' ? 'Standard Professional' :
+                           selectedTemplate === 'friendly' ? 'Friendly Reminder' :
+                           selectedTemplate === 'overdue' ? 'Overdue Notice' : 'Select Template'}
+                        </span>
+                        <span className={`material-symbols-outlined text-on-surface-variant text-[16px] transition-transform duration-200 ${activeDropdown === 'selectedTemplate' ? 'rotate-180' : ''}`}>expand_more</span>
+                      </button>
+                      
+                      {activeDropdown === 'selectedTemplate' && (
+                        <div className="absolute right-0 top-full mt-1 w-48 z-50 bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                          {[
+                            { value: 'standard', label: 'Standard Professional' },
+                            { value: 'friendly', label: 'Friendly Reminder' },
+                            { value: 'overdue', label: 'Overdue Notice' }
+                          ].map(tpl => (
+                            <div 
+                              key={tpl.value}
+                              onClick={() => { setSelectedTemplate(tpl.value as TemplateKey); setActiveDropdown(null); }} 
+                              className={`px-3 py-2 text-xs cursor-pointer transition-colors ${selectedTemplate === tpl.value ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                            >
+                              {tpl.label}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={handleResetInvoiceTemplate}

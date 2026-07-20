@@ -676,27 +676,49 @@ export default function CustomersPage() {
         
         {/* Table Controls */}
         <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
-          <div className="flex items-center gap-3 w-full md:w-auto flex-wrap" style={{ zIndex: activeDropdown === 'entries' ? 50 : 10 }}>
-            <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-              <span>Show</span>
-              <select
-                value={entriesPerPage}
-                onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
-                className="bg-surface-container-low border border-outline-variant/30 rounded-lg px-2 py-1.5 text-xs focus:ring-0 focus:border-primary cursor-pointer outline-none"
+          <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant relative" style={{ zIndex: activeDropdown === 'entries' ? 50 : 10 }}>
+            <span>Show</span>
+            <div className="relative">
+              <button
+                type="button"
+                className="glass-input text-sm pl-3 pr-9 py-1.5 rounded-lg text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary/50 cursor-pointer bg-surface-container-highest flex items-center justify-between min-w-[70px]"
+                onClick={() => toggleDropdown('entries')}
               >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-              <span>entries</span>
+                <span>{entriesPerPage}</span>
+                <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px] transition-transform duration-200 ${activeDropdown === 'entries' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+              
+              {activeDropdown === 'entries' && (
+                <div className="absolute top-full left-0 mt-1 z-[60] bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 min-w-[70px]">
+                  <div 
+                    onClick={() => { handleEntriesPerPageChange(10); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 10 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    10
+                  </div>
+                  <div 
+                    onClick={() => { handleEntriesPerPageChange(25); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 25 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    25
+                  </div>
+                  <div 
+                    onClick={() => { handleEntriesPerPageChange(50); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 50 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    50
+                  </div>
+                </div>
+              )}
             </div>
+            <span>entries</span>
           </div>
-          <div className="relative w-full md:w-72 group">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[20px] group-focus-within:text-primary transition-colors">search</span>
-            <input
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary transition-all"
-              placeholder="Search customers..."
-              type="text"
+          <div className="relative w-full sm:w-auto">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+            <input 
+              className="w-full sm:w-80 bg-surface-container border border-outline-variant/30 pl-11 pr-4 py-2.5 rounded-xl text-sm font-medium text-on-surface placeholder-on-surface-variant/60 focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all" 
+              placeholder="Search customers..." 
+              type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -707,7 +729,7 @@ export default function CustomersPage() {
         <div className="overflow-x-auto w-full">
           <table className="min-w-[700px] text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
+              <tr className="bg-surface-container-low/50 text-xs text-on-surface-variant uppercase border-b border-primary/10">
                 <th className={sortHeaderClass('customer')} onClick={() => handleSort('customer')} tabIndex={-1}>
                   <div className="flex items-center gap-1">
                     Customer <span className={sortIconClass('customer')}>{getSortIcon('customer')}</span>
@@ -733,7 +755,9 @@ export default function CustomersPage() {
                     Quotations <span className={sortIconClass('quotations')}>{getSortIcon('quotations')}</span>
                   </div>
                 </th>
-                <th className="px-2 py-2 sm:px-6 sm:py-4 text-right pr-4 sm:pr-8 w-[100px] sm:w-1/6">Actions</th>
+                <th className="px-6 py-4 font-semibold tracking-wider text-right pr-8" scope="col">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-primary/5 text-sm">
@@ -747,8 +771,12 @@ export default function CustomersPage() {
                 </tr>
               ) : paginatedCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-on-surface-variant">
-                    {searchQuery || activeFilterCount > 0 ? 'No matching customers found.' : 'No customers found for this branch. Create one to get started!'}
+                  <td colSpan={6} className="px-6 py-24 text-center">
+                    <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
+                      <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-60">group</span>
+                    </div>
+                    <h3 className="text-2xl text-on-surface font-bold mb-3">{searchQuery || activeFilterCount > 0 ? 'No matching customers found' : 'No customers yet'}</h3>
+                    <p className="text-on-surface-variant max-w-md mx-auto text-lg">{searchQuery || activeFilterCount > 0 ? 'Try adjusting your search or filters.' : 'Create your first customer for this branch.'}</p>
                   </td>
                 </tr>
               ) : (

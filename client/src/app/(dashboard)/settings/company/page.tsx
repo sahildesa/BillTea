@@ -89,7 +89,7 @@ export default function CompanySettingsPage() {
         name: editName,
         identifiers: newIdentifiers
       };
-      if (editLogo) payload.logo = editLogo;
+      if (editLogo !== null) payload.logo = editLogo;
       
       const res = await apiFetch('/company', {
         method: 'PUT',
@@ -168,7 +168,7 @@ export default function CompanySettingsPage() {
             </div>
             <button 
               onClick={handleSave}
-              disabled={isSaving || (!isEditing && !editLogo)}
+              disabled={isSaving || (!isEditing && editLogo === null)}
               className="group relative h-14 px-8 rounded-2xl bg-primary text-on-primary font-bold flex items-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               <div className="absolute inset-0 w-full h-full bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
@@ -208,10 +208,25 @@ export default function CompanySettingsPage() {
                     ) : (
                       <span className="material-symbols-outlined text-[48px] text-primary/50">corporate_fare</span>
                     )}
-                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity text-white rounded-2xl cursor-pointer">
+                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity text-white rounded-2xl cursor-pointer z-10">
                       <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
                       <span className="material-symbols-outlined text-3xl">upload</span>
                     </label>
+                    {(editLogo || company?.logo) && (
+                      <button
+                        type="button"
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          e.stopPropagation(); 
+                          setEditLogo(""); 
+                          setCompany(company ? {...company, logo: ""} : null); 
+                        }}
+                        className="absolute top-2 right-2 bg-red-500/90 text-white rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-red-600 transition-colors z-20 hover:scale-110 opacity-0 group-hover/logo:opacity-100"
+                        title="Remove Logo"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">close</span>
+                      </button>
+                    )}
                   </div>
                   
                     <div className="text-center md:text-left space-y-3 mt-2">

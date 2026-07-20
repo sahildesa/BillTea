@@ -523,6 +523,9 @@ export class PdfService {
     try {
       const page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction('Array.from(document.images).every(img => img.complete)', { timeout: 4000 }).catch(() => {});
+      await new Promise(r => setTimeout(r, 500)); // wait for tailwind to apply
+      await page.evaluateHandle('document.fonts.ready').catch(() => {});
       
       const pdfBuffer = await page.pdf({
         format: 'A4',

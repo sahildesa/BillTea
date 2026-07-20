@@ -70,6 +70,19 @@ export class PdfService {
     const validTillDate = new Date(quotation.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/');
     
     const baseUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 5000}`;
+    
+    let tagline = '';
+    if (company.identifiers) {
+      let ids: any[] = [];
+      try {
+        ids = typeof company.identifiers === 'string' ? JSON.parse(company.identifiers) : company.identifiers;
+      } catch(e) {}
+      if (Array.isArray(ids)) {
+        const tObj = ids.find((i: any) => i.label === 'TAGLINE' || i.key === 'TAGLINE');
+        if (tObj) tagline = tObj.value;
+      }
+    }
+
     // items table html
     let itemsHtml = '';
     
@@ -202,7 +215,7 @@ export class PdfService {
           }
         </style>
       </head>
-      <body class="w-[1000px] bg-[#FFFFFF] relative overflow-hidden flex flex-col text-[#1a1c1c] mx-auto min-h-[1414px]">
+      <body class="w-[1000px] bg-[#FFFFFF] relative overflow-hidden flex flex-col text-[#1a1c1c] mx-auto min-h-[1405px]">
         
         <div class="flex relative h-[250px]">
           <div 
@@ -212,12 +225,18 @@ export class PdfService {
 
           <div class="w-[30%] text-[#9D7E6C] p-8 pr-6 flex flex-col items-center justify-center relative z-10 h-full">
             ${company.logo ? `
-                <img src="${company.logo.startsWith('http') || company.logo.startsWith('data:') ? company.logo : `${baseUrl}/${company.logo.replace(/^\/+/, '')}`}" alt="${company.name}" class="w-[180px] h-[64px] mb-6 object-contain opacity-90" />
-            ` : `
-                <div class="text-center font-serif text-[28px] italic text-[#9D7E6C] leading-snug tracking-wider">
-                  <p>${company.name}</p>
+                <div class="w-[100px] h-[100px] rounded-full overflow-hidden bg-white/5 flex items-center justify-center mb-4 border border-[#D1B08C]/20 shadow-md">
+                    <img src="${company.logo.startsWith('http') || company.logo.startsWith('data:') ? company.logo : `${baseUrl}/${company.logo.replace(/^\/+/, '')}`}" alt="${company.name}" class="w-full h-full object-cover" />
                 </div>
+                <h1 class="text-[16px] font-serif tracking-[0.25em] text-white mb-2 uppercase opacity-90 text-center">${company.name}</h1>
+            ` : `
+                <h1 class="text-[28px] font-serif tracking-[0.25em] text-white mb-2 uppercase opacity-90 text-center">${company.name}</h1>
             `}
+            ${tagline ? `
+                <div class="text-center font-serif text-[11px] italic text-[#D1B08C] leading-snug tracking-wider">
+                  <p>${tagline}</p>
+                </div>
+            ` : ''}
           </div>
 
           <div class="w-[70%] flex items-center justify-end pr-16 relative z-10 h-full">
@@ -244,13 +263,15 @@ export class PdfService {
               <h3 class="uppercase text-[#9D7E6C] text-[10px] font-semibold tracking-[0.2em] mr-4">COMPANY DETAILS</h3>
               <div class="w-10 h-[1.5px] bg-[#9D7E6C]"></div>
             </div>
-            <h4 class="font-semibold text-[13px] text-[#192C27] mb-1">${branch.name || company.name}</h4>
+            <h4 class="font-semibold text-[13px] text-[#192C27] mb-1">${company.name}</h4>
             <p class="text-[12px] text-[#43474b] leading-[1.7]">
-              ${branch.address || ''}<br/>
-              ${branch.city || ''} ${branch.state ? '- ' + branch.state : ''}<br/>
-              ${branch.pincode ? 'Pincode: ' + branch.pincode : ''}
+              ${branch.city || ''}${branch.state ? ', ' + branch.state : ''}
+              ${branch.phone ? '<br/>' + branch.phone : ''}
+              ${branch.email ? '<br/>' + branch.email : ''}
             </p>
-            <p class="text-[11px] text-[#1a1c1c] mt-4 tracking-wide font-medium">GSTIN: ${company.identifiers ? (Array.isArray(company.identifiers) ? (company.identifiers as any[]).find((i:any) => i.name === 'GSTIN')?.value || '-' : '-') : '-'}</p>
+            ${company.identifiers && Array.isArray(company.identifiers) && company.identifiers.length > 0 ? 
+              company.identifiers.filter((i:any) => (i.label || i.name)?.toUpperCase() !== 'TAGLINE').map((i:any) => `<p class="text-[11px] text-[#1a1c1c] mt-2 tracking-wide font-medium uppercase">${i.label || i.name}: ${i.value}</p>`).join('')
+            : ''}
           </div>
           
           <div class="w-[42%] pl-6 border-l border-[#9D7E6C]">
@@ -261,7 +282,7 @@ export class PdfService {
             <h4 class="font-semibold text-[13px] text-[#192C27] mb-0.5">${customer.customerName}</h4>
             <p class="text-[11px] text-[#74777c] mb-2 uppercase tracking-wide">${customer.companyName || ''}</p>
             <div class="text-[12px] text-[#43474b] leading-[1.7]">
-              <p class="mb-1">${customer.mobileNumber || ''} <span class="mx-2 text-[#e2e2e2]">|</span> GST: ${customer.gstin || '-'}</p>
+              <p class="mb-1">${customer.mobileNumber || ''} ${customer.businessLabel && customer.businessLabelValue ? `<span class="mx-2 text-[#e2e2e2]">|</span> ${customer.businessLabel.toUpperCase()}: ${customer.businessLabelValue}` : ''}</p>
               <p class="mb-1"><span class="font-semibold text-[#1a1c1c]">Billing:</span> ${quotation.billingAddressSnapshot?.address || '-'}, ${quotation.billingAddressSnapshot?.city || ''}</p>
               <p><span class="font-semibold text-[#1a1c1c]">Shipping:</span> ${quotation.shippingAddressSnapshot?.address || '-'}, ${quotation.shippingAddressSnapshot?.city || ''}</p>
             </div>
@@ -378,12 +399,16 @@ export class PdfService {
         </div>
 
         <!-- Pre-Footer Grid (Pushed to bottom using mt-auto if needed, but min-h makes it stretch) -->
-        <div class="mx-10 mt-8 pt-10 pb-8 flex items-end justify-between">
+        <div class="mx-10 mt-auto pt-6 pb-2 flex items-end justify-between">
           <div class="flex flex-col items-start relative w-[25%] pl-2">
              <span class="text-[10.5px] text-[#74777c] mb-1">Prepared By</span>
              <span class="text-[11.5px] text-[#1a1c1c] font-medium z-10 relative bg-[#FFFFFF] pr-2">${company.name}</span>
              <div class="font-signature text-4xl text-[#192C27] mt-2 -ml-2 -mb-2 relative z-10 transform -rotate-2">
-               ${branch.signatureValue ? `<img src="${branch.signatureValue.startsWith('http') || branch.signatureValue.startsWith('data:') ? branch.signatureValue : `${baseUrl}/${branch.signatureValue.replace(/^\/+/, '')}`}" style="max-height: 40px;"/>` : 'Authorised'}
+               ${branch.signatureValue ? 
+                  (branch.signatureValue.startsWith('data:image') || branch.signatureValue.startsWith('/uploads') || branch.signatureValue.startsWith('http')
+                    ? `<img src="${branch.signatureValue.startsWith('http') || branch.signatureValue.startsWith('data:') ? branch.signatureValue : `${baseUrl}/${branch.signatureValue.replace(/^\/+/, '')}`}" style="max-height: 40px;"/>` 
+                    : branch.signatureValue) 
+                  : 'Authorised'}
              </div>
           </div>
 
@@ -414,7 +439,7 @@ export class PdfService {
           </div>
         </div>
 
-        <div class="bg-[#1B1C1D] px-12 py-[16px] flex items-center justify-center border-t border-[#9D7E6C]/20 w-full mt-4">
+        <div class="bg-[#1B1C1D] px-12 py-[16px] flex items-center justify-center border-t border-[#9D7E6C]/20 w-full mt-0 shadow-[0_20px_0_0_#1B1C1D]">
            <span class="text-[#9D7E6C] text-[10px] uppercase tracking-[0.3em] font-medium opacity-80 flex items-center gap-3">
               <span class="w-8 h-[1px] bg-[#9D7E6C]/40"></span>
               BillTea By Indux Technology
@@ -436,6 +461,7 @@ export class PdfService {
       await page.waitForFunction('window.tailwind !== undefined && document.querySelectorAll("style").length > 0', { timeout: 3000 }).catch(() => {});
       await page.waitForFunction('Array.from(document.images).every(img => img.complete)', { timeout: 4000 }).catch(() => {});
       await new Promise(r => setTimeout(r, 500)); // wait for tailwind to apply
+      await page.evaluateHandle('document.fonts.ready').catch(() => {});
       
       const pdfBuffer = await page.pdf({
         format: 'A4',

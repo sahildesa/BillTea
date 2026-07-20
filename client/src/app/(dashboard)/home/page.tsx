@@ -24,6 +24,12 @@ export default function DashboardHome() {
   const [branchId, setBranchId] = useState<string>('');
   const [refreshKey, setRefreshKey] = useState<number>(0);
 
+  const [activeDropdown, setActiveDropdown] = useState<'branch' | 'range' | null>(null);
+
+  const toggleDropdown = (name: 'branch' | 'range') => {
+    setActiveDropdown(prev => prev === name ? null : name);
+  };
+
   const [dateRangeType, setDateRangeType] = useState<string>('30_days');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
@@ -242,7 +248,14 @@ export default function DashboardHome() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
+    <>
+      {activeDropdown && (
+        <div 
+          className="fixed inset-0 z-40 cursor-default" 
+          onClick={() => setActiveDropdown(null)} 
+        />
+      )}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
       <style dangerouslySetInnerHTML={{
         __html: `
         @keyframes fadeSlideUp {
@@ -360,41 +373,103 @@ export default function DashboardHome() {
             </div>
 
             {/* Filters Row */}
-            <div className="glass-panel px-6 py-4 rounded-2xl flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 animate-fade-slide-up" style={{ animationDelay: '0.3s' }}>
+            <div className="glass-panel px-6 py-4 rounded-2xl flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 animate-fade-slide-up relative overflow-visible z-25" style={{ animationDelay: '0.3s' }}>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full xl:w-auto">
                 <div className="flex items-center gap-4 w-full sm:w-auto">
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider shrink-0 w-24 sm:w-auto">Branch Filter:</label>
-                  <div className="relative flex-1 sm:flex-none">
-                    <select
-                      value={branchId}
-                      onChange={(e) => setBranchId(e.target.value)}
-                      className="glass-input rounded-xl py-2 pl-4 pr-10 text-sm font-medium appearance-none cursor-pointer w-full sm:w-[180px] focus:ring-2 focus:ring-primary/20 transition-all bg-surface/50 hover:bg-surface"
+                  <div className="relative flex-1 sm:flex-none" style={{ zIndex: activeDropdown === 'branch' ? 50 : 10 }}>
+                    <button
+                      type="button"
+                      className="glass-input rounded-xl py-2 pl-4 pr-10 text-sm font-medium cursor-pointer w-full sm:w-[180px] focus:ring-2 focus:ring-primary/20 transition-all bg-surface/50 hover:bg-surface text-left flex items-center justify-between min-h-[38px]"
+                      onClick={() => toggleDropdown('branch')}
                     >
-                      <option value="">All Branches</option>
-                      {branches.map(b => (
-                        <option key={b.id} value={b.id}>{b.name}</option>
-                      ))}
-                    </select>
-                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-primary text-[18px]">expand_more</span>
+                      <span className="truncate">
+                        {branchId === '' ? 'All Branches' : branches.find(b => b.id === branchId)?.name || 'All Branches'}
+                      </span>
+                      <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-primary text-[18px] transition-transform duration-200 ${activeDropdown === 'branch' ? 'rotate-180' : ''}`}>expand_more</span>
+                    </button>
+                    
+                    {activeDropdown === 'branch' && (
+                      <div className="absolute top-full left-0 right-0 mt-2 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-y-auto max-h-60 shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 no-scrollbar">
+                        <div 
+                          onClick={() => { setBranchId(''); setActiveDropdown(null); }} 
+                          className={`px-4 py-3 text-sm cursor-pointer transition-colors ${branchId === '' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                        >
+                          All Branches
+                        </div>
+                        {branches.map(b => (
+                          <div 
+                            key={b.id}
+                            onClick={() => { setBranchId(b.id); setActiveDropdown(null); }} 
+                            className={`px-4 py-3 text-sm cursor-pointer transition-colors ${branchId === b.id ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                          >
+                            {b.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4 w-full sm:w-auto">
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider shrink-0 w-24 sm:w-auto">Date Range:</label>
-                  <div className="relative flex-1 sm:flex-none">
-                    <select
-                      value={dateRangeType}
-                      onChange={(e) => setDateRangeType(e.target.value)}
-                      className="glass-input rounded-xl py-2 pl-4 pr-10 text-sm font-medium appearance-none cursor-pointer w-full sm:w-[150px] focus:ring-2 focus:ring-primary/20 transition-all bg-surface/50 hover:bg-surface"
+                  <div className="relative flex-1 sm:flex-none" style={{ zIndex: activeDropdown === 'range' ? 50 : 10 }}>
+                    <button
+                      type="button"
+                      className="glass-input rounded-xl py-2 pl-4 pr-10 text-sm font-medium cursor-pointer w-full sm:w-[150px] focus:ring-2 focus:ring-primary/20 transition-all bg-surface/50 hover:bg-surface text-left flex items-center justify-between min-h-[38px]"
+                      onClick={() => toggleDropdown('range')}
                     >
-                      <option value="today">Today</option>
-                      <option value="1_week">Last 7 Days</option>
-                      <option value="15_days">Last 15 Days</option>
-                      <option value="30_days">Last 30 Days</option>
-                      <option value="6_months">Last 6 Months</option>
-                      <option value="1_year">Last 1 Year</option>
-                    </select>
-                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-primary text-[18px]">expand_more</span>
+                      <span>
+                        {dateRangeType === 'today' ? 'Today' :
+                         dateRangeType === '1_week' ? 'Last 7 Days' :
+                         dateRangeType === '15_days' ? 'Last 15 Days' :
+                         dateRangeType === '30_days' ? 'Last 30 Days' :
+                         dateRangeType === '6_months' ? 'Last 6 Months' :
+                         dateRangeType === '1_year' ? 'Last 1 Year' : 'Custom'}
+                      </span>
+                      <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-primary text-[18px] transition-transform duration-200 ${activeDropdown === 'range' ? 'rotate-180' : ''}`}>expand_more</span>
+                    </button>
+                    
+                    {activeDropdown === 'range' && (
+                      <div className="absolute top-full left-0 right-0 mt-2 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div 
+                          onClick={() => { setDateRangeType('today'); setActiveDropdown(null); }} 
+                          className={`px-4 py-3 text-sm cursor-pointer transition-colors ${dateRangeType === 'today' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                        >
+                          Today
+                        </div>
+                        <div 
+                          onClick={() => { setDateRangeType('1_week'); setActiveDropdown(null); }} 
+                          className={`px-4 py-3 text-sm cursor-pointer transition-colors ${dateRangeType === '1_week' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                        >
+                          Last 7 Days
+                        </div>
+                        <div 
+                          onClick={() => { setDateRangeType('15_days'); setActiveDropdown(null); }} 
+                          className={`px-4 py-3 text-sm cursor-pointer transition-colors ${dateRangeType === '15_days' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                        >
+                          Last 15 Days
+                        </div>
+                        <div 
+                          onClick={() => { setDateRangeType('30_days'); setActiveDropdown(null); }} 
+                          className={`px-4 py-3 text-sm cursor-pointer transition-colors ${dateRangeType === '30_days' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                        >
+                          Last 30 Days
+                        </div>
+                        <div 
+                          onClick={() => { setDateRangeType('6_months'); setActiveDropdown(null); }} 
+                          className={`px-4 py-3 text-sm cursor-pointer transition-colors ${dateRangeType === '6_months' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                        >
+                          Last 6 Months
+                        </div>
+                        <div 
+                          onClick={() => { setDateRangeType('1_year'); setActiveDropdown(null); }} 
+                          className={`px-4 py-3 text-sm cursor-pointer transition-colors ${dateRangeType === '1_year' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                        >
+                          Last 1 Year
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -869,5 +944,6 @@ export default function DashboardHome() {
         <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
       </footer>
     </div>
-  );
+  </>
+);
 }

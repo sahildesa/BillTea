@@ -144,6 +144,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --on-primary: #001f2e;
   --on-primary-fixed-variant: #004d73;
   --on-tertiary-container: #e8d0ff;
@@ -495,4 +496,12 @@
 .dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1) brightness(1.5);
   cursor: pointer;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

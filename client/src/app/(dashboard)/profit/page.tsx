@@ -620,16 +620,16 @@ export default function ProfitReportPage() {
                           </span>
                         </div>
 
-                        <div className="flex flex-row justify-between items-center gap-3 text-xs flex-wrap min-[370px]:flex-nowrap">
-                          <div className="min-w-[80px]">
+                        <div className="grid grid-cols-3 gap-2 text-xs">
+                          <div className="text-left">
                             <span className="text-on-surface-variant/60 block text-[10px] uppercase font-bold tracking-wider mb-0.5">Income</span>
                             <span className="text-on-surface font-bold text-sm whitespace-nowrap">₹{formatCurrency(row.income)}</span>
                           </div>
-                          <div className="min-w-[80px]">
+                          <div className="text-center">
                             <span className="text-on-surface-variant/60 block text-[10px] uppercase font-bold tracking-wider mb-0.5">Expense</span>
                             <span className="text-error font-bold text-sm whitespace-nowrap">₹{formatCurrency(row.expense)}</span>
                           </div>
-                          <div className="min-w-[80px] text-right">
+                          <div className="text-right">
                             <span className="text-on-surface-variant/60 block text-[10px] uppercase font-bold tracking-wider mb-0.5">Net</span>
                             <span className={`font-bold text-sm whitespace-nowrap ${profitVal >= 0 ? 'text-emerald-500' : 'text-error'}`}>
                               ₹{formatCurrency(profitVal)}

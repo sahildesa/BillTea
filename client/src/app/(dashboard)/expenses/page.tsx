@@ -434,6 +434,25 @@ const fetchCategories = async () => {
 
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-theme(spacing.16))] bg-background overflow-hidden relative">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+        .no-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+      `}} />
       <style jsx global>{`
   table, thead, tbody, tr, td, th {
     -webkit-user-select: none !important;
@@ -463,199 +482,213 @@ const fetchCategories = async () => {
   }
 `}</style>
       <div
-        className="flex-1 overflow-y-auto px-8 py-8 [&::-webkit-scrollbar]:hidden"
+        className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        <div className="max-w-[1600px] mx-auto w-full space-y-8 pb-20">
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
+      </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-               <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
-              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
+
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+            <span className="material-symbols-outlined text-[14px]">account_balance_wallet</span>
+            Financial Overview
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+            <span className="text-on-surface">Manage </span>
+            <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
               Expenses
-              </span>
-              </h1>
-              <p className="text-on-surface-variant text-lg">Track and manage your branch expenditures</p>
+            </span>
+          </h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed">
+            Track and manage your branch expenditures.
+          </p>
+        </div>
+        <div className="w-full md:w-auto">
+          <button
+            onClick={openNewModal}
+            disabled={!selectedBranchId}
+            className="w-full md:w-auto group relative h-14 px-8 rounded-2xl bg-surface-container-highest border border-primary/20 text-primary font-bold flex items-center justify-center gap-3 overflow-hidden shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:shadow-[0_0_25px_rgba(125,211,252,0.3)] transition-all hover:-translate-y-0.5 hover:border-primary/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="absolute inset-0 w-full h-full bg-primary/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
+            <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">add</span>
+            <span>Add Expense</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.3s' }}>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Expenses</p>
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{stats.total}</p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-red-500/40 hover:shadow-[0_20px_40px_-15px_rgba(239,68,68,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-500/5 rounded-full blur-2xl group-hover:bg-red-500/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Spent</p>
+            <span className="material-symbols-outlined text-red-500 p-2 rounded-lg bg-red-500/10">payments</span>
+          </div>
+          <p className="text-3xl font-bold text-red-500 tracking-tight relative z-10 whitespace-nowrap">
+            ₹ {stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-blue-500/40 hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">This Month</p>
+            <span className="material-symbols-outlined text-blue-500 p-2 rounded-lg bg-blue-500/10">calendar_month</span>
+          </div>
+          <p className="text-3xl font-bold text-blue-500 tracking-tight relative z-10 whitespace-nowrap">
+            ₹ {stats.thisMonthAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Top Category</p>
+            <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">category</span>
+          </div>
+          <p className="text-2xl font-bold text-tertiary tracking-tight relative z-10 truncate whitespace-nowrap">
+            {stats.topCategory ? stats.topCategory[0] : '—'}
+          </p>
+        </div>
+      </div>
+
+      {/* Filters Section */}
+      <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-visible animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] z-20" style={{ animationDelay: '0.2s' }}>
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-5 flex-wrap">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10 text-[20px]">filter_list</span>
+              <h2 className="text-xl font-bold text-on-surface">Filters</h2>
+              {activeFilterCount > 0 && (
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-on-primary text-[11px] font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+            <div className="space-y-2 relative">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Category</label>
+              <div className="relative">
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full h-12 px-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium appearance-none cursor-pointer"
+                >
+                  <option value="">All categories</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 relative">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Payment Method</label>
+              <div className="relative">
+                <select
+                  value={filterPaymentMethod}
+                  onChange={(e) => setFilterPaymentMethod(e.target.value)}
+                  className="w-full h-12 px-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium appearance-none cursor-pointer"
+                >
+                  <option value="">All methods</option>
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 relative">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">From Date</label>
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => setFilterDateFrom(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+
+            <div className="space-y-2 relative">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">To Date</label>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => setFilterDateTo(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-4 relative z-10">
             <button
-              onClick={openNewModal}
-              disabled={!selectedBranchId}
-              className="group relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:translate-y-0"
+              disabled={activeFilterCount === 0}
+              onClick={clearFilters}
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-on-surface-variant disabled:hover:border-outline-variant/20"
             >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-              <span className="material-symbols-outlined text-[20px] relative z-10">add</span>
-              <span className="relative z-10">Add Expense</span>
+              <span className="material-symbols-outlined text-[18px]">undo</span>
+              Reset Filters
             </button>
           </div>
+        </div>
+      </section>
 
-          {/* Metrics Grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Expenses</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
-  </div>
-
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Spent</p>
-      <span className="material-symbols-outlined text-red-500 p-2 rounded-lg bg-red-500/10">payments</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">
-      ₹ {stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-    </p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">all time</p>
-  </div>
-
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">This Month</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">calendar_month</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">
-      ₹ {stats.thisMonthAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-    </p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">spent so far</p>
-  </div>
-
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Top Category</p>
-      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">category</span>
-    </div>
-    <p className="text-2xl font-bold text-on-surface tracking-tight truncate">
-      {stats.topCategory ? stats.topCategory[0] : '—'}
-    </p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">
-      {stats.topCategory ? `₹ ${stats.topCategory[1].toLocaleString('en-IN', { maximumFractionDigits: 0 })} spent` : 'no data yet'}
-    </p>
-  </div>
-</div>
-
-          {/* Filters Section */}
-          <div className="bg-surface rounded-3xl shadow-sm border border-outline-variant/30 p-6 relative overflow-hidden">
-            <div className="absolute -left-6 -top-6 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10 text-[20px]">filter_list</span>
-                  <h2 className="text-base font-bold text-on-surface">Filters</h2>
-                  {activeFilterCount > 0 && (
-                    <span className="w-5 h-5 rounded-full bg-primary text-on-primary text-[11px] font-bold flex items-center justify-center">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Category</label>
-                  <div className="relative">
-                    <select
-                      value={filterCategory}
-                      onChange={(e) => setFilterCategory(e.target.value)}
-                      className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
-                    >
-                      <option value="">All categories</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.name}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Payment Method</label>
-                  <div className="relative">
-                    <select
-                      value={filterPaymentMethod}
-                      onChange={(e) => setFilterPaymentMethod(e.target.value)}
-                      className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
-                    >
-                      <option value="">All methods</option>
-                      <option value="Cash">Cash</option>
-                      <option value="UPI">UPI</option>
-                      <option value="Bank Transfer">Bank Transfer</option>
-                      <option value="Cheque">Cheque</option>
-                    </select>
-                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">From Date</label>
-                  <input
-                    type="date"
-                    value={filterDateFrom}
-                    onChange={(e) => setFilterDateFrom(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">To Date</label>
-                  <input
-                    type="date"
-                    value={filterDateTo}
-                    onChange={(e) => setFilterDateTo(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-4">
-                <button
-                  disabled={activeFilterCount === 0}
-                  onClick={clearFilters}
-                  className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-on-surface-variant disabled:hover:border-outline-variant/20"
-                >
-            <span className="material-symbols-outlined text-[18px]">undo</span>
-                  Reset Filters
-                </button>
-              </div>
+      {/* Glassmorphic Data Table Container */}
+      <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.4s' }}>
+        {/* Glow Accent */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+        
+        <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
+          <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
+            <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+              <span>Show</span>
+              <select
+                value={entriesPerPage}
+                onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
+                className="bg-surface-container border border-outline-variant/30 rounded-xl py-2 pl-4 pr-10 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm cursor-pointer appearance-none hover:bg-surface-container-high transition-colors font-semibold"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>entries</span>
             </div>
           </div>
-
-          {/* Table Container */}
-          <div className="bg-surface rounded-3xl shadow-sm border border-outline-variant/30 overflow-hidden flex flex-col">
-            <div className="p-4 md:p-6 border-b border-outline-variant/30 bg-surface-container-lowest/50 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
-                <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-                  <span>Show</span>
-                  <select
-                    value={entriesPerPage}
-                    onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
-                    className="bg-surface-container-low border border-outline-variant/30 rounded-lg px-2 py-1.5 text-xs focus:ring-0 focus:border-primary cursor-pointer outline-none"
-                  >
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
-                  <span>entries</span>
-                </div>
-              </div>
-              <div className="relative w-full md:w-72 group">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[20px] group-focus-within:text-primary transition-colors">search</span>
-                <input
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary transition-all"
-                  placeholder="Search expenses..."
-                  type="text"
-                  value={tableSearchQuery}
-                  onChange={(e) => setTableSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
+          <div className="relative w-full md:w-72 group">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[20px] group-focus-within:text-primary transition-colors">search</span>
+            <input
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-outline-variant/30 bg-surface-container text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              placeholder="Search expenses..."
+              type="text"
+              value={tableSearchQuery}
+              onChange={(e) => setTableSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
 
             {/* High-Fidelity Data Table */}
             <div className="overflow-x-auto w-full">
@@ -706,34 +739,46 @@ const fetchCategories = async () => {
 </div>
 
 
-            {/* Pagination Footer */}
-            <div className="p-6 border-t border-outline-variant/30 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest/50">
-              <p className="text-sm text-on-surface-variant">
-                {totalCount === 0
-                  ? 'Showing 0 entries'
-                  : `Showing ${startIndex} to ${endIndex} of ${totalCount} entries`}
-              </p>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Previous
-                </button>
-              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
-                  {currentPage}
+            {/* Pagination */}
+            <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
+                <span className="text-sm text-on-surface-variant">
+                  {totalCount === 0
+                    ? 'Showing 0 entries'
+                    : `Showing ${startIndex} to ${endIndex} of ${totalCount} entries`}
                 </span>
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Next
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Previous
+                  </button>
+                  <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-sm">
+                    {currentPage}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Footer Decoration */}
+          <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-8">
+            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+            <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+              BillTea Dashboard • Expenses
+            </p>
+            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+          </footer>
+
         </div>
       </div>
 

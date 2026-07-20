@@ -316,17 +316,32 @@ export default function CustomersPage() {
     }`;
 
   return (
-    <>
+    <div className="flex-1 flex flex-col h-[calc(100vh-theme(spacing.16))] bg-background overflow-hidden relative">
       {activeDropdown && (
         <div 
           className="fixed inset-0 z-40 cursor-default" 
           onClick={() => setActiveDropdown(null)} 
         />
       )}
-      <div
-        className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+        .no-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+      `}} />
       <style jsx global>{`
   * {
     -webkit-tap-highlight-color: transparent !important;
@@ -379,91 +394,102 @@ export default function CustomersPage() {
     appearance: none;
   }
 `}</style>
-        {/* Background Ambient Effects */}
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
-
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 relative z-10">
-        <div className="space-y-1">
-         <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
-              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">
-            Customers
-            </span>
-          </h1>
-          <p className="text-on-surface-variant text-lg">Manage your business connections and relationship data.</p>
-        </div>
-        <button
-          onClick={handleOpenCreateModal}
-          disabled={!selectedBranchId}
-          className="glass-button-primary group flex items-center gap-2 px-5 py-2.5 rounded-lg text-primary font-semibold text-sm transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 cursor-pointer disabled:opacity-50"
-        >
-          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-          New Customer
-        </button>
+      <div
+        className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
       </div>
 
-{/* Metrics Grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Customers</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">group</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
-  </div>
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Active Customers</p>
-      <span className="material-symbols-outlined text-emerald-400 p-2 rounded-lg bg-emerald-400/10">task_alt</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.active}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">
-      {stats.total > 0 ? `${Math.round((stats.active / stats.total) * 100)}% of total` : 'no data yet'}
-    </p>
-  </div>
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+            <span className="material-symbols-outlined text-[14px]">group</span>
+            Business Connections
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+            <span className="text-on-surface">Manage </span>
+            <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+              Customers
+            </span>
+          </h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed">
+            Manage your business connections, contact information, and relationship data for your branch.
+          </p>
+        </div>
+        <div className="w-full md:w-auto">
+          <button
+            onClick={handleOpenCreateModal}
+            disabled={!selectedBranchId}
+            className="w-full md:w-auto group relative h-14 px-8 rounded-2xl bg-surface-container-highest border border-primary/20 text-primary font-bold flex items-center justify-center gap-3 overflow-hidden shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:shadow-[0_0_25px_rgba(125,211,252,0.3)] transition-all hover:-translate-y-0.5 hover:border-primary/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="absolute inset-0 w-full h-full bg-primary/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
+            <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">person_add</span>
+            <span>New Customer</span>
+          </button>
+        </div>
+      </header>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.totalInvoices}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">across all customers</p>
-  </div>
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.3s' }}>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Customers</p>
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">group</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{stats.total}</p>
+        </div>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Quotations</p>
-      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">request_quote</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.totalQuotations}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">across all customers</p>
-  </div>
-</div>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-emerald-500/40 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Active Customers</p>
+            <span className="material-symbols-outlined text-emerald-500 p-2 rounded-lg bg-emerald-500/10">task_alt</span>
+          </div>
+          <p className="text-3xl font-bold text-emerald-500 tracking-tight relative z-10 whitespace-nowrap">{stats.active}</p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-blue-500/40 hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
+            <span className="material-symbols-outlined text-blue-500 p-2 rounded-lg bg-blue-500/10">receipt_long</span>
+          </div>
+          <p className="text-3xl font-bold text-blue-500 tracking-tight relative z-10 whitespace-nowrap">{stats.totalInvoices}</p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Quotations</p>
+            <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">request_quote</span>
+          </div>
+          <p className="text-3xl font-bold text-tertiary tracking-tight relative z-10 whitespace-nowrap">{stats.totalQuotations}</p>
+        </div>
+      </div>
 
       {/* Filters Section */}
-      <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-visible animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] mb-8 z-20" style={{ animationDelay: '0.2s' }}>
+      <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-visible animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] z-20" style={{ animationDelay: '0.2s' }}>
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+        <div className="relative z-10">
 
-        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap relative z-10">
+        <div className="flex items-center justify-between mb-5 flex-wrap">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">filter_list</span>
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10 text-[20px]">filter_list</span>
             <h2 className="text-xl font-bold text-on-surface">Filters</h2>
             {activeFilterCount > 0 && (
               <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-on-primary text-[11px] font-bold">
                 {activeFilterCount}
               </span>
             )}
-          </div>
-          <div className="flex gap-2">
-           
           </div>
         </div>
 
@@ -473,7 +499,7 @@ export default function CustomersPage() {
             <div className="relative">
               <button
                 type="button"
-                className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
                 onClick={() => toggleDropdown('status')}
               >
                 <span>
@@ -513,7 +539,7 @@ export default function CustomersPage() {
             <div className="relative">
               <button
                 type="button"
-                className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
                 onClick={() => toggleDropdown('type')}
               >
                 <span>
@@ -553,7 +579,7 @@ export default function CustomersPage() {
             <div className="relative">
               <button
                 type="button"
-                className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
                 onClick={() => toggleDropdown('invoice')}
               >
                 <span>
@@ -593,7 +619,7 @@ export default function CustomersPage() {
             <div className="relative">
               <button
                 type="button"
-                className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
                 onClick={() => toggleDropdown('quotation')}
               >
                 <span>
@@ -639,54 +665,36 @@ export default function CustomersPage() {
             Reset Filters
           </button>
         </div>
+        </div>
       </section>
 
 
-      {/* Main Content Glass Card */}
-      <section className="glass-panel rounded-xl overflow-visible mb-12 relative z-10 border border-primary/10 shadow-lg">
+      {/* Glassmorphic Data Table Container */}
+      <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.4s' }}>
+        {/* Glow Accent */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+        
         {/* Table Controls */}
-        <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
-          <div className="flex items-center gap-3 relative" style={{ zIndex: activeDropdown === 'entries' ? 50 : 10 }}>
-            <span className="text-sm text-on-surface-variant">Show</span>
-            <div className="relative">
-              <button
-                type="button"
-                className="glass-input text-sm pl-3 pr-9 py-1.5 rounded-lg text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary/50 cursor-pointer bg-surface-container-highest flex items-center justify-between min-w-[70px]"
-                onClick={() => toggleDropdown('entries')}
+        <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
+          <div className="flex items-center gap-3 w-full md:w-auto flex-wrap" style={{ zIndex: activeDropdown === 'entries' ? 50 : 10 }}>
+            <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+              <span>Show</span>
+              <select
+                value={entriesPerPage}
+                onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
+                className="bg-surface-container-low border border-outline-variant/30 rounded-lg px-2 py-1.5 text-xs focus:ring-0 focus:border-primary cursor-pointer outline-none"
               >
-                <span>{entriesPerPage}</span>
-                <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px] transition-transform duration-200 ${activeDropdown === 'entries' ? 'rotate-180' : ''}`}>expand_more</span>
-              </button>
-              
-              {activeDropdown === 'entries' && (
-                <div className="absolute top-full left-0 mt-1 z-[60] bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 min-w-[70px]">
-                  <div 
-                    onClick={() => { handleEntriesPerPageChange(10); setActiveDropdown(null); }} 
-                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 10 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
-                  >
-                    10
-                  </div>
-                  <div 
-                    onClick={() => { handleEntriesPerPageChange(25); setActiveDropdown(null); }} 
-                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 25 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
-                  >
-                    25
-                  </div>
-                  <div 
-                    onClick={() => { handleEntriesPerPageChange(50); setActiveDropdown(null); }} 
-                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 50 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
-                  >
-                    50
-                  </div>
-                </div>
-              )}
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>entries</span>
             </div>
-            <span className="text-sm text-on-surface-variant">entries</span>
           </div>
-          <div className="relative w-full sm:w-80 group">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-sm">search</span>
+          <div className="relative w-full md:w-72 group">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[20px] group-focus-within:text-primary transition-colors">search</span>
             <input
-              className="glass-input w-full pl-10 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none transition-all"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary transition-all"
               placeholder="Search customers..."
               type="text"
               value={searchQuery}
@@ -696,10 +704,10 @@ export default function CustomersPage() {
         </div>
 
         {/* High-Fidelity Data Table */}
-        <div className="hidden md:block overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          <table className="w-full text-left border-separate border-spacing-0 whitespace-nowrap">
+        <div className="overflow-x-auto w-full">
+          <table className="min-w-[700px] text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-surface-container-low/50 text-xs font-semibold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
+              <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
                 <th className={sortHeaderClass('customer')} onClick={() => handleSort('customer')} tabIndex={-1}>
                   <div className="flex items-center gap-1">
                     Customer <span className={sortIconClass('customer')}>{getSortIcon('customer')}</span>
@@ -725,7 +733,7 @@ export default function CustomersPage() {
                     Quotations <span className={sortIconClass('quotations')}>{getSortIcon('quotations')}</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-right pr-8">Actions</th>
+                <th className="px-2 py-2 sm:px-6 sm:py-4 text-right pr-4 sm:pr-8 w-[100px] sm:w-1/6">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-primary/5 text-sm">
@@ -777,7 +785,7 @@ export default function CustomersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-5 text-center">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-tertiary-container/45 text-tertiary text-xs font-medium border border-tertiary/10">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-tertiary/10 text-tertiary text-xs font-medium border border-tertiary/20">
                         <span className="material-symbols-outlined text-sm">request_quote</span> {customer._count?.quotations || 0}
                       </span>
                     </td>
@@ -868,33 +876,46 @@ export default function CustomersPage() {
         </div>
 
         {/* Pagination */}
-        <div className="p-6 border-t border-primary/10 flex flex-col md:flex-row items-center justify-between gap-4 bg-surface-container/30">
-          <span className="text-sm text-on-surface-variant/70">
-            {totalCount === 0
-              ? 'Showing 0 entries'
-              : <>Showing <span className="text-on-surface font-semibold">{startIndex}</span> to <span className="text-on-surface font-semibold">{endIndex}</span> of <span className="text-on-surface font-semibold">{totalCount}</span> entries</>}
-          </span>
-          <div className="flex items-center gap-1">
+        <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
+            <span className="text-sm text-on-surface-variant">
+              {totalCount === 0
+                ? 'Showing 0 entries'
+                : `Showing ${startIndex} to ${endIndex} of ${totalCount} entries`}
+            </span>
+            <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]"
+              className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Previous
             </button>
-            <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-sm">
               {currentPage}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]"
+              className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Next
             </button>
           </div>
         </div>
-      </section>
+      </div>
+      </div>
+
+      {/* Footer Decoration */}
+      <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-8">
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+        <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+          BillTea Dashboard • Customers
+        </p>
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+      </footer>
+
+      </div>
       </div>
 
       {/* New Customer Modal */}
@@ -995,6 +1016,6 @@ export default function CustomersPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

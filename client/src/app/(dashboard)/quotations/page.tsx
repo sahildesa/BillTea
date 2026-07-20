@@ -58,6 +58,12 @@ export default function QuotationsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  const [activeDropdown, setActiveDropdown] = useState<'customer' | 'entries' | null>(null);
+
+  const toggleDropdown = (name: 'customer' | 'entries') => {
+    setActiveDropdown(prev => prev === name ? null : name);
+  };
+
   useEffect(() => {
     if (selectedBranchId) {
       fetchQuotations();
@@ -390,10 +396,17 @@ const handleClearFilters = () => {
   };
 
   return (
-    <div
-      className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-    >
+    <>
+      {activeDropdown && (
+        <div 
+          className="fixed inset-0 z-40 cursor-default" 
+          onClick={() => setActiveDropdown(null)} 
+        />
+      )}
+      <div
+        className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden w-full max-w-full min-w-0"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -412,7 +425,7 @@ const handleClearFilters = () => {
         <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16 w-full max-w-full min-w-0">
       {/* Header Section */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
         <div className="max-w-2xl">
@@ -520,22 +533,39 @@ const handleClearFilters = () => {
 
         {/* Filter Controls */}
         <div className="flex flex-wrap items-end gap-6 relative z-10">
-          <div className="flex-1 min-w-[220px]">
+          <div className="flex-1 min-w-[220px] relative" style={{ zIndex: activeDropdown === 'customer' ? 50 : 10 }}>
             <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2 ml-1">
               Customer
             </label>
             <div className="relative">
-              <select
-                value={customerFilter}
-                onChange={(e) => setCustomerFilter(e.target.value)}
-                className="w-full bg-surface-container border border-outline-variant/30 rounded-xl pl-4 pr-10 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all appearance-none cursor-pointer"
+              <button
+                type="button"
+                className="w-full bg-surface-container border border-outline-variant/30 rounded-xl pl-4 pr-10 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all text-left flex items-center justify-between min-h-[46px]"
+                onClick={() => toggleDropdown('customer')}
               >
-                <option value="">All Customers</option>
-                {uniqueCustomers.map((name) => (
-                  <option key={name} value={name}>{name}</option>
-                ))}
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                <span>{customerFilter || 'All Customers'}</span>
+                <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'customer' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+
+              {activeDropdown === 'customer' && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-y-auto max-h-60 shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 no-scrollbar">
+                  <div 
+                    onClick={() => { setCustomerFilter(''); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${customerFilter === '' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    All Customers
+                  </div>
+                  {uniqueCustomers.map((name) => (
+                    <div 
+                      key={name}
+                      onClick={() => { setCustomerFilter(name); setActiveDropdown(null); }} 
+                      className={`px-4 py-3 text-sm cursor-pointer transition-colors ${customerFilter === name ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      {name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -544,7 +574,7 @@ const handleClearFilters = () => {
               From Date
             </label>
             <input
-              className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all"
+              className="w-full glass-input rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all"
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
@@ -556,7 +586,7 @@ const handleClearFilters = () => {
               To Date
             </label>
             <input
-              className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all"
+              className="w-full glass-input rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all"
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
@@ -577,25 +607,46 @@ const handleClearFilters = () => {
       </section>
 
       {/* Glassmorphic Data Table Container */}
-      <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.3s' }}>
+      <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] w-full max-w-full min-w-0" style={{ animationDelay: '0.3s' }}>
         {/* Glow Accent */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
                
         {/* Table Controls */}
         <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
-          <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant">
+          <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant relative" style={{ zIndex: activeDropdown === 'entries' ? 50 : 10 }}>
             <span>Show</span>
             <div className="relative">
-              <select
-                value={pageSize}
-                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                className="bg-surface-container border border-outline-variant/30 rounded-xl py-2 pl-4 pr-10 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm cursor-pointer appearance-none hover:bg-surface-container-high transition-colors font-semibold"
+              <button
+                type="button"
+                className="glass-input text-sm pl-3 pr-9 py-1.5 rounded-lg text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary/50 cursor-pointer bg-surface-container-highest flex items-center justify-between min-w-[70px]"
+                onClick={() => toggleDropdown('entries')}
               >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                <span>{pageSize}</span>
+                <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px] transition-transform duration-200 ${activeDropdown === 'entries' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+              
+              {activeDropdown === 'entries' && (
+                <div className="absolute top-full left-0 mt-1 z-[60] bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 min-w-[70px]">
+                  <div 
+                    onClick={() => { handlePageSizeChange(10); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${pageSize === 10 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    10
+                  </div>
+                  <div 
+                    onClick={() => { handlePageSizeChange(25); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${pageSize === 25 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    25
+                  </div>
+                  <div 
+                    onClick={() => { handlePageSizeChange(50); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${pageSize === 50 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    50
+                  </div>
+                </div>
+              )}
             </div>
             <span>entries</span>
           </div>
@@ -612,7 +663,7 @@ const handleClearFilters = () => {
         </div>
         
         {/* The Table */}
-        <div className="overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto w-full max-w-full">
           <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
             <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
               <tr>
@@ -755,6 +806,141 @@ const handleClearFilters = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile-First Cards List */}
+        <div className="block lg:hidden divide-y divide-primary/5">
+          {isLoadingBranches || loading ? (
+            <div className="px-6 py-8 text-center text-on-surface-variant">
+              <div className="flex justify-center items-center gap-2">
+                <span className="material-symbols-outlined animate-spin">refresh</span> Loading quotations...
+              </div>
+            </div>
+          ) : paginatedQuotations.length === 0 ? (
+            <div className="px-6 py-24 text-center">
+              <div className="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-4">
+                <span className="material-symbols-outlined text-4xl text-on-surface-variant opacity-60">request_quote</span>
+              </div>
+              <h3 className="text-xl text-on-surface font-bold mb-2">{searchQuery || hasActiveFilters ? 'No matching quotations found' : 'No quotations yet'}</h3>
+              <p className="text-on-surface-variant max-w-xs mx-auto text-sm">{searchQuery || hasActiveFilters ? 'Try adjusting your search or filters.' : 'Create your first quotation for this branch.'}</p>
+            </div>
+          ) : (
+            paginatedQuotations.map((quotation) => {
+              const isMostRecent = quotation.id === mostRecentQuotationId;
+              return (
+                <div key={quotation.id} className="p-5 space-y-4 hover:bg-primary/5 transition-colors duration-200">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-bold text-primary">{quotation.quotationNumber}</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${getStatusColor(quotation.status)}`}>
+                      {quotation.status}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-surface-container-highest border border-primary/20 flex items-center justify-center text-primary font-bold text-xs">
+                      {quotation.customer?.customerName?.substring(0, 2).toUpperCase() || 'NA'}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-on-surface">{quotation.customer?.customerName || 'Unknown'}</span>
+                      <span className="text-[11px] text-on-surface-variant/70">{quotation.customer?.companyName}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-on-surface-variant/60 block text-[10px] uppercase font-bold tracking-wider mb-0.5">Date</span>
+                      <span className="text-on-surface font-medium">
+                        {new Date(quotation.quotationDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant/60 block text-[10px] uppercase font-bold tracking-wider mb-0.5">Total Amount</span>
+                      <span className="text-on-surface font-bold">
+                        ₹ {quotation.totals?.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions Toggle Panel */}
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-primary/5">
+                    {openActionId === quotation.id ? (
+                      <div className="flex flex-wrap items-center justify-end gap-2 w-full animate-in fade-in duration-300">
+                        <button onClick={() => handleViewPdf(quotation.id, quotation.quotationNumber)} disabled={isLoadingPdf} className="glass-button-icon p-2 rounded-md hover:text-blue-400 hover:bg-blue-400/10 cursor-pointer disabled:opacity-50" title="View">
+                          <span className="material-symbols-outlined text-[16px]">visibility</span>
+                        </button>
+                        <Link href={`/quotations/${quotation.id}/edit`}>
+                          <button className="glass-button-icon p-2 rounded-md hover:text-primary hover:bg-primary/10 cursor-pointer" title="Edit">
+                            <span className="material-symbols-outlined text-[16px]">edit</span>
+                          </button>
+                        </Link>
+                        <Link href={`/quotations/new?copyFrom=${quotation.id}`}>
+                          <button className="glass-button-icon p-2 rounded-md hover:text-blue-400 hover:bg-blue-400/10 cursor-pointer" title="Copy">
+                            <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                          </button>
+                        </Link>
+                        <Link href={`/invoices/new?copyFromQuotation=${quotation.id}`}>
+                          <button className="glass-button-icon p-2 rounded-md hover:text-purple-400 hover:bg-purple-400/10 cursor-pointer" title="Convert to Invoice">
+                            <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                          </button>
+                        </Link>
+                        <button onClick={() => handleSend(quotation.id)} disabled={isSendingId === quotation.id} className="glass-button-icon p-2 rounded-md hover:text-emerald-400 hover:bg-emerald-400/10 cursor-pointer disabled:opacity-50" title="Send">
+                          {isSendingId === quotation.id ? <span className="material-symbols-outlined text-[16px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[16px]">send</span>}
+                        </button>
+                        <button 
+                          onClick={() => handleDownloadPdf(quotation.id, quotation.quotationNumber)}
+                          className="glass-button-icon p-2 rounded-md hover:text-indigo-400 hover:bg-indigo-400/10 cursor-pointer" title="Download PDF">
+                          <span className="material-symbols-outlined text-[16px]">download</span>
+                        </button>
+                        <button 
+                          onClick={() => setNotesModalData({
+                            id: quotation.id,
+                            notes: quotation.notes || '',
+                            followUpDate: quotation.followUpDate ? new Date(quotation.followUpDate).toISOString().split('T')[0] : ''
+                          })}
+                          className="glass-button-icon p-2 rounded-md hover:text-amber-400 hover:bg-amber-400/10 cursor-pointer" title="Notes & Reminder">
+                          <span className="material-symbols-outlined text-[16px]">sticky_note_2</span>
+                        </button>
+                        <button
+                          onClick={() => isMostRecent && setQuotationToDelete(quotation.id)}
+                          disabled={!isMostRecent}
+                          className={`glass-button-icon p-2 rounded-md ${isMostRecent ? 'hover:text-error hover:bg-error/10 cursor-pointer' : 'opacity-30 cursor-not-allowed'}`}
+                          title={isMostRecent ? 'Delete' : 'Only the most recent can be deleted'}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                        <div className="w-px h-5 bg-primary/20"></div>
+                        <button 
+                          onClick={() => setOpenActionId(null)}
+                          className="glass-button-icon p-2 rounded-md hover:bg-surface-container-highest cursor-pointer" title="Close">
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 animate-in fade-in duration-300">
+                        <button onClick={() => handleViewPdf(quotation.id, quotation.quotationNumber)} disabled={isLoadingPdf} className="glass-button-icon p-2 rounded-md hover:text-blue-400 hover:bg-blue-400/10 cursor-pointer disabled:opacity-50" title="View">
+                          <span className="material-symbols-outlined text-[16px]">visibility</span>
+                        </button>
+                        <Link href={`/invoices/new?copyFromQuotation=${quotation.id}`}>
+                          <button className="glass-button-icon p-2 rounded-md hover:text-purple-400 hover:bg-purple-400/10 cursor-pointer" title="Convert to Invoice">
+                            <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                          </button>
+                        </Link>
+                        <button onClick={() => handleSend(quotation.id)} disabled={isSendingId === quotation.id} className="glass-button-icon p-2 rounded-md hover:text-emerald-400 hover:bg-emerald-400/10 cursor-pointer disabled:opacity-50" title="Send">
+                          {isSendingId === quotation.id ? <span className="material-symbols-outlined text-[16px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[16px]">send</span>}
+                        </button>
+                        <div className="w-px h-5 bg-primary/20"></div>
+                        <button 
+                          onClick={() => setOpenActionId(quotation.id)}
+                          className="glass-button-icon p-2 rounded-md hover:text-primary hover:bg-primary/10 cursor-pointer" title="More Actions">
+                          <span className="material-symbols-outlined text-[16px]">more_horiz</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
         
         {/* Pagination */}
@@ -940,5 +1126,6 @@ const handleClearFilters = () => {
 
       </div>
     </div>
+    </>
   );
 }

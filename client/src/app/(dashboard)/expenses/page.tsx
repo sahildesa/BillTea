@@ -121,7 +121,10 @@ export default function ExpensesPage() {
   }
   try {
     const res = await apiFetch(`/expenses?branch=${selectedBranchId}`);
-    setExpenses(res.data || []);
+    if (res.ok) {
+      const data = await res.json();
+      setExpenses(data || []);
+    }
   } catch (err) {
     console.error("Failed to fetch expenses:", err);
     setExpenses([]);
@@ -135,7 +138,10 @@ const fetchCategories = async () => {
   }
   try {
     const res = await apiFetch(`/categories?branch=${selectedBranchId}`);
-    setCategories(res.data || []);
+    if (res.ok) {
+      const data = await res.json();
+      setCategories(data || []);
+    }
   } catch (err) {
     console.error("Failed to fetch categories:", err);
     setCategories([]);

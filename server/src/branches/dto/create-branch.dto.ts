@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, MinLength, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsOptional, MinLength, IsInt, Min, Max, IsBoolean } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateBranchDto {
@@ -17,7 +17,6 @@ export class CreateBranchDto {
   @IsOptional() @IsString() @ApiPropertyOptional({ example: 'sample_value' }) accountNumber?: string;
   @IsOptional() @IsString() @ApiPropertyOptional({ example: 'sample_value' }) ifscCode?: string;
   @IsOptional() @IsString() @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' }) upiId?: string;
-  @IsOptional() @IsEnum(['TEXT', 'IMAGE']) @ApiPropertyOptional({ example: 'sample_value' }) signatureType?: 'TEXT' | 'IMAGE';
   @IsOptional() @IsString() @ApiPropertyOptional({ example: 'sample_value' }) signatureValue?: string;
 
   @IsOptional()
@@ -26,4 +25,8 @@ export class CreateBranchDto {
   @Max(100, { message: 'Tax cannot be more than 100' })
     @ApiPropertyOptional({ example: 100 })
   tax?: number;
+
+  @IsOptional() @IsString() @ApiPropertyOptional({ example: 'GST' }) taxLabel?: string;
+  @IsOptional() @IsBoolean() @ApiPropertyOptional({ example: false }) isMainBranch?: boolean;
+  @IsOptional() @IsBoolean() @ApiPropertyOptional({ example: true }) isActive?: boolean;
 }

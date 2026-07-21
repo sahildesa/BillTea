@@ -64,7 +64,7 @@ export class ExpensesController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     const attachmentPath = file ? `uploads/expenses/${file.filename}` : '';
-    return this.expensesService.create(createExpenseDto, req.user.companyId, req.user.id, attachmentPath);
+    return this.expensesService.create(createExpenseDto, req.user.companyId, req.user.userId, attachmentPath);
   }
 
   @Get()

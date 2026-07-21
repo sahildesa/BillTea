@@ -27,6 +27,10 @@ interface SortConfig {
   direction: SortDirection;
 }
 
+type StatusFilter = 'all' | 'active' | 'inactive';
+type TypeFilter = 'all' | 'company' | 'individual';
+type CountFilter = 'all' | 'with' | 'without';
+
 export default function CustomersPage() {
   const { selectedBranchId, isLoadingBranches } = useBranch();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -53,6 +57,34 @@ export default function CustomersPage() {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [activeDropdown, setActiveDropdown] = useState<'status' | 'type' | 'invoice' | 'quotation' | 'entries' | null>(null);
+
+  const toggleDropdown = (name: 'status' | 'type' | 'invoice' | 'quotation' | 'entries') => {
+    setActiveDropdown(prev => prev === name ? null : name);
+  };
+
+  // ---- Filters ----
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [invoiceFilter, setInvoiceFilter] = useState<CountFilter>('all');
+  const [quotationFilter, setQuotationFilter] = useState<CountFilter>('all');
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (statusFilter !== 'all') count++;
+    if (typeFilter !== 'all') count++;
+    if (invoiceFilter !== 'all') count++;
+    if (quotationFilter !== 'all') count++;
+    return count;
+  }, [statusFilter, typeFilter, invoiceFilter, quotationFilter]);
+
+  const handleClearFilters = () => {
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setInvoiceFilter('all');
+    setQuotationFilter('all');
+  };
 
   const stats = React.useMemo(() => {
     const total = customers.length;
@@ -175,7 +207,7 @@ export default function CustomersPage() {
   };
 
   // ---- Search ----
-  const filteredCustomers = useMemo(() => {
+  const searchedCustomers = useMemo(() => {
     if (!searchQuery) return customers;
     const query = searchQuery.toLowerCase();
     return customers.filter((c) => {
@@ -187,6 +219,27 @@ export default function CustomersPage() {
       return nameMatch || companyMatch || emailMatch || mobileMatch || identifierMatch;
     });
   }, [customers, searchQuery]);
+
+  // ---- Filters ----
+  const filteredCustomers = useMemo(() => {
+    return searchedCustomers.filter((c) => {
+      if (statusFilter === 'active' && !c.isActive) return false;
+      if (statusFilter === 'inactive' && c.isActive) return false;
+
+      if (typeFilter === 'company' && !c.companyName) return false;
+      if (typeFilter === 'individual' && c.companyName) return false;
+
+      const invoiceCount = c._count?.invoices || 0;
+      if (invoiceFilter === 'with' && invoiceCount === 0) return false;
+      if (invoiceFilter === 'without' && invoiceCount > 0) return false;
+
+      const quotationCount = c._count?.quotations || 0;
+      if (quotationFilter === 'with' && quotationCount === 0) return false;
+      if (quotationFilter === 'without' && quotationCount > 0) return false;
+
+      return true;
+    });
+  }, [searchedCustomers, statusFilter, typeFilter, invoiceFilter, quotationFilter]);
 
   // ---- Sorting ----
   const handleSort = (key: string) => {
@@ -238,7 +291,7 @@ export default function CustomersPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, statusFilter, typeFilter, invoiceFilter, quotationFilter]);
 
   const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
   const endIndex = Math.min(currentPage * entriesPerPage, totalCount);
@@ -247,24 +300,13 @@ export default function CustomersPage() {
     return sortedCustomers.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
   }, [sortedCustomers, currentPage, entriesPerPage]);
 
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    if (totalPages <= maxButtons) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxButtons - 1);
-    start = Math.max(1, end - maxButtons + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [totalPages, currentPage]);
-
   const handleEntriesPerPageChange = (n: number) => {
     setEntriesPerPage(n);
     setCurrentPage(1);
   };
 
   const sortHeaderClass = (key: string) =>
-    `px-6 py-4 cursor-pointer hover:text-primary transition-colors group ${
+    `px-6 py-4 cursor-pointer hover:text-primary transition-colors group outline-none focus:outline-none select-none [-webkit-tap-highlight-color:transparent] [-webkit-user-select:none] ${
       sortConfig?.key === key ? 'text-primary' : ''
     }`;
 
@@ -274,100 +316,409 @@ export default function CustomersPage() {
     }`;
 
   return (
-    <>
-      <div className="flex-1 overflow-y-auto p-8 z-0 relative">
-        {/* Background Ambient Effects */}
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(125,211,252,0.03)_0%,_transparent_70%)] pointer-events-none z-0 blur-[60px]"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,_rgba(200,160,240,0.02)_0%,_transparent_70%)] pointer-events-none z-0 blur-[50px]"></div>
-
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 relative z-10">
-        <div className="space-y-1">
-         <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
-              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">
-            Customers
-            </span>
-          </h1>
-          <p className="text-on-surface-variant text-lg">Manage your business connections and relationship data.</p>
-        </div>
-        <button
-          onClick={handleOpenCreateModal}
-          disabled={!selectedBranchId}
-          className="glass-button-primary group flex items-center gap-2 px-5 py-2.5 rounded-lg text-primary font-semibold text-sm transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 cursor-pointer disabled:opacity-50"
-        >
-          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-          New Customer
-        </button>
+    <div className="flex-1 flex flex-col h-[calc(100vh-theme(spacing.16))] bg-background overflow-hidden relative">
+      {activeDropdown && (
+        <div 
+          className="fixed inset-0 z-40 cursor-default" 
+          onClick={() => setActiveDropdown(null)} 
+        />
+      )}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+        .no-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+      `}} />
+      <style jsx global>{`
+  * {
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  button, th, select, input, a, tr, td, span, div, [role='button'] {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    outline: none !important;
+  }
+  th::selection, th *::selection,
+  button::selection, button *::selection,
+  span::selection {
+    background: transparent !important;
+  }
+  button::-moz-focus-inner {
+    border: 0 !important;
+  }
+  button,
+  button:focus,
+  button:focus-visible,
+  button:active,
+  th,
+  th:focus,
+  th:focus-visible,
+  th:active,
+  select,
+  select:focus,
+  select:focus-visible,
+  select:active,
+  a,
+  a:focus,
+  a:focus-visible,
+  a:active,
+  tr,
+  tr:focus,
+  tr:active,
+  td,
+  td:focus,
+  td:active,
+  span,
+  span:focus,
+  span:active,
+  [role='button'],
+  [role='button']:focus,
+  [role='button']:focus-visible,
+  [role='button']:active {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+`}</style>
+      <div
+        className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
       </div>
 
-{/* Metrics Grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Customers</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">group</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
-  </div>
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Active Customers</p>
-      <span className="material-symbols-outlined text-emerald-400 p-2 rounded-lg bg-emerald-400/10">task_alt</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.active}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">
-      {stats.total > 0 ? `${Math.round((stats.active / stats.total) * 100)}% of total` : 'no data yet'}
-    </p>
-  </div>
-
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.totalInvoices}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">across all customers</p>
-  </div>
-
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Quotations</p>
-      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">request_quote</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.totalQuotations}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">across all customers</p>
-  </div>
-</div>
-      
-      {/* Main Content Glass Card */}
-      <section className="glass-panel rounded-xl overflow-hidden mb-12 relative z-10 border border-primary/10 shadow-lg">
-        {/* Table Controls */}
-        <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-on-surface-variant">Show</span>
-            <select
-              value={entriesPerPage}
-              onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
-              className="glass-input text-sm px-3 py-1.5 rounded-lg text-on-surface focus:ring-0 cursor-pointer bg-surface-container-highest"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span className="text-sm text-on-surface-variant">entries</span>
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+            <span className="material-symbols-outlined text-[14px]">group</span>
+            Business Connections
           </div>
-          <div className="relative w-full sm:w-80 group">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-sm">search</span>
-            <input
-              className="glass-input w-full pl-10 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none transition-all"
-              placeholder="Search customers..."
-              type="text"
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+            <span className="text-on-surface">Manage </span>
+            <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+              Customers
+            </span>
+          </h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed">
+            Manage your business connections, contact information, and relationship data for your branch.
+          </p>
+        </div>
+        <div className="w-full md:w-auto">
+          <button
+            onClick={handleOpenCreateModal}
+            disabled={!selectedBranchId}
+            className="w-full md:w-auto group relative h-14 px-8 rounded-2xl bg-surface-container-highest border border-primary/20 text-primary font-bold flex items-center justify-center gap-3 overflow-hidden shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:shadow-[0_0_25px_rgba(125,211,252,0.3)] transition-all hover:-translate-y-0.5 hover:border-primary/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="absolute inset-0 w-full h-full bg-primary/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
+            <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">person_add</span>
+            <span>New Customer</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.3s' }}>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Customers</p>
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">group</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{stats.total}</p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-emerald-500/40 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Active Customers</p>
+            <span className="material-symbols-outlined text-emerald-500 p-2 rounded-lg bg-emerald-500/10">task_alt</span>
+          </div>
+          <p className="text-3xl font-bold text-emerald-500 tracking-tight relative z-10 whitespace-nowrap">{stats.active}</p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-blue-500/40 hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
+            <span className="material-symbols-outlined text-blue-500 p-2 rounded-lg bg-blue-500/10">receipt_long</span>
+          </div>
+          <p className="text-3xl font-bold text-blue-500 tracking-tight relative z-10 whitespace-nowrap">{stats.totalInvoices}</p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Quotations</p>
+            <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">request_quote</span>
+          </div>
+          <p className="text-3xl font-bold text-tertiary tracking-tight relative z-10 whitespace-nowrap">{stats.totalQuotations}</p>
+        </div>
+      </div>
+
+      {/* Filters Section */}
+      <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-visible animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] z-20" style={{ animationDelay: '0.2s' }}>
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+        <div className="relative z-10">
+
+        <div className="flex items-center justify-between mb-5 flex-wrap">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10 text-[20px]">filter_list</span>
+            <h2 className="text-xl font-bold text-on-surface">Filters</h2>
+            {activeFilterCount > 0 && (
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-on-primary text-[11px] font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+          <div className="space-y-2 relative" style={{ zIndex: activeDropdown === 'status' ? 50 : 10 }}>
+            <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Status</label>
+            <div className="relative">
+              <button
+                type="button"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
+                onClick={() => toggleDropdown('status')}
+              >
+                <span>
+                  {statusFilter === 'all' ? 'All status' :
+                   statusFilter === 'active' ? 'Active' : 'Inactive'}
+                </span>
+                <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'status' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+
+              {activeDropdown === 'status' && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div 
+                    onClick={() => { setStatusFilter('all'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${statusFilter === 'all' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    All status
+                  </div>
+                  <div 
+                    onClick={() => { setStatusFilter('active'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${statusFilter === 'active' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Active
+                  </div>
+                  <div 
+                    onClick={() => { setStatusFilter('inactive'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${statusFilter === 'inactive' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Inactive
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2 relative" style={{ zIndex: activeDropdown === 'type' ? 50 : 10 }}>
+            <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Customer Type</label>
+            <div className="relative">
+              <button
+                type="button"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
+                onClick={() => toggleDropdown('type')}
+              >
+                <span>
+                  {typeFilter === 'all' ? 'All types' :
+                   typeFilter === 'company' ? 'Company' : 'Individual'}
+                </span>
+                <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'type' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+
+              {activeDropdown === 'type' && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div 
+                    onClick={() => { setTypeFilter('all'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${typeFilter === 'all' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    All types
+                  </div>
+                  <div 
+                    onClick={() => { setTypeFilter('company'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${typeFilter === 'company' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Company
+                  </div>
+                  <div 
+                    onClick={() => { setTypeFilter('individual'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${typeFilter === 'individual' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Individual
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2 relative" style={{ zIndex: activeDropdown === 'invoice' ? 50 : 10 }}>
+            <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Invoices</label>
+            <div className="relative">
+              <button
+                type="button"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
+                onClick={() => toggleDropdown('invoice')}
+              >
+                <span>
+                  {invoiceFilter === 'all' ? 'Any' :
+                   invoiceFilter === 'with' ? 'With invoices' : 'Without invoices'}
+                </span>
+                <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'invoice' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+
+              {activeDropdown === 'invoice' && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div 
+                    onClick={() => { setInvoiceFilter('all'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${invoiceFilter === 'all' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Any
+                  </div>
+                  <div 
+                    onClick={() => { setInvoiceFilter('with'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${invoiceFilter === 'with' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    With invoices
+                  </div>
+                  <div 
+                    onClick={() => { setInvoiceFilter('without'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${invoiceFilter === 'without' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Without invoices
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2 relative" style={{ zIndex: activeDropdown === 'quotation' ? 50 : 10 }}>
+            <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Quotations</label>
+            <div className="relative">
+              <button
+                type="button"
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium flex items-center justify-between text-left"
+                onClick={() => toggleDropdown('quotation')}
+              >
+                <span>
+                  {quotationFilter === 'all' ? 'Any' :
+                   quotationFilter === 'with' ? 'With quotations' : 'Without quotations'}
+                </span>
+                <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'quotation' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+
+              {activeDropdown === 'quotation' && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-[60] bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div 
+                    onClick={() => { setQuotationFilter('all'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${quotationFilter === 'all' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Any
+                  </div>
+                  <div 
+                    onClick={() => { setQuotationFilter('with'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${quotationFilter === 'with' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    With quotations
+                  </div>
+                  <div 
+                    onClick={() => { setQuotationFilter('without'); setActiveDropdown(null); }} 
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${quotationFilter === 'without' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    Without quotations
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-4 relative z-10">
+          <button
+            disabled={activeFilterCount === 0}
+            className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-on-surface-variant disabled:hover:border-outline-variant/20"
+            onClick={handleClearFilters}
+          >
+                  <span className="material-symbols-outlined text-[18px]">undo</span>
+            Reset Filters
+          </button>
+        </div>
+        </div>
+      </section>
+
+
+      {/* Glassmorphic Data Table Container */}
+      <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.4s' }}>
+        {/* Glow Accent */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+        
+        {/* Table Controls */}
+        <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
+          <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant relative" style={{ zIndex: activeDropdown === 'entries' ? 50 : 10 }}>
+            <span>Show</span>
+            <div className="relative">
+              <button
+                type="button"
+                className="glass-input text-sm pl-3 pr-9 py-1.5 rounded-lg text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary/50 cursor-pointer bg-surface-container-highest flex items-center justify-between min-w-[70px]"
+                onClick={() => toggleDropdown('entries')}
+              >
+                <span>{entriesPerPage}</span>
+                <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px] transition-transform duration-200 ${activeDropdown === 'entries' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+              
+              {activeDropdown === 'entries' && (
+                <div className="absolute top-full left-0 mt-1 z-[60] bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 min-w-[70px]">
+                  <div 
+                    onClick={() => { handleEntriesPerPageChange(10); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 10 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    10
+                  </div>
+                  <div 
+                    onClick={() => { handleEntriesPerPageChange(25); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 25 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    25
+                  </div>
+                  <div 
+                    onClick={() => { handleEntriesPerPageChange(50); setActiveDropdown(null); }} 
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 50 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                  >
+                    50
+                  </div>
+                </div>
+              )}
+            </div>
+            <span>entries</span>
+          </div>
+          <div className="relative w-full sm:w-auto">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+            <input 
+              className="w-full sm:w-80 bg-surface-container border border-outline-variant/30 pl-11 pr-4 py-2.5 rounded-xl text-sm font-medium text-on-surface placeholder-on-surface-variant/60 focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all" 
+              placeholder="Search customers..." 
+              type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -375,36 +726,38 @@ export default function CustomersPage() {
         </div>
 
         {/* High-Fidelity Data Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap">
+        <div className="overflow-x-auto w-full">
+          <table className="min-w-[700px] text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-surface-container-low/50 text-xs font-semibold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
-                <th className={sortHeaderClass('customer')} onClick={() => handleSort('customer')}>
+              <tr className="bg-surface-container-low/50 text-xs text-on-surface-variant uppercase border-b border-primary/10">
+                <th className={sortHeaderClass('customer')} onClick={() => handleSort('customer')} tabIndex={-1}>
                   <div className="flex items-center gap-1">
                     Customer <span className={sortIconClass('customer')}>{getSortIcon('customer')}</span>
                   </div>
                 </th>
-                <th className={sortHeaderClass('contact')} onClick={() => handleSort('contact')}>
+                <th className={sortHeaderClass('contact')} onClick={() => handleSort('contact')} tabIndex={-1}>
                   <div className="flex items-center gap-1">
                     Contact <span className={sortIconClass('contact')}>{getSortIcon('contact')}</span>
                   </div>
                 </th>
-                <th className={sortHeaderClass('identifier')} onClick={() => handleSort('identifier')}>
+                <th className={sortHeaderClass('identifier')} onClick={() => handleSort('identifier')} tabIndex={-1}>
                   <div className="flex items-center gap-1">
                     Identifier <span className={sortIconClass('identifier')}>{getSortIcon('identifier')}</span>
                   </div>
                 </th>
-                <th className={`${sortHeaderClass('invoices')} text-center`} onClick={() => handleSort('invoices')}>
+                <th className={`${sortHeaderClass('invoices')} text-center`} onClick={() => handleSort('invoices')} tabIndex={-1}>
                   <div className="flex items-center justify-center gap-1">
                     Invoices <span className={sortIconClass('invoices')}>{getSortIcon('invoices')}</span>
                   </div>
                 </th>
-                <th className={`${sortHeaderClass('quotations')} text-center`} onClick={() => handleSort('quotations')}>
+                <th className={`${sortHeaderClass('quotations')} text-center`} onClick={() => handleSort('quotations')} tabIndex={-1}>
                   <div className="flex items-center justify-center gap-1">
                     Quotations <span className={sortIconClass('quotations')}>{getSortIcon('quotations')}</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-right pr-8">Actions</th>
+                <th className="px-6 py-4 font-semibold tracking-wider text-right pr-8" scope="col">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-primary/5 text-sm">
@@ -418,8 +771,12 @@ export default function CustomersPage() {
                 </tr>
               ) : paginatedCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-on-surface-variant">
-                    {searchQuery ? 'No matching customers found.' : 'No customers found for this branch. Create one to get started!'}
+                  <td colSpan={6} className="px-6 py-24 text-center">
+                    <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
+                      <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-60">group</span>
+                    </div>
+                    <h3 className="text-2xl text-on-surface font-bold mb-3">{searchQuery || activeFilterCount > 0 ? 'No matching customers found' : 'No customers yet'}</h3>
+                    <p className="text-on-surface-variant max-w-md mx-auto text-lg">{searchQuery || activeFilterCount > 0 ? 'Try adjusting your search or filters.' : 'Create your first customer for this branch.'}</p>
                   </td>
                 </tr>
               ) : (
@@ -456,16 +813,16 @@ export default function CustomersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-5 text-center">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-tertiary-container/45 text-tertiary text-xs font-medium border border-tertiary/10">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-tertiary/10 text-tertiary text-xs font-medium border border-tertiary/20">
                         <span className="material-symbols-outlined text-sm">request_quote</span> {customer._count?.quotations || 0}
                       </span>
                     </td>
                     <td className="px-6 py-5 text-right pr-8">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => handleOpenEditModal(customer)} className="glass-button-icon p-1 rounded-md transition-all cursor-pointer hover:text-primary hover:border-primary/30 hover:bg-primary/10" title="Edit">
+                        <button onClick={() => handleOpenEditModal(customer)} className="glass-button-icon p-1 rounded-md transition-all cursor-pointer hover:text-primary hover:border-primary/30 hover:bg-primary/10 outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]" title="Edit">
                           <span className="material-symbols-outlined text-[16px]">edit</span>
                         </button>
-                        <button onClick={() => handleDeleteCustomer(customer.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 cursor-pointer" title="Delete">
+                        <button onClick={() => handleDeleteCustomer(customer.id)} className="glass-button-icon p-1 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 cursor-pointer outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]" title="Delete">
                           <span className="material-symbols-outlined text-[16px]">delete</span>
                         </button>
                       </div>
@@ -477,14 +834,84 @@ export default function CustomersPage() {
           </table>
         </div>
 
+        {/* Mobile-First Cards List */}
+        <div className="block md:hidden divide-y divide-primary/5">
+          {isLoadingBranches || loading ? (
+            <div className="px-6 py-8 text-center text-on-surface-variant">
+              <div className="flex justify-center items-center gap-2">
+                <span className="material-symbols-outlined animate-spin">refresh</span> Loading customers...
+              </div>
+            </div>
+          ) : paginatedCustomers.length === 0 ? (
+            <div className="px-6 py-8 text-center text-on-surface-variant">
+              {searchQuery || activeFilterCount > 0 ? 'No matching customers found.' : 'No customers found for this branch. Create one to get started!'}
+            </div>
+          ) : (
+            paginatedCustomers.map((customer) => (
+              <div key={customer.id} className="p-5 space-y-4 hover:bg-primary/5 transition-colors duration-200">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500/30 to-purple-500/30 border border-indigo-400/20 flex items-center justify-center text-primary font-bold shadow-lg">
+                      {customer.customerName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-on-surface">{customer.customerName}</div>
+                      <div className="text-xs text-on-surface-variant/70">{customer.companyName || 'Individual'}</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleOpenEditModal(customer)} className="glass-button-icon p-1.5 rounded-md transition-all cursor-pointer hover:text-primary hover:border-primary/30 hover:bg-primary/10" title="Edit">
+                      <span className="material-symbols-outlined text-[16px]">edit</span>
+                    </button>
+                    <button onClick={() => handleDeleteCustomer(customer.id)} className="glass-button-icon p-1.5 rounded-md transition-all hover:text-error hover:border-error/30 hover:bg-error/10 cursor-pointer" title="Delete">
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  {customer.mobileNumber && (
+                    <div className="flex items-center gap-2 text-on-surface-variant">
+                      <span className="material-symbols-outlined text-sm opacity-60">phone</span>
+                      <span>{customer.mobileNumber}</span>
+                    </div>
+                  )}
+                  {customer.email && (
+                    <div className="flex items-center gap-2 text-on-surface-variant">
+                      <span className="material-symbols-outlined text-sm opacity-60">mail</span>
+                      <span className="truncate">{customer.email}</span>
+                    </div>
+                  )}
+                  {customer.businessLabel && (
+                    <div className="flex items-center gap-2 text-on-surface-variant">
+                      <span className="material-symbols-outlined text-sm opacity-60">sell</span>
+                      <span>{customer.businessLabel}: <strong className="text-on-surface">{customer.businessLabelValue}</strong></span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary-container/45 text-secondary text-xs font-medium border border-secondary/10">
+                    <span className="material-symbols-outlined text-sm">description</span> {customer._count?.invoices || 0} Invoices
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-tertiary-container/45 text-tertiary text-xs font-medium border border-tertiary/10">
+                    <span className="material-symbols-outlined text-sm">request_quote</span> {customer._count?.quotations || 0} Quotations
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
         {/* Pagination */}
-        <div className="p-6 border-t border-primary/10 flex flex-col md:flex-row items-center justify-between gap-4 bg-surface-container/30">
-          <span className="text-sm text-on-surface-variant/70">
-            {totalCount === 0
-              ? 'Showing 0 entries'
-              : <>Showing <span className="text-on-surface font-semibold">{startIndex}</span> to <span className="text-on-surface font-semibold">{endIndex}</span> of <span className="text-on-surface font-semibold">{totalCount}</span> entries</>}
-          </span>
-          <div className="flex items-center gap-1">
+        <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
+            <span className="text-sm text-on-surface-variant">
+              {totalCount === 0
+                ? 'Showing 0 entries'
+                : `Showing ${startIndex} to ${endIndex} of ${totalCount} entries`}
+            </span>
+            <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
@@ -492,19 +919,9 @@ export default function CustomersPage() {
             >
               Previous
             </button>
-            {pageNumbers.map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
-                  page === currentPage
-                    ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
-                    : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-sm">
+              {currentPage}
+            </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
@@ -514,7 +931,19 @@ export default function CustomersPage() {
             </button>
           </div>
         </div>
-      </section>
+      </div>
+      </div>
+
+      {/* Footer Decoration */}
+      <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-8">
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+        <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+          BillTea Dashboard • Customers
+        </p>
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+      </footer>
+
+      </div>
       </div>
 
       {/* New Customer Modal */}
@@ -615,6 +1044,6 @@ export default function CustomersPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

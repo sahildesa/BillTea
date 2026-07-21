@@ -3,10 +3,13 @@ import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SubscriptionGuard } from '../common/guards/subscription.guard';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireSubscription } from '../common/decorators/subscription.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, FeatureGuard)
 @Controller('customers')
 @ApiTags('Customers')
 @ApiBearerAuth()
@@ -14,10 +17,11 @@ export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
   @Post()
-    @ApiOperation({ summary: 'Create' })
-    @ApiResponse({ status: 201, description: 'Created successfully.' })
+  @RequireSubscription('customer')
+  @ApiOperation({ summary: 'Create' })
+  @ApiResponse({ status: 201, description: 'Created successfully.' })
   create(@CurrentUser() user: any, @Body() createCustomerDto: CreateCustomerDto) {
-    return this.customersService.create(user.companyId, user.sub, createCustomerDto);
+    return this.customersService.create(user.companyId, user.userId, createCustomerDto);
   }
 
   @Get()

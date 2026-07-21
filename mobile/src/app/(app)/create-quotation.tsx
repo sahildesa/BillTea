@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -9,7 +9,8 @@ import {
   TextInput, 
   Platform,
   Alert,
-  Dimensions
+  Dimensions,
+  ActivityIndicator
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,6 +29,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { GlassPanel } from '../../components/ui/GlassPanel';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
+import { apiClient } from '@/api/client';
 
 const { width } = Dimensions.get('window');
 
@@ -38,15 +40,8 @@ interface LineItem {
   unitPrice: number;
   quantity: number;
   image?: string;
+  productId?: string;
 }
-
-const MOCK_CLIENTS = [
-  "Aurora Tech Solutions",
-  "Indux Tech Ltd",
-  "BillTea Global Corp",
-  "Global Cyber Sec",
-  "Google DeepMind"
-];
 
 export default function CreateQuotationScreen() {
   const { colors, isDark } = useTheme();
@@ -54,18 +49,27 @@ export default function CreateQuotationScreen() {
 
   // --- STATE DEFINITIONS ---
   
-  // Section 1: Customer Details
-  const [selectedClient, setSelectedClient] = useState("Aurora Tech Solutions");
+  // Backend Active State
+  const [branches, setBranches] = useState<any[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Section 1: Customer Details & Search
+  const [selectedClient, setSelectedClient] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [customers, setCustomers] = useState<any[]>([]);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
-  const [contactName, setContactName] = useState("Elena Rostova");
-  const [mobile, setMobile] = useState("+1 555-0198");
-  const [email, setEmail] = useState("elena@aurora.com");
-  const [billingAddress, setBillingAddress] = useState("1200 Innovation Drive, Suite 400\nSan Francisco, CA 94103");
+  const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
+  
+  const [contactName, setContactName] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [email, setEmail] = useState("");
+  const [billingAddress, setBillingAddress] = useState("");
   const [shippingIsDifferent, setShippingIsDifferent] = useState(false);
 
   // Section 2: Discount & Tax Logic
   const [discountType, setDiscountType] = useState<"FIXED" | "PERCENTAGE">("FIXED");
-  const [discountValue, setDiscountValue] = useState("100.00");
+  const [discountValue, setDiscountValue] = useState("0.00");
   const [taxLogic, setTaxLogic] = useState<"FIXED_SLAB" | "PER_PRODUCT">("PER_PRODUCT");
   const [taxPercentage, setTaxPercentage] = useState("8"); // Default 8%
 
@@ -73,29 +77,133 @@ export default function CreateQuotationScreen() {
   const [lineItems, setLineItems] = useState<LineItem[]>([
     {
       id: "item-1",
-      productName: "Enterprise Core Switch X1",
-      description: "High-throughput layer 3 managed switch with 48 PoE+ ports.",
-      unitPrice: 1250.00,
-      quantity: 2,
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC3T8X1oRce8JH4fG8sbWwCfhdnpnKUaCOTsO6LYN-51T1iJNi_g5j47AZuA4aOS6RsTSiiJzBpNrRDH0GbHm3uDd9Jw7GCkCgzuePZKi4AbdtqElcDX1J1JzYGVpwbpIOInTL7-9uo_Fzytc_bdQXK76xhU3FcqHahursrQQcRTsABNZJb7whKr8k4fxId2cE5s0YRxjCD7LQFbuN54ZF6d9YmZNWPCUM7YgrUILH-D-ASjFOI07Kd"
+      productName: "",
+      description: "",
+      unitPrice: 0,
+      quantity: 1,
     }
   ]);
 
+  // Product Search Suggestions State
+  const [productList, setProductList] = useState<any[]>([]);
+  const [activeProductSearchIdx, setActiveProductSearchIdx] = useState<number | null>(null);
+
   // Section 5: Timeline & Terms
-  const [quotationDate, setQuotationDate] = useState("Oct 24, 2023");
-  const [validUntil, setValidUntil] = useState("Dec 24, 2023");
+  const formatDateString = (date: Date) => {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  };
+
+  const [quotationDate, setQuotationDate] = useState(formatDateString(new Date()));
+  
+  const defaultExpiry = new Date();
+  defaultExpiry.setDate(defaultExpiry.getDate() + 30); // 30 days default
+  const [validUntil, setValidUntil] = useState(formatDateString(defaultExpiry));
+  
   const [notes, setNotes] = useState("");
   const [terms, setTerms] = useState("Payment is due within 30 days. Standard warranty applies to all hardware items.");
 
-  // --- HANDLERS ---
+  // --- API / MOUNT EFFECTS ---
+  
+  // Load Branches
+  useEffect(() => {
+    async function loadBranches() {
+      try {
+        const res = await apiClient.get('/branches');
+        if (res.status === 200 && Array.isArray(res.data)) {
+          setBranches(res.data);
+          const mainBranch = res.data.find(b => b.isMain) || res.data[0];
+          if (mainBranch) {
+            setSelectedBranchId(mainBranch.id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load branches:', err);
+      }
+    }
+    loadBranches();
+  }, []);
+
+  // --- SEARCH HANDLERS ---
+  
+  const handleCustomerSearch = async (text: string) => {
+    setSelectedClient(text);
+    setIsSearchingCustomers(true);
+    try {
+      const res = await apiClient.get(`/quotations/customers/search?q=${encodeURIComponent(text)}`);
+      if (res.status === 200 && Array.isArray(res.data)) {
+        setCustomers(res.data);
+      }
+    } catch (err) {
+      console.error('Error searching customers:', err);
+    } finally {
+      setIsSearchingCustomers(false);
+    }
+  };
+
+  const handleSelectCustomer = (customer: any) => {
+    setSelectedClient(customer.companyName || customer.customerName);
+    setSelectedCustomerId(customer.id);
+    setContactName(customer.customerName || "");
+    setMobile(customer.mobileNumber || "");
+    setEmail(customer.email || "");
+    
+    // Address handling
+    const addr = customer.address;
+    if (addr) {
+      if (typeof addr === 'object') {
+        setBillingAddress(addr.street || addr.address || JSON.stringify(addr));
+      } else {
+        setBillingAddress(addr);
+      }
+    } else {
+      setBillingAddress("");
+    }
+    
+    setShowClientDropdown(false);
+  };
+
+  const handleProductSearch = async (text: string, index: number) => {
+    handleItemChange(lineItems[index].id, 'productName', text);
+    setActiveProductSearchIdx(index);
+    
+    try {
+      const res = await apiClient.get(`/quotations/products/search?q=${encodeURIComponent(text)}`);
+      if (res.status === 200 && Array.isArray(res.data)) {
+        setProductList(res.data);
+      }
+    } catch (err) {
+      console.error('Error searching products:', err);
+    }
+  };
+
+  const handleSelectProduct = (product: any, index: number) => {
+    const updatedItems = [...lineItems];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      productId: product.id,
+      productName: product.name,
+      description: product.description || "",
+      unitPrice: product.price || 0,
+      image: product.image || undefined,
+    };
+    setLineItems(updatedItems);
+    setActiveProductSearchIdx(null);
+  };
+
+  // --- FORM HANDLERS ---
   
   const handleAddNewCustomer = () => {
     setContactName("");
     setMobile("");
     setEmail("");
     setBillingAddress("");
-    setSelectedClient("New Client");
-    Alert.alert("New Customer", "Form cleared. Please enter details for the new customer.");
+    setSelectedClient("");
+    setSelectedCustomerId("");
+    Alert.alert("New Customer", "Please enter details for the new customer.");
   };
 
   const handleAddItem = () => {
@@ -167,7 +275,7 @@ export default function CreateQuotationScreen() {
     if (taxLogic === "PER_PRODUCT") {
       return taxableAmount * (percentage / 100);
     } else {
-      return 192.00;
+      return 192.00; // Fixed slab default representation
     }
   }, [subtotal, discountAmount, taxLogic, taxPercentage]);
 
@@ -175,17 +283,78 @@ export default function CreateQuotationScreen() {
     return Math.max(0, subtotal - discountAmount + taxAmount);
   }, [subtotal, discountAmount, taxAmount]);
 
-  const handleCreateQuotation = () => {
-    Alert.alert(
-      "Quotation Created",
-      `Quotation for ${selectedClient} has been created successfully!\n\nGrand Total: $${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      [{ text: "OK", onPress: () => router.back() }]
-    );
+  const parseDateString = (str: string) => {
+    try {
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString();
+      }
+    } catch (e) {}
+    return new Date().toISOString();
   };
 
-  const selectClientFromDropdown = (client: string) => {
-    setSelectedClient(client);
-    setShowClientDropdown(false);
+  const handleCreateQuotation = async () => {
+    if (!selectedCustomerId) {
+      Alert.alert("Required", "Please search and select a customer first.");
+      return;
+    }
+    if (!selectedBranchId) {
+      Alert.alert("Required", "No active branch found. Please verify your settings.");
+      return;
+    }
+    if (lineItems.length === 0 || !lineItems[0].productName) {
+      Alert.alert("Required", "Quotation must have at least one valid product.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        branchId: selectedBranchId,
+        customerId: selectedCustomerId,
+        quotationDate: parseDateString(quotationDate),
+        expiryDate: parseDateString(validUntil),
+        billingAddress: { street: billingAddress },
+        shippingAddress: { street: billingAddress },
+        shippingSameAsBilling: !shippingIsDifferent,
+        discountConfiguration: {
+          mode: discountType === "FIXED" ? "FIXED" : "PER_PRODUCT",
+          type: discountType === "FIXED" ? "AMOUNT" : "PERCENTAGE",
+          value: parseFloat(discountValue) || 0
+        },
+        taxConfiguration: {
+          mode: taxLogic === "FIXED_SLAB" ? "FIXED" : "PER_PRODUCT",
+          value: parseFloat(taxPercentage) || 0,
+          label: "GST"
+        },
+        notes: notes,
+        termsAndConditions: terms,
+        items: lineItems.map(item => ({
+          productId: item.productId || undefined,
+          price: item.unitPrice,
+          description: item.description,
+          image: item.image,
+          quantity: item.quantity
+        }))
+      };
+
+      const res = await apiClient.post('/quotations', payload);
+      if (res.status === 201) {
+        Alert.alert(
+          "Success",
+          "Quotation created successfully!",
+          [{ text: "OK", onPress: () => router.replace('/(app)/quotations') }]
+        );
+      } else {
+        Alert.alert("Error", res.data?.message || "Failed to create quotation.");
+      }
+    } catch (err: any) {
+      console.error('Error creating quotation:', err);
+      const errMsg = err.response?.data?.message || err.message || "An unknown error occurred.";
+      Alert.alert("Error", Array.isArray(errMsg) ? errMsg.join('\n') : errMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -257,27 +426,46 @@ export default function CreateQuotationScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Searchable Dropdown */}
+          {/* Searchable Dropdown trigger */}
           <View style={styles.dropdownContainer}>
-            <TouchableOpacity 
-              style={[styles.dropdownTrigger, { backgroundColor: colors.background + '66', borderColor: colors.border }]} 
-              activeOpacity={0.8}
-              onPress={() => setShowClientDropdown(!showClientDropdown)}
-            >
+            <View style={[styles.dropdownTrigger, { backgroundColor: colors.background + '66', borderColor: colors.border }]}>
               <Search color={colors.textSecondary} size={16} style={styles.dropdownSearchIcon} />
-              <Text style={[styles.dropdownTriggerText, { color: colors.text }]}>{selectedClient}</Text>
-              <ChevronDown color={colors.textSecondary} size={18} />
-            </TouchableOpacity>
+              <TextInput
+                value={selectedClient}
+                onChangeText={(text) => {
+                  handleCustomerSearch(text);
+                  setShowClientDropdown(true);
+                }}
+                onFocus={() => {
+                  setShowClientDropdown(true);
+                  if (customers.length === 0) {
+                    handleCustomerSearch("");
+                  }
+                }}
+                style={[styles.dropdownTriggerInput, { color: colors.text }]}
+                placeholder="Search Customer..."
+                placeholderTextColor={colors.textSecondary + '80'}
+              />
+              {isSearchingCustomers ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <TouchableOpacity onPress={() => setShowClientDropdown(!showClientDropdown)}>
+                  <ChevronDown color={colors.textSecondary} size={18} />
+                </TouchableOpacity>
+              )}
+            </View>
             
-            {showClientDropdown && (
+            {showClientDropdown && customers.length > 0 && (
               <View style={[styles.dropdownList, { backgroundColor: colors.surfaceVariant, borderColor: colors.glassBorder }]}>
-                {MOCK_CLIENTS.map((client) => (
+                {customers.map((customer) => (
                   <TouchableOpacity 
-                    key={client} 
+                    key={customer.id} 
                     style={[styles.dropdownItem, { borderBottomColor: colors.border + '33' }]}
-                    onPress={() => selectClientFromDropdown(client)}
+                    onPress={() => handleSelectCustomer(customer)}
                   >
-                    <Text style={[styles.dropdownItemText, { color: colors.text }]}>{client}</Text>
+                    <Text style={[styles.dropdownItemText, { color: colors.text }]}>
+                      {customer.companyName ? `${customer.companyName} (${customer.customerName})` : customer.customerName}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -440,7 +628,7 @@ export default function CreateQuotationScreen() {
         </View>
 
         {lineItems.map((item, idx) => (
-          <View key={item.id} style={[styles.itemCard, { backgroundColor: colors.surfaceVariant + 'B3', borderColor: colors.primary + '33' }]}>
+          <View key={item.id} style={[styles.itemCard, { backgroundColor: colors.surfaceVariant + 'B3', borderColor: colors.primary + '33', zIndex: activeProductSearchIdx === idx ? 30 : 1 }]}>
             {/* Overlay card controls */}
             <View style={styles.itemCardControls}>
               <TouchableOpacity 
@@ -471,11 +659,31 @@ export default function CreateQuotationScreen() {
               <View style={styles.itemDetailsContainer}>
                 <TextInput
                   value={item.productName}
-                  onChangeText={(val) => handleItemChange(item.id, 'productName', val)}
+                  onChangeText={(val) => handleProductSearch(val, idx)}
+                  onFocus={() => {
+                    setActiveProductSearchIdx(idx);
+                    handleProductSearch(item.productName, idx);
+                  }}
                   style={[styles.itemProductInput, { color: colors.text, borderBottomColor: colors.border + '80' }]}
                   placeholder="Product Name..."
                   placeholderTextColor={colors.textSecondary + '80'}
                 />
+
+                {/* Product search suggestions */}
+                {activeProductSearchIdx === idx && productList.length > 0 && (
+                  <View style={[styles.productSearchDropdown, { backgroundColor: colors.surfaceVariant, borderColor: colors.glassBorder }]}>
+                    {productList.map((product) => (
+                      <TouchableOpacity 
+                        key={product.id} 
+                        style={[styles.productSearchItem, { borderBottomColor: colors.border + '33' }]}
+                        onPress={() => handleSelectProduct(product, idx)}
+                      >
+                        <Text style={[styles.productSearchItemText, { color: colors.text }]} numberOfLines={1}>{product.name}</Text>
+                        <Text style={[styles.productSearchItemPrice, { color: colors.primary }]}>${product.price}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
                 
                 <TextInput
                   value={item.description}
@@ -633,6 +841,7 @@ export default function CreateQuotationScreen() {
             style={[styles.createBtn, { shadowColor: colors.primary }]}
             activeOpacity={0.8}
             onPress={handleCreateQuotation}
+            disabled={isSubmitting}
           >
             <LinearGradient
               colors={isDark ? ['#7dd3fc', '#0284c7'] : [colors.primary, colors.secondary]}
@@ -640,8 +849,14 @@ export default function CreateQuotationScreen() {
               end={{ x: 1, y: 0 }}
               style={styles.createBtnGradient}
             >
-              <Send color={isDark ? '#001f2e' : '#ffffff'} size={18} style={{ marginRight: 8 }} />
-              <Text style={[styles.createBtnText, { color: isDark ? '#001f2e' : '#ffffff' }]}>Create Quotation</Text>
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color={isDark ? '#001f2e' : '#ffffff'} />
+              ) : (
+                <>
+                  <Send color={isDark ? '#001f2e' : '#ffffff'} size={18} style={{ marginRight: 8 }} />
+                  <Text style={[styles.createBtnText, { color: isDark ? '#001f2e' : '#ffffff' }]}>Create Quotation</Text>
+                </>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -735,7 +950,7 @@ const styles = StyleSheet.create({
   },
   dropdownContainer: {
     position: 'relative',
-    zIndex: 10,
+    zIndex: 40,
     marginBottom: 16,
   },
   dropdownTrigger: {
@@ -749,9 +964,11 @@ const styles = StyleSheet.create({
   dropdownSearchIcon: {
     marginRight: 8,
   },
-  dropdownTriggerText: {
+  dropdownTriggerInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
+    height: '100%',
+    padding: 0,
   },
   dropdownList: {
     position: 'absolute',
@@ -760,7 +977,8 @@ const styles = StyleSheet.create({
     right: 0,
     borderRadius: 10,
     borderWidth: 1,
-    zIndex: 15,
+    zIndex: 45,
+    maxHeight: 180,
     overflow: 'hidden',
   },
   dropdownItem: {
@@ -863,7 +1081,6 @@ const styles = StyleSheet.create({
     padding: 16,
     position: 'relative',
     gap: 12,
-    overflow: 'hidden',
   },
   itemCardControls: {
     position: 'absolute',
@@ -881,7 +1098,7 @@ const styles = StyleSheet.create({
   itemMainRow: {
     flexDirection: 'row',
     gap: 14,
-    paddingRight: 60, // Avoid overlapping controls
+    paddingRight: 60,
   },
   imageContainer: {
     width: 64,
@@ -901,6 +1118,7 @@ const styles = StyleSheet.create({
   itemDetailsContainer: {
     flex: 1,
     gap: 6,
+    position: 'relative',
   },
   itemProductInput: {
     fontSize: 15,
@@ -908,6 +1126,35 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingBottom: 4,
     paddingTop: 0,
+  },
+  productSearchDropdown: {
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 4,
+    maxHeight: 150,
+    overflow: 'hidden',
+    zIndex: 50,
+    position: 'absolute',
+    top: 32,
+    left: 0,
+    right: 0,
+  },
+  productSearchItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+  },
+  productSearchItemText: {
+    fontSize: 13,
+    flex: 1,
+    marginRight: 8,
+  },
+  productSearchItemPrice: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   itemDescInput: {
     fontSize: 12,

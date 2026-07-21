@@ -7,10 +7,13 @@ import { QuotationService } from './quotation.service';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { UpdateQuotationDto } from './dto/update-quotation.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SubscriptionGuard } from '../common/guards/subscription.guard';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireSubscription } from '../common/decorators/subscription.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard, FeatureGuard)
 @Controller('quotations')
 @ApiTags('Quotation')
 @ApiBearerAuth()
@@ -43,14 +46,15 @@ export class QuotationController {
     @ApiOperation({ summary: 'Preview' })
     @ApiResponse({ status: 201, description: 'Created successfully.' })
   preview(@CurrentUser() user: any, @Body() createQuotationDto: CreateQuotationDto) {
-    return this.quotationService.calculatePreview(user.companyId, user.sub, createQuotationDto);
+    return this.quotationService.calculatePreview(user.companyId, user.userId, createQuotationDto);
   }
 
   @Post()
-    @ApiOperation({ summary: 'Create' })
-    @ApiResponse({ status: 201, description: 'Created successfully.' })
+  @RequireSubscription('quotation')
+  @ApiOperation({ summary: 'Create' })
+  @ApiResponse({ status: 201, description: 'Created successfully.' })
   create(@CurrentUser() user: any, @Body() createQuotationDto: CreateQuotationDto) {
-    return this.quotationService.create(user.companyId, user.sub, createQuotationDto);
+    return this.quotationService.create(user.companyId, user.userId, createQuotationDto);
   }
 
   @Get()
@@ -125,7 +129,7 @@ export class QuotationController {
     @CurrentUser() user: any,
     @Body() updateQuotationDto: UpdateQuotationDto,
   ) {
-    return this.quotationService.update(id, user.companyId, user.sub, updateQuotationDto);
+    return this.quotationService.update(id, user.companyId, user.userId, updateQuotationDto);
   }
 
   @Delete(':id')

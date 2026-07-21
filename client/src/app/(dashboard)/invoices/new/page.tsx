@@ -73,6 +73,10 @@ export default function CreateInvoicePage() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const toggleDropdown = (name: string) => {
+    setActiveDropdown(prev => prev === name ? null : name);
+  };
   
   const errorRef = useRef<HTMLDivElement>(null);
 
@@ -460,38 +464,72 @@ export default function CreateInvoicePage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 z-0 relative custom-scrollbar bg-background">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8 relative z-10">
-        <div>
-          <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-2">
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to List
-          </button>
-          <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-[24px]">post_add</span>
-            </div>
-            New Invoice
-          </h1>
-        </div>
-        <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="glass-button-primary rounded-lg py-2.5 px-6 flex items-center gap-2 text-sm font-semibold transition-all shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
-          {isSaving ? <span className="material-symbols-outlined animate-spin text-[18px]">refresh</span> : <span className="material-symbols-outlined text-[18px]">save</span>}
-          Save Invoice
-        </button>
+    <>
+      {activeDropdown && (
+        <div 
+          className="fixed inset-0 z-40 cursor-default" 
+          onClick={() => setActiveDropdown(null)} 
+        />
+      )}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30">
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+      `}} />
+
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
       </div>
 
-      {error && (
-        <div ref={errorRef} className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
-          <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
-          <div className="text-sm text-red-700 font-medium whitespace-pre-line leading-relaxed">{error}</div>
-        </div>
-      )}
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
+        {/* Header Section */}
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="max-w-2xl">
+            <button onClick={() => router.back()} className="text-on-surface-variant hover:text-primary flex items-center gap-1 text-sm font-semibold transition-colors mb-4">
+              <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to List
+            </button>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+              <span className="material-symbols-outlined text-[14px]">post_add</span>
+              New Invoice
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+              <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+                Create Invoice
+              </span>
+            </h1>
+            <p className="text-on-surface-variant text-lg leading-relaxed">
+              Fill in the details below to create a new invoice for your customer.
+            </p>
+          </div>
+          <button onClick={handleSave} disabled={isSaving || !selectedBranchId} className="group relative h-14 px-8 rounded-2xl bg-primary text-on-primary font-bold flex items-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto justify-center">
+            <div className="absolute inset-0 w-full h-full bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
+            {isSaving ? <span className="material-symbols-outlined animate-spin">refresh</span> : <span className="material-symbols-outlined">save</span>}
+            <span>Save Invoice</span>
+          </button>
+        </header>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 relative z-10">
-        <div className="col-span-2 space-y-6">
+        {error && (
+          <div ref={errorRef} className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
+            <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
+            <div className="text-sm text-red-700 font-medium whitespace-pre-line leading-relaxed">{error}</div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 relative z-10 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
+        <div className="xl:col-span-2 space-y-6">
           
           {/* Convert from Quotation Section */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/20 bg-primary/5 overflow-visible relative">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30 bg-primary/5 overflow-visible relative">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">receipt_long</span> Convert from Quotation
             </h2>
@@ -535,7 +573,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Customer & Address Section */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10 overflow-visible relative">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30 overflow-visible relative">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">person</span> Customer Information
             </h2>
@@ -574,7 +612,7 @@ export default function CreateInvoicePage() {
             </div>
 
             {selectedCustomerDetails && (
-              <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-lg bg-surface-container/30 border border-outline-variant/20">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 p-4 rounded-lg bg-surface-container/30 border border-outline-variant/20">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-on-surface-variant">Email</span>
                   <div className="text-sm text-on-surface font-semibold">{selectedCustomerDetails.email || 'N/A'}</div>
@@ -591,7 +629,7 @@ export default function CreateInvoicePage() {
                   <span className="text-[10px] uppercase font-bold text-on-surface-variant">{selectedCustomerDetails.businessLabel || 'Business Label'}</span>
                   <div className="text-sm text-on-surface font-semibold">{selectedCustomerDetails.businessLabelValue || 'N/A'}</div>
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-full">
                   <span className="text-[10px] uppercase font-bold text-on-surface-variant">Billing Address (Read Only)</span>
                   <div className="text-sm text-on-surface">{billingAddress.address || 'N/A'}</div>
                 </div>
@@ -614,11 +652,11 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Master Configurations */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">settings</span> Discount & Tax Rules
             </h2>
-            <div className="grid grid-cols-2 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
               {/* Discount Rules */}
               <div className="flex flex-col">
                 <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4">Discount Method</h3>
@@ -635,12 +673,35 @@ export default function CreateInvoicePage() {
                 
                 <div className="h-[70px]">
                   {formData.discountConfiguration.mode === 'FIXED' && (
-                    <div className="flex">
+                    <div className="flex relative">
                       <input type="number" value={formData.discountConfiguration.value} onChange={(e) => setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, value: parseFloat(e.target.value) || 0 } })} className="glass-input px-4 py-2.5 rounded-l-lg w-full text-sm font-semibold border-r-0 focus:ring-0 focus:border-primary/50" placeholder="Amount" />
-                      <select value={formData.discountConfiguration.type} onChange={(e: any) => setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, type: e.target.value } })} className="glass-input px-3 py-2.5 rounded-r-lg text-sm font-bold bg-surface-container cursor-pointer focus:ring-0 focus:border-primary/50">
-                        <option value="PERCENTAGE">%</option>
-                        <option value="AMOUNT">₹</option>
-                      </select>
+                      <div className="relative shrink-0" style={{ zIndex: activeDropdown === 'discountType' ? 100 : 10 }}>
+                        <button
+                          type="button"
+                          className="glass-input px-3 py-2.5 rounded-r-lg text-sm font-bold bg-surface-container/30 cursor-pointer focus:ring-0 focus:border-primary/50 flex items-center justify-between gap-1 min-w-[65px] h-[46px] text-left"
+                          onClick={() => toggleDropdown('discountType')}
+                        >
+                          <span>{formData.discountConfiguration.type === 'PERCENTAGE' ? '%' : '₹'}</span>
+                          <span className={`material-symbols-outlined text-[16px] transition-transform duration-200 ${activeDropdown === 'discountType' ? 'rotate-180' : ''}`}>expand_more</span>
+                        </button>
+                        
+                        {activeDropdown === 'discountType' && (
+                          <div className="absolute right-0 top-full mt-1 z-[110] bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 min-w-[65px]">
+                            <div 
+                              onClick={() => { setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, type: 'PERCENTAGE' } }); setActiveDropdown(null); }} 
+                              className={`px-3 py-2 text-sm cursor-pointer transition-colors text-center ${formData.discountConfiguration.type === 'PERCENTAGE' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                            >
+                              %
+                            </div>
+                            <div 
+                              onClick={() => { setFormData({ ...formData, discountConfiguration: { ...formData.discountConfiguration, type: 'AMOUNT' } }); setActiveDropdown(null); }} 
+                              className={`px-3 py-2 text-sm cursor-pointer transition-colors text-center ${formData.discountConfiguration.type === 'AMOUNT' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                            >
+                              ₹
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -648,7 +709,15 @@ export default function CreateInvoicePage() {
 
               {/* Tax Rules */}
               <div className="flex flex-col">
-                <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4">Tax Method</h3>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                  <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider">Tax Method</h3>
+                  {formData.taxConfiguration.mode === 'FIXED' && (
+                    <label className="flex items-center gap-1.5 cursor-pointer self-start sm:self-auto">
+                      <input type="checkbox" checked={formData.taxConfiguration.customTaxActive} onChange={(e) => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, customTaxActive: e.target.checked } })} className="rounded text-primary w-3.5 h-3.5" />
+                      <span className="text-[11px] font-bold text-on-surface-variant uppercase">Custom</span>
+                    </label>
+                  )}
+                </div>
                 <div className="flex gap-6 mb-5">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="taxMode" checked={formData.taxConfiguration.mode === 'FIXED'} onChange={() => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, mode: 'FIXED' } })} className="text-primary w-4 h-4" />
@@ -672,15 +741,10 @@ export default function CreateInvoicePage() {
                           </div>
                         </div>
                       ) : (
-                        <select className="glass-input px-4 py-2.5 rounded-lg w-full text-sm font-semibold cursor-pointer focus:ring-0 focus:border-primary/50 appearance-none bg-surface-container/30">
-                          <option value={branchTaxConfig.tax}>{branchTaxConfig.label} ({branchTaxConfig.tax}%)</option>
-                        </select>
+                        <div className="glass-input px-4 py-2.5 rounded-lg w-full text-sm font-semibold bg-surface-container/30 text-on-surface flex items-center justify-between">
+                          <span>{branchTaxConfig.label} ({branchTaxConfig.tax}%)</span>
+                        </div>
                       )}
-                      
-                      <label className="absolute -top-7 right-0 flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={formData.taxConfiguration.customTaxActive} onChange={(e) => setFormData({ ...formData, taxConfiguration: { ...formData.taxConfiguration, customTaxActive: e.target.checked } })} className="rounded text-primary w-3.5 h-3.5" />
-                        <span className="text-[11px] font-bold text-on-surface-variant uppercase">Custom</span>
-                      </label>
                     </div>
                   )}
                 </div>
@@ -689,7 +753,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Items Table */}
-          <div className="glass-panel rounded-xl shadow-md border border-primary/10 overflow-hidden relative overflow-visible">
+          <div className="glass-panel rounded-3xl shadow-sm border border-outline-variant/30 overflow-hidden relative overflow-visible">
             <h2 className="text-lg font-bold text-on-surface m-6 mb-2 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">inventory_2</span> Invoice Items
             </h2>
@@ -699,7 +763,7 @@ export default function CreateInvoicePage() {
                 return (
                   <div key={item.id} className="relative group bg-surface-container/20 border border-outline-variant/10 rounded-xl p-4 md:p-5 hover:bg-surface-container/40 transition-colors shadow-sm">
                     {/* Delete Button */}
-                    <button onClick={() => removeItem(item.id)} className="absolute top-2 right-2 text-error hover:bg-error/10 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10" title="Remove Item">
+                    <button onClick={() => removeItem(item.id)} className="absolute top-2 right-2 text-error hover:bg-error/10 p-2 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all z-10" title="Remove Item">
                       <span className="material-symbols-outlined text-[20px]">delete</span>
                     </button>
 
@@ -804,12 +868,35 @@ export default function CreateInvoicePage() {
                           {formData.discountConfiguration.mode === 'PER_PRODUCT' && (
                             <div className="col-span-6 md:col-span-3">
                               <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Discount</label>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 relative">
                                 <input type="number" value={item.discount?.value || 0} onChange={(e) => updateItem(item.id, 'discount', { ...item.discount, value: parseFloat(e.target.value) || 0 })} className="glass-input px-3 py-2 rounded-lg text-sm w-full font-semibold" />
-                                <select value={item.discount?.type || 'PERCENTAGE'} onChange={(e) => updateItem(item.id, 'discount', { ...item.discount, type: e.target.value })} className="glass-input p-2 rounded-lg text-xs font-bold bg-surface-container cursor-pointer">
-                                  <option value="PERCENTAGE">%</option>
-                                  <option value="AMOUNT">₹</option>
-                                </select>
+                                <div className="relative shrink-0" style={{ zIndex: activeDropdown === `itemDiscountType-${item.id}` ? 100 : 10 }}>
+                                  <button
+                                    type="button"
+                                    className="glass-input p-2 rounded-lg text-xs font-bold bg-surface-container/30 cursor-pointer flex items-center justify-between gap-1 min-w-[50px]"
+                                    onClick={() => toggleDropdown(`itemDiscountType-${item.id}`)}
+                                  >
+                                    <span>{item.discount?.type === 'PERCENTAGE' ? '%' : '₹'}</span>
+                                    <span className={`material-symbols-outlined text-[14px] transition-transform duration-200 ${activeDropdown === `itemDiscountType-${item.id}` ? 'rotate-180' : ''}`}>expand_more</span>
+                                  </button>
+                                  
+                                  {activeDropdown === `itemDiscountType-${item.id}` && (
+                                    <div className="absolute right-0 top-full mt-1 z-[110] bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 min-w-[50px]">
+                                      <div 
+                                        onClick={() => { updateItem(item.id, 'discount', { ...item.discount, type: 'PERCENTAGE' }); setActiveDropdown(null); }} 
+                                        className={`px-3 py-2 text-xs cursor-pointer transition-colors text-center ${item.discount?.type === 'PERCENTAGE' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                                      >
+                                        %
+                                      </div>
+                                      <div 
+                                        onClick={() => { updateItem(item.id, 'discount', { ...item.discount, type: 'AMOUNT' }); setActiveDropdown(null); }} 
+                                        className={`px-3 py-2 text-xs cursor-pointer transition-colors text-center ${item.discount?.type === 'AMOUNT' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                                      >
+                                        ₹
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           )}
@@ -845,12 +932,12 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Payments Section */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
-            <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex justify-between items-center">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
+            <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">payments</span> Payments
               </div>
-              <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-on-surface">
+              <label className="flex items-center gap-2 cursor-pointer text-xs sm:text-sm font-semibold text-on-surface self-start sm:self-auto">
                 <input 
                   type="checkbox" 
                   checked={formData.paymentConfiguration.addPayment} 
@@ -883,19 +970,46 @@ export default function CreateInvoicePage() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Payment Method</label>
-                  <select 
-                    value={formData.paymentConfiguration.method} 
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      paymentConfiguration: { ...prev.paymentConfiguration, method: e.target.value as any } 
-                    }))} 
-                    className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold"
-                  >
-                    <option value="CASH">Cash</option>
-                    <option value="UPI">UPI</option>
-                    <option value="BANK_TRANSFER">Bank Transfer</option>
-                    <option value="CHEQUE">Cheque</option>
-                  </select>
+                  <div className="relative w-full" style={{ zIndex: activeDropdown === 'paymentMethod' ? 100 : 10 }}>
+                    <button
+                      type="button"
+                      className="glass-input px-4 py-2.5 rounded-lg text-sm text-on-surface w-full font-semibold text-left flex items-center justify-between cursor-pointer"
+                      onClick={() => toggleDropdown('paymentMethod')}
+                    >
+                      <span>
+                        {formData.paymentConfiguration.method === 'CASH' ? 'Cash' :
+                         formData.paymentConfiguration.method === 'UPI' ? 'UPI' :
+                         formData.paymentConfiguration.method === 'BANK_TRANSFER' ? 'Bank Transfer' :
+                         formData.paymentConfiguration.method === 'CHEQUE' ? 'Cheque' : 'Select Method'}
+                      </span>
+                      <span className={`material-symbols-outlined text-[18px] transition-transform duration-200 ${activeDropdown === 'paymentMethod' ? 'rotate-180' : ''}`}>expand_more</span>
+                    </button>
+                    
+                    {activeDropdown === 'paymentMethod' && (
+                      <div className="absolute left-0 right-0 top-full mt-1 z-[110] bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                        {[
+                          { value: 'CASH', label: 'Cash' },
+                          { value: 'UPI', label: 'UPI' },
+                          { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
+                          { value: 'CHEQUE', label: 'Cheque' }
+                        ].map(method => (
+                          <div 
+                            key={method.value}
+                            onClick={() => { 
+                              setFormData(prev => ({ 
+                                ...prev, 
+                                paymentConfiguration: { ...prev.paymentConfiguration, method: method.value as any } 
+                              }));
+                              setActiveDropdown(null); 
+                            }} 
+                            className={`px-4 py-2.5 text-sm cursor-pointer transition-colors ${formData.paymentConfiguration.method === method.value ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                          >
+                            {method.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Payment Date</label>
@@ -992,7 +1106,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Terms and Conditions */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h2 className="text-lg font-bold text-on-surface mb-4 border-b border-primary/10 pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">description</span> Terms & Conditions
             </h2>
@@ -1004,7 +1118,7 @@ export default function CreateInvoicePage() {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Summary */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Invoice Summary</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center text-on-surface-variant">
@@ -1030,7 +1144,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Dates */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Timeline</h3>
             <div className="space-y-4">
               <div>
@@ -1045,7 +1159,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Attachments Dropzone */}
-          <div className="glass-panel rounded-xl p-6 shadow-md border border-primary/10">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30">
             <h3 className="text-sm font-bold text-on-surface mb-4 uppercase tracking-wide">Attachments</h3>
             <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center hover:bg-primary/5 transition-colors relative group cursor-pointer">
               <input type="file" multiple accept=".pdf,.xlsx,.docx,.png,.jpg,.jpeg,.ppt,.pptx,.heic,.heif" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
@@ -1069,6 +1183,17 @@ export default function CreateInvoicePage() {
           </div>
         </div>
       </div>
+
+      {/* Footer Decoration */}
+      <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-12 mb-4">
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+        <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+          BillTea • New Invoice
+        </p>
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+      </footer>
+      </div>
     </div>
+    </>
   );
 }

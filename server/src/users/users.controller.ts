@@ -1,6 +1,11 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SubscriptionGuard } from '../common/guards/subscription.guard';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireSubscription } from '../common/decorators/subscription.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -9,7 +14,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard, FeatureGuard)
 @Roles('OWNER')
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -17,13 +22,19 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Post('create')
-    @ApiOperation({ summary: 'Create' })
-    @ApiResponse({ status: 201, description: 'Created successfully.' })
+  @RequireSubscription('staff')
+  @UseInterceptors(FileInterceptor('profilePicture'))
+  @ApiOperation({ summary: 'Create' })
+  @ApiResponse({ status: 201, description: 'Created successfully.' })
   async create(
     @CurrentUser('userId') userId: string,
     @CurrentUser('companyId') companyId: string | null,
     @Body() dto: CreateUserDto,
+    @UploadedFile() file?: Express.Multer.File
   ) {
+    if (file) {
+      dto.profilePicture = `uploads/users/${file.filename}`;
+    }
     return this.usersService.create(userId, companyId, dto);
   }
 
@@ -35,6 +46,7 @@ export class UsersController {
   }
 
   @Put(':id')
+  @UseInterceptors(FileInterceptor('profilePicture'))
     @ApiOperation({ summary: 'Update' })
     @ApiResponse({ status: 200, description: 'Successful operation.' })
   async update(
@@ -42,7 +54,11 @@ export class UsersController {
     @CurrentUser('userId') userId: string,
     @CurrentUser('companyId') companyId: string | null,
     @Body() dto: UpdateUserDto,
+    @UploadedFile() file?: Express.Multer.File
   ) {
+    if (file) {
+      dto.profilePicture = `uploads/users/${file.filename}`;
+    }
     return this.usersService.update(id, userId, companyId, dto);
   }
 

@@ -1,39 +1,56 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Animated } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  Animated,
+  Alert,
+} from 'react-native';
 
 import { BlurView } from 'expo-blur';
-import { FileText, Package, Plus, BarChart3, Settings, Receipt, Wallet } from 'lucide-react-native';
+import {
+  FileText,
+  Package,
+  Plus,
+  BarChart3,
+  Settings,
+  Receipt,
+  Wallet,
+  Crown,
+} from "lucide-react-native";
 import Svg, { Path } from 'react-native-svg';
 import { useUiStore } from '../../app/(app)/products';
+import { useTheme } from "../../hooks/useTheme";
 
 export function CustomTabBar({ state, descriptors, navigation }: any) {
   const requestQuickAdd = useUiStore((store) => store.requestQuickAdd);
-  const productsSection = useUiStore((store) => store.productsSection);
   const currentRouteName = state.routes[state.index]?.name;
   
   const [isFabExpanded, setIsFabExpanded] = React.useState(false);
   const animation = React.useRef(new Animated.Value(0)).current;
-  const isDashboardOrQuotation = currentRouteName === 'dashboard' || currentRouteName === 'quotations';
+ const fabMode =
+  currentRouteName === "dashboard" || currentRouteName === "quotations"
+    ? "quotation"
+    : currentRouteName === "products"
+    ? "products"
+    : currentRouteName === "reports"
+    ? "reports"
+    : currentRouteName === "settings"
+    ? "settings"
+    : null;
+  const isDashboardOrQuotation = fabMode === "quotation";
+ const handleQuickAddPress = () => {
+  const toValue = isFabExpanded ? 0 : 1;
 
-  const handleQuickAddPress = () => {
-    if (isDashboardOrQuotation) {
-      const toValue = isFabExpanded ? 0 : 1;
-      Animated.spring(animation, {
-        toValue,
-        friction: 5,
-        useNativeDriver: true,
-      }).start();
-      setIsFabExpanded(!isFabExpanded);
-    } else {
-      const section = currentRouteName === 'products' ? productsSection : 'products';
-      requestQuickAdd('products', section);
+  Animated.spring(animation, {
+    toValue,
+    friction: 5,
+    useNativeDriver: true,
+  }).start();
 
-      if (currentRouteName !== 'products') {
-        navigation.navigate('products');
-      }
-    }
-  };
-
+  setIsFabExpanded(!isFabExpanded);
+};
   const invoiceAnimatedStyle = {
     opacity: animation,
     position: 'absolute' as const,
@@ -94,6 +111,8 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
     outputRange: [0, 0, 1],
   });
 
+  const { colors, isDark } = useTheme();
+
   return (
     <View style={styles.container}>
       <View style={styles.tabBackgroundWrapper}>
@@ -108,7 +127,11 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
             strokeWidth="1"
           />
         </Svg>
-        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+        <BlurView
+          intensity={20}
+          tint={isDark ? "dark" : "light"}
+          style={StyleSheet.absoluteFill}
+        />
       </View>
 
       <View style={styles.tabContent}>
@@ -117,7 +140,9 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
           if (!allowedTabs.includes(route.name)) return null;
 
           const isFocused = state.index === index;
-          const color = isFocused ? '#7dd3fc' : '#a0b4c4';
+          const color = isFocused
+          ? colors.primary
+          : colors.textSecondary;
 
           const onPress = () => {
             if (route.name === 'dummy') return; // Do nothing for center dummy tab
@@ -137,41 +162,296 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
             return (
               <View key={route.key} style={styles.fabContainer}>
                 <View style={{ position: 'relative' }}>
-                  {isDashboardOrQuotation && (
+                  {fabMode === "quotation" && (
                     <>
                       <Animated.View style={invoiceAnimatedStyle} pointerEvents={isFabExpanded ? 'box-none' : 'none'}>
-                        <Animated.View style={[styles.fabActionLabel, { position: 'absolute', left: -18, top: -36, width: 85, opacity: labelOpacity }]}>
-                          <Text style={styles.fabActionLabelText} numberOfLines={1}>Invoice</Text>
+                        <Animated.View style={[styles.fabActionLabel, {backgroundColor: colors.surfaceVariant, position: 'absolute', left: -18, top: -36, width: 85, opacity: labelOpacity }]}>
+                          <Text  style={[
+                          styles.fabActionLabelText,
+                          {
+                            color: colors.text,
+                          },
+                        ]}numberOfLines={1}>Invoice</Text>
                         </Animated.View>
-                        <TouchableOpacity style={styles.fabActionButton} onPress={() => { handleQuickAddPress(); navigation.navigate('create-invoice'); }}>
-                          <Receipt color="#7dd3fc" size={24} />
+                        <TouchableOpacity style={[
+                          styles.fabActionButton,
+                          {
+                            backgroundColor: colors.surface,
+                          },
+                        ]} onPress={() => { handleQuickAddPress(); navigation.navigate('create-invoice'); }}>
+                          <Receipt color={colors.primary}size={24} />
                         </TouchableOpacity>
                       </Animated.View>
 
                       <Animated.View style={quotationAnimatedStyle} pointerEvents={isFabExpanded ? 'box-none' : 'none'}>
-                        <Animated.View style={[styles.fabActionLabel, { position: 'absolute', right: 58, top: 12, width: 85, opacity: labelOpacity }]}>
-                          <Text style={styles.fabActionLabelText} numberOfLines={1}>Quotation</Text>
+                        <Animated.View style={[styles.fabActionLabel, { backgroundColor: colors.surfaceVariant,position: 'absolute', right: 50, top: 12, width: 85, opacity: labelOpacity }]}>
+                          <Text  style={[
+                          styles.fabActionLabelText,
+                          {
+                            color: colors.text,
+                          },
+                        ]} numberOfLines={1}>Quotation</Text>
                         </Animated.View>
-                        <TouchableOpacity style={styles.fabActionButton} onPress={() => { handleQuickAddPress(); navigation.navigate('create-quotation'); }}>
-                          <FileText color="#7dd3fc" size={24} />
+                        <TouchableOpacity style={[
+                          styles.fabActionButton,
+                          {
+                            backgroundColor: colors.surface,
+                          },
+                        ]} onPress={() => { handleQuickAddPress(); navigation.navigate('create-quotation'); }}>
+                          <FileText color={colors.primary} size={24} />
                         </TouchableOpacity>
                       </Animated.View>
 
                       <Animated.View style={expenseAnimatedStyle} pointerEvents={isFabExpanded ? 'box-none' : 'none'}>
-                        <Animated.View style={[styles.fabActionLabel, { position: 'absolute', left: 58, top: 12, width: 85, opacity: labelOpacity }]}>
-                          <Text style={styles.fabActionLabelText} numberOfLines={1}>Expense</Text>
+                        <Animated.View style={[styles.fabActionLabel, { backgroundColor: colors.surfaceVariant,position: 'absolute', left: 50, top: 12, width: 85, opacity: labelOpacity }]}>
+                                                <Text  style={[
+                          styles.fabActionLabelText,
+                          {
+                            color: colors.text,
+                          },
+                        ]} numberOfLines={1}>Expense</Text>
                         </Animated.View>
-                        <TouchableOpacity style={styles.fabActionButton} onPress={() => { handleQuickAddPress(); navigation.navigate('create-expense'); }}>
-                          <Wallet color="#7dd3fc" size={24} />
+                        <TouchableOpacity style={[
+                          styles.fabActionButton,
+                          {
+                            backgroundColor: colors.surface,
+                          },
+                        ]} onPress={() => { handleQuickAddPress(); navigation.navigate('create-expense'); }}>
+                          <Wallet color={colors.primary} size={24} />
                         </TouchableOpacity>
                       </Animated.View>
                     </>
                   )}
-                  <TouchableOpacity style={styles.fabButton} activeOpacity={0.8} onPress={handleQuickAddPress}>
-                    <Animated.View style={isDashboardOrQuotation ? mainButtonAnimatedStyle : {}}>
-                      <Plus color="#001f2e" size={24} strokeWidth={3} />
+
+                  {fabMode === "products" && (
+                    <>
+                      <Animated.View
+                        style={quotationAnimatedStyle}
+                        pointerEvents={isFabExpanded ? "box-none" : "none"}
+                      >
+                        <Animated.View
+                          style={[
+                            styles.fabActionLabel,
+                            {
+                              backgroundColor: colors.surfaceVariant,
+                              position: "absolute",
+                              right: 50,
+                              top: 12,
+                              width: 85,
+                              opacity: labelOpacity,
+                            },
+                          ]}
+                        >
+                          <Text  style={[
+                            styles.fabActionLabelText,
+                            {
+                              color: colors.text,
+                            },
+                          ]}>Create Product</Text>
+                        </Animated.View>
+
+                        <TouchableOpacity
+                           style={[
+                            styles.fabActionButton,
+                            {
+                              backgroundColor: colors.surface,
+                            },
+                          ]}
+                         onPress={() => {
+                            handleQuickAddPress();
+
+                            requestQuickAdd("products", "products");
+
+                            navigation.navigate("products");
+                          }}
+                        >
+                          <Package color={colors.primary} size={24} />
+                        </TouchableOpacity>
+                      </Animated.View>
+
+                      <Animated.View
+                        style={expenseAnimatedStyle}
+                        pointerEvents={isFabExpanded ? "box-none" : "none"}
+                      >
+                        <Animated.View
+                          style={[
+                            styles.fabActionLabel,
+                            {
+                              backgroundColor: colors.surfaceVariant,
+                              position: "absolute",
+                              left: 50,
+                              top: 12,
+                              width: 88,
+                              opacity: labelOpacity,
+                            },
+                          ]}
+                        >
+                          <Text  style={[
+                            styles.fabActionLabelText,
+                            {
+                              color: colors.text,
+                            },
+                          ]}>Create Customer</Text>
+                        </Animated.View>
+
+                        <TouchableOpacity
+                           style={[
+                            styles.fabActionButton,
+                            {
+                              backgroundColor: colors.surface,
+                            },
+                          ]}
+                          onPress={() => {
+                            handleQuickAddPress();
+
+                            requestQuickAdd("products", "customers");
+
+                            navigation.navigate("products");
+                          }}
+                        >
+                          <FileText color={colors.primary} size={24} />
+                        </TouchableOpacity>
+                      </Animated.View>
+                    </>
+                  )}
+
+                  {fabMode === "reports" && (
+                <>
+                  <Animated.View
+                    style={quotationAnimatedStyle}
+                    pointerEvents={isFabExpanded ? "box-none" : "none"}
+                  >
+                    <Animated.View
+                      style={[
+                        styles.fabActionLabel,
+                        {
+                          backgroundColor: colors.surfaceVariant,
+                          position: "absolute",
+                          right: 50,
+                          top: 12,
+                          width: 85,
+                          opacity: labelOpacity,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                        styles.fabActionLabelText,
+                        {
+                        color: colors.text,
+                        },
+                        ]}
+
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
+                        Profit
+                      </Text>
                     </Animated.View>
-                  </TouchableOpacity>
+
+                    <TouchableOpacity
+                       style={[
+                          styles.fabActionButton,
+                          {
+                            backgroundColor: colors.surface,
+                          },
+                        ]}
+                      onPress={() => {
+                        handleQuickAddPress();
+                        Alert.alert("Download Profit Report");
+                      }}
+                    >
+                      <BarChart3 color={colors.primary} size={24} />
+                    </TouchableOpacity>
+                  </Animated.View>
+
+                  <Animated.View
+                    style={expenseAnimatedStyle}
+                    pointerEvents={isFabExpanded ? "box-none" : "none"}
+                  >
+                    <Animated.View
+                      style={[
+                        styles.fabActionLabel,
+                        {
+                          backgroundColor: colors.surfaceVariant,
+                          position: "absolute",
+                          left: 50,
+                          top: 12,
+                          width: 88,
+                          opacity: labelOpacity,
+                        },
+                      ]}
+                    >
+                      <Text
+                                              
+                        style={[
+                          styles.fabActionLabelText,
+                          {
+                            color: colors.text,
+                          },
+                        ]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
+                        Sales
+                      </Text>
+                    </Animated.View>
+
+                    <TouchableOpacity
+                       style={[
+                          styles.fabActionButton,
+                          {
+                            backgroundColor: colors.surface,
+                          },
+                        ]}
+                      onPress={() => {
+                        handleQuickAddPress();
+                        Alert.alert("Download Sales Report");
+                      }}
+                    >
+                      <BarChart3 color={colors.primary} size={24} />
+                    </TouchableOpacity>
+                  </Animated.View>
+                </>
+              )}
+              
+              {fabMode === "settings" ? (
+                      <TouchableOpacity
+                        style={[
+                          styles.fabButton,
+                          { backgroundColor: colors.primary },
+                        ]}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          Alert.alert("Upgrade Plan");
+                          // navigation.navigate("subscription");
+                        }}
+                      >
+                        <Crown
+                          color={isDark ? "#001F2E" : "#FFFFFF"}
+                          size={24}
+                        />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={[
+                          styles.fabButton,
+                          { backgroundColor: colors.primary },
+                        ]}
+                        activeOpacity={0.8}
+                        onPress={handleQuickAddPress}
+                      >
+                        <Animated.View
+                          style={isDashboardOrQuotation ? mainButtonAnimatedStyle : {}}
+                        >
+                          <Plus
+                            color={isDark ? "#001F2E" : "#FFFFFF"}
+                            size={24}
+                            strokeWidth={3}
+                          />
+                        </Animated.View>
+                      </TouchableOpacity>
+                    )}
                 </View>
               </View>
             );
@@ -236,7 +516,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#7dd3fc',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
@@ -251,14 +530,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#0f172a',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(125, 211, 252, 0.3)',
   },
   fabActionLabel: {
-    backgroundColor: '#1e293b',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -267,7 +544,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   fabActionLabelText: {
-    color: '#e2e8f0',
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',

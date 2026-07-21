@@ -70,7 +70,10 @@ export default function BranchSettingsScreen() {
             <Text style={[styles.title, { color: colors.text }]}>{branches.length} Branches configured</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Manage your business locations</Text>
           </View>
-          <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary + '1A', borderColor: colors.primary + '4D' }]}>
+          <TouchableOpacity 
+            onPress={() => router.push('/settings/create-branch')}
+            style={[styles.addButton, { backgroundColor: colors.primary + '1A', borderColor: colors.primary + '4D' }]}
+          >
             <Plus color={colors.primary} size={20} />
             <Text style={[styles.addButtonText, { color: colors.primary }]}>Add Branch</Text>
           </TouchableOpacity>

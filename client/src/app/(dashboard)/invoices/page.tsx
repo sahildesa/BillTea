@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import PdfViewerModal from '@/components/PdfViewerModal';
 import { apiFetch } from '@/lib/auth';
 import { useBranch } from '@/components/BranchProvider';
 
@@ -12,6 +13,7 @@ interface Invoice {
   invoiceDate: string;
   dueDate: string;
   customer: {
+    id: string;
     customerName: string;
     companyName: string;
   };
@@ -36,6 +38,13 @@ export default function InvoicesPage() {
   const [viewerPdfUrl, setViewerPdfUrl] = useState<{url: string, title: string, id: string} | null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
+  // Filter States
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState('ALL');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Payment Modal State
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<Invoice | null>(null);
@@ -50,7 +59,10 @@ export default function InvoicesPage() {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const toggleDropdown = (name: string) => {
+    setActiveDropdown(prev => prev === name ? null : name);
+  };
 
   const stats = React.useMemo(() => {
     const total = invoices.length;
@@ -164,7 +176,7 @@ export default function InvoicesPage() {
 
   const handleDownloadPdf = async (id: string, invoiceNumber: string) => {
     try {
-      const res = await apiFetch(`/invoices/${id}/pdf`, {
+      const res = await apiFetch(`/invoices/${id}/pdf?t=${Date.now()}`, {
         method: 'GET',
       });
 
@@ -189,7 +201,7 @@ export default function InvoicesPage() {
   const handleViewPdf = async (id: string, invoiceNumber: string) => {
     try {
       setIsLoadingPdf(true);
-      const res = await apiFetch(`/invoices/${id}/pdf`, {
+      const res = await apiFetch(`/invoices/${id}/pdf?t=${Date.now()}`, {
         method: 'GET',
       });
 
@@ -290,16 +302,67 @@ export default function InvoicesPage() {
     }
   };
 
+  // ---- Unique customers for the filter dropdown ----
+  const uniqueCustomers = useMemo(() => {
+    const map = new Map<string, { id: string; customerName: string; companyName: string }>();
+    invoices.forEach((inv) => {
+      const c = inv.customer;
+      if (c?.id && !map.has(c.id)) {
+        map.set(c.id, { id: c.id, customerName: c.customerName, companyName: c.companyName });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.customerName.localeCompare(b.customerName));
+  }, [invoices]);
+
+  const hasActiveFilters = Boolean(
+    searchQuery || fromDate || toDate || selectedCustomerId !== 'ALL' || selectedStatus !== 'ALL'
+  );
+
+  const handleClearFilters = () => {
+    setFromDate('');
+    setToDate('');
+    setSelectedCustomerId('ALL');
+    setSelectedStatus('ALL');
+    setSearchQuery('');
+    setCurrentPage(1);
+  };
+
+  // ---- Search + Filters (customer, date range, status) ----
   const filteredInvoices = invoices.filter(invoice => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const nameMatch = invoice.customer?.customerName?.toLowerCase().includes(query) ||
+                        invoice.customer?.companyName?.toLowerCase().includes(query);
+      const amountMatch = invoice.totals?.grandTotal?.toString().includes(query);
+      const invoiceNumberMatch = invoice.invoiceNumber?.toLowerCase().includes(query);
+      if (!(nameMatch || amountMatch || invoiceNumberMatch)) return false;
+    }
 
-    const nameMatch = invoice.customer?.customerName?.toLowerCase().includes(query) ||
-                      invoice.customer?.companyName?.toLowerCase().includes(query);
-    const amountMatch = invoice.totals?.grandTotal?.toString().includes(query);
-    const invoiceNumberMatch = invoice.invoiceNumber?.toLowerCase().includes(query);
+    if (selectedCustomerId !== 'ALL' && invoice.customer?.id !== selectedCustomerId) {
+      return false;
+    }
 
-    return nameMatch || amountMatch || invoiceNumberMatch;
+    if (selectedStatus !== 'ALL' && invoice.status !== selectedStatus) {
+      return false;
+    }
+
+    if (fromDate || toDate) {
+      const invDate = new Date(invoice.invoiceDate);
+
+      if (fromDate) {
+        const from = new Date(fromDate);
+        from.setHours(0, 0, 0, 0);
+        if (invDate < from) return false;
+      }
+
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999);
+        if (invDate > to) return false;
+      }
+    }
+
+    return true;
   });
 
   // The "most recent" invoice is the one you're allowed to delete/fully-edit inline.
@@ -359,10 +422,10 @@ export default function InvoicesPage() {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [totalPages, currentPage]);
 
-  // Reset to page 1 whenever the search query changes.
+  // Reset to page 1 whenever the search query or any filter changes.
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, fromDate, toDate, selectedCustomerId, selectedStatus]);
 
   const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
   const endIndex = Math.min(currentPage * entriesPerPage, totalCount);
@@ -371,24 +434,13 @@ export default function InvoicesPage() {
     return sortedInvoices.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
   }, [sortedInvoices, currentPage, entriesPerPage]);
 
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    if (totalPages <= maxButtons) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxButtons - 1);
-    start = Math.max(1, end - maxButtons + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [totalPages, currentPage]);
-
   const handleEntriesPerPageChange = (n: number) => {
     setEntriesPerPage(n);
     setCurrentPage(1);
   };
 
   const sortHeaderClass = (key: string) =>
-    `px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group ${
+    `px-6 py-4 font-semibold tracking-wider cursor-pointer hover:text-primary transition-colors group outline-none focus:outline-none [-webkit-tap-highlight-color:transparent] ${
       sortConfig?.key === key ? 'text-primary' : ''
     }`;
 
@@ -398,107 +450,335 @@ export default function InvoicesPage() {
     }`;
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
-              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">Invoices</span></h1>
-          <p className="text-on-surface-variant text-lg">Manage and track your invoices.</p>
-          </div>
-        <Link href="/invoices/new">
-          <button
-            disabled={!selectedBranchId}
-            className="glass-button-primary rounded-lg py-2.5 px-5 flex items-center gap-2 text-sm font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-            Create Invoice
-          </button>
-        </Link>
+    <>
+      {activeDropdown && (
+        <div 
+          className="fixed inset-0 z-40 cursor-default" 
+          onClick={() => setActiveDropdown(null)} 
+        />
+      )}
+      <div
+        className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+      <style jsx global>{`
+        table, thead, tbody, tr, td, th {
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          user-select: none !important;
+        }
+        table ::selection,
+        tr::selection, tr *::selection,
+        td::selection, td *::selection,
+        th::selection, th *::selection,
+        button::selection, button *::selection,
+        span::selection {
+          background: transparent !important;
+          color: inherit !important;
+        }
+        button, th, select, input, a, tr, td, span, [role='button'] {
+          -webkit-tap-highlight-color: transparent !important;
+          -webkit-touch-callout: none !important;
+          outline: none !important;
+        }
+        button::-moz-focus-inner {
+          border: 0 !important;
+        }
+        th, th:focus, th:active,
+        button:focus, button:active,
+        select:focus, select:active {
+          outline: none !important;
+          box-shadow: none !important;
+        }
+      `}</style>
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+      `}} />
+
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
       </div>
 
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+            <span className="material-symbols-outlined text-[14px]">receipt_long</span>
+            Invoices Management
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+            <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+              Invoices
+            </span>
+          </h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed">
+            Manage and track your invoices. Create new invoices, monitor their status, and record payments.
+          </p>
+        </div>
+        <Link href="/invoices/new">
+          <button 
+            disabled={!selectedBranchId}
+            className="group relative h-14 px-8 rounded-2xl bg-primary text-on-primary font-bold flex items-center gap-3 overflow-hidden shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="absolute inset-0 w-full h-full bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
+            <span className="material-symbols-outlined">add</span>
+            <span>Create Invoice</span>
+          </button>
+        </Link>
+      </header>
+
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3 relative z-10">
+        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3 relative z-10 animate-fade-slide-up">
           <span className="material-symbols-outlined text-error mt-0.5">error</span>
           <p className="text-sm text-error font-medium">{error}</p>
         </div>
       )}
 
-     {/* Metrics Grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
-  </div>
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Invoices</p>
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{stats.total}</p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">for this branch</p>
+        </div>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Unpaid / Overdue</p>
-      <span className="material-symbols-outlined text-red-500 p-2 rounded-lg bg-red-500/10">error_outline</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.unpaid}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">
-      {stats.total > 0 ? `${Math.round((stats.unpaid / stats.total) * 100)}% of total` : 'no data yet'}
-    </p>
-  </div>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Unpaid / Overdue</p>
+            <span className="material-symbols-outlined text-red-500 p-2 rounded-lg bg-red-500/10">error_outline</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{stats.unpaid}</p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">
+            {stats.total > 0 ? `${Math.round((stats.unpaid / stats.total) * 100)}% of total` : 'no data yet'}
+          </p>
+        </div>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Billed</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">payments</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">
-      ₹ {stats.totalBilled.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-    </p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">across all invoices</p>
-  </div>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Billed</p>
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">payments</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">
+            ₹ {stats.totalBilled.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">across all invoices</p>
+        </div>
 
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Outstanding</p>
-      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">account_balance_wallet</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">
-      ₹ {stats.totalOutstanding.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-    </p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">yet to be collected</p>
-  </div>
-</div>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Outstanding</p>
+            <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">account_balance_wallet</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">
+            ₹ {stats.totalOutstanding.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </p>
+          <p className="mt-2 text-sm text-on-surface-variant/60 relative z-10">yet to be collected</p>
+        </div>
+      </div>
+
+       {/* Filters Section */}
+        <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-hidden animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.2s' }}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+          
+          <div className="flex items-center justify-between gap-3 mb-6 flex-wrap relative z-10">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">filter_list</span>
+              <h2 className="text-xl font-bold text-on-surface">Filters</h2>
+              {hasActiveFilters && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold">
+                  <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                  Active
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 hover:text-primary transition-colors tooltip cursor-pointer" title="Export PDF">
+                <span className="material-symbols-outlined">picture_as_pdf</span>
+              </button>
+              <button className="p-2 glass-button-icon rounded-lg hover:bg-primary/10 hover:text-primary transition-colors tooltip cursor-pointer" title="Export Excel">
+                <span className="material-symbols-outlined">table_view</span>
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">From Date</label>
+              <input 
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                type="date" 
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">To Date</label>
+              <input 
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                type="date" 
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Customer</label>
+              <div className="relative w-full" style={{ zIndex: activeDropdown === 'customerFilter' ? 50 : 10 }}>
+                <button
+                  type="button"
+                  className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium flex items-center justify-between cursor-pointer"
+                  onClick={() => toggleDropdown('customerFilter')}
+                >
+                  <span className="truncate">
+                    {selectedCustomerId === 'ALL' ? 'All Customers' : 
+                      uniqueCustomers.find(c => c.id === selectedCustomerId)?.customerName || 'Select Customer'}
+                  </span>
+                  <span className={`material-symbols-outlined text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'customerFilter' ? 'rotate-180' : ''}`}>expand_more</span>
+                </button>
+                
+                {activeDropdown === 'customerFilter' && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 max-h-60 overflow-y-auto custom-scrollbar">
+                    <div 
+                      onClick={() => { setSelectedCustomerId('ALL'); setActiveDropdown(null); }} 
+                      className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedCustomerId === 'ALL' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      All Customers
+                    </div>
+                    {uniqueCustomers.map(customer => (
+                      <div 
+                        key={customer.id}
+                        onClick={() => { setSelectedCustomerId(customer.id); setActiveDropdown(null); }} 
+                        className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedCustomerId === customer.id ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                      >
+                        {customer.customerName} {customer.companyName ? `(${customer.companyName})` : ''}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Payment Status</label>
+              <div className="relative w-full" style={{ zIndex: activeDropdown === 'statusFilter' ? 50 : 10 }}>
+                <button
+                  type="button"
+                  className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium flex items-center justify-between cursor-pointer"
+                  onClick={() => toggleDropdown('statusFilter')}
+                >
+                  <span>
+                    {selectedStatus === 'ALL' ? 'All Status' :
+                     selectedStatus === 'PAID' ? 'Paid' :
+                     selectedStatus === 'UNPAID' ? 'Pending' :
+                     selectedStatus === 'PARTIAL' ? 'Partial' :
+                     selectedStatus === 'OVERDUE' ? 'Overdue' : 'Select Status'}
+                  </span>
+                  <span className={`material-symbols-outlined text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'statusFilter' ? 'rotate-180' : ''}`}>expand_more</span>
+                </button>
+                
+                {activeDropdown === 'statusFilter' && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                    {[
+                      { value: 'ALL', label: 'All Status' },
+                      { value: 'PAID', label: 'Paid' },
+                      { value: 'UNPAID', label: 'Pending' },
+                      { value: 'PARTIAL', label: 'Partial' },
+                      { value: 'OVERDUE', label: 'Overdue' }
+                    ].map(status => (
+                      <div 
+                        key={status.value}
+                        onClick={() => { setSelectedStatus(status.value); setActiveDropdown(null); }} 
+                        className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedStatus === status.value ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                      >
+                        {status.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-8 flex flex-wrap gap-4 relative z-10">
+            <button 
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleClearFilters}
+              disabled={!hasActiveFilters}
+            >
+                  <span className="material-symbols-outlined text-[18px]">undo</span>
+              Reset Filters
+            </button>
+          </div>
+        </section>
 
       {/* Glassmorphic Data Table Container */}
-      <div className="glass-panel rounded-xl overflow-hidden shadow-lg border border-primary/10 relative z-10">
+      <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.3s' }}>
         {/* Glow Accent */}
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
-
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+        
         {/* Table Controls */}
-        <div className="p-6 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container/30">
-          <div className="flex items-center gap-3 text-sm text-on-surface-variant">
-            <span>Show</span>
-            <select
-              value={entriesPerPage}
-              onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
-              className="glass-input rounded-md py-1.5 px-3 text-on-surface focus:ring-0 focus:border-primary/50 text-sm cursor-pointer appearance-none pr-8 relative bg-surface-container-highest"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span>entries</span>
+        <div className="p-4 md:p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-surface-container-lowest">
+          <div className="flex items-center justify-between sm:justify-start gap-3 text-sm font-medium text-on-surface-variant w-full sm:w-auto relative" style={{ zIndex: activeDropdown === 'entries' ? 50 : 10 }}>
+            <div className="flex items-center gap-2">
+              <span>Show</span>
+              <div className="relative">
+                <button
+                  type="button"
+                  className="glass-input text-sm pl-3 pr-9 py-1.5 rounded-lg text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary/50 cursor-pointer bg-surface-container-highest flex items-center justify-between min-w-[70px]"
+                  onClick={() => toggleDropdown('entries')}
+                >
+                  <span>{entriesPerPage}</span>
+                  <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px] transition-transform duration-200 ${activeDropdown === 'entries' ? 'rotate-180' : ''}`}>expand_more</span>
+                </button>
+                
+                {activeDropdown === 'entries' && (
+                  <div className="absolute top-full left-0 mt-1 z-[60] bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 min-w-[70px]">
+                    <div 
+                      onClick={() => { handleEntriesPerPageChange(10); setActiveDropdown(null); }} 
+                      className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 10 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      10
+                    </div>
+                    <div 
+                      onClick={() => { handleEntriesPerPageChange(25); setActiveDropdown(null); }} 
+                      className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 25 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      25
+                    </div>
+                    <div 
+                      onClick={() => { handleEntriesPerPageChange(50); setActiveDropdown(null); }} 
+                      className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 50 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      50
+                    </div>
+                  </div>
+                )}
+              </div>
+              <span>entries</span>
+            </div>
           </div>
           <div className="relative w-full sm:w-auto">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
-            <input
-              className="glass-input pl-9 pr-4 py-2 rounded-lg text-sm text-on-surface placeholder-on-surface-variant/50 w-full sm:w-72 focus:outline-none transition-all"
-              placeholder="Search invoices..."
-              type="text"
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+            <input 
+              className="w-full sm:w-80 bg-surface-container border border-outline-variant/30 pl-11 pr-4 py-2.5 rounded-xl text-sm font-medium text-on-surface placeholder-on-surface-variant/60 focus:outline-none focus:bg-surface focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all" 
+              placeholder="Search invoices..." 
+              type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -506,8 +786,8 @@ export default function InvoicesPage() {
         </div>
 
         {/* The Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
             <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
               <tr>
                 <th className={sortHeaderClass('invoiceNumber')} scope="col" onClick={() => handleSort('invoiceNumber')}>
@@ -546,12 +826,12 @@ export default function InvoicesPage() {
                 </tr>
               ) : paginatedInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
-                      <span className="material-symbols-outlined text-[32px]">request_quote</span>
+                  <td colSpan={5} className="px-6 py-24 text-center">
+                    <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
+                      <span className="material-symbols-outlined text-5xl text-on-surface-variant opacity-60">receipt_long</span>
                     </div>
-                    <h3 className="text-lg font-bold text-on-surface">{searchQuery ? 'No matching invoices found' : 'No invoices yet'}</h3>
-                    <p className="text-sm text-on-surface-variant mt-1">{searchQuery ? 'Try adjusting your search filters.' : 'Create your first invoice for this branch.'}</p>
+                    <h3 className="text-2xl text-on-surface font-bold mb-3">{hasActiveFilters ? 'No matching invoices found' : 'No invoices yet'}</h3>
+                    <p className="text-on-surface-variant max-w-md mx-auto text-lg">{hasActiveFilters ? 'Try adjusting your search or filters.' : 'Create your first invoice for this branch.'}</p>
                   </td>
                 </tr>
               ) : (
@@ -665,8 +945,101 @@ export default function InvoicesPage() {
           </table>
         </div>
 
+        {/* Mobile Card List View */}
+        <div className="md:hidden divide-y divide-primary/5">
+          {isLoadingBranches || loading ? (
+            <div className="p-6 text-center text-on-surface-variant">
+              <div className="flex justify-center items-center gap-2">
+                <span className="material-symbols-outlined animate-spin">refresh</span> Loading invoices...
+              </div>
+            </div>
+          ) : paginatedInvoices.length === 0 ? (
+            <div className="px-6 py-16 text-center">
+              <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-4">
+                <span className="material-symbols-outlined text-3xl text-on-surface-variant opacity-60">receipt_long</span>
+              </div>
+              <h3 className="text-xl text-on-surface font-bold mb-2">{hasActiveFilters ? 'No matching invoices found' : 'No invoices yet'}</h3>
+              <p className="text-on-surface-variant text-sm">{hasActiveFilters ? 'Try adjusting your search or filters.' : 'Create your first invoice for this branch.'}</p>
+            </div>
+          ) : (
+            paginatedInvoices.map((invoice) => {
+              const isMostRecent = invoice.id === mostRecentInvoiceId;
+              return (
+                <div key={invoice.id} className="p-5 flex flex-col gap-4 hover:bg-primary/5 transition-colors duration-200">
+                  {/* Header Row */}
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-primary text-base">{invoice.invoiceNumber}</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${getStatusColor(invoice.status)}`}>
+                      {invoice.status}
+                    </span>
+                  </div>
+
+                  {/* Body: Customer & Amount */}
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-surface-container-highest border border-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                        {invoice.customer?.customerName?.substring(0, 2).toUpperCase() || 'NA'}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-on-surface font-semibold text-sm truncate">{invoice.customer?.customerName || 'Unknown'}</span>
+                        <span className="text-[11px] text-on-surface-variant/70 truncate">{invoice.customer?.companyName}</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[11px] text-on-surface-variant/70">Total Amount</div>
+                      <div className="font-bold text-on-surface text-sm">
+                        ₹ {invoice.totals?.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Date & Actions */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-primary/5">
+                    <div className="text-xs text-on-surface-variant">
+                      Date: {new Date(invoice.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
+                    
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 self-end flex-wrap">
+                      <button onClick={() => handleViewPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-2 rounded-lg transition-all hover:text-blue-400 hover:bg-blue-400/10 cursor-pointer" title="View">
+                        <span className="material-symbols-outlined text-[18px]">visibility</span>
+                      </button>
+                      <Link href={`/invoices/${invoice.id}/edit`}>
+                        <button className="glass-button-icon p-2 rounded-lg transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 cursor-pointer" title="Edit">
+                          <span className="material-symbols-outlined text-[18px]">edit</span>
+                        </button>
+                      </Link>
+                      <button onClick={() => handleOpenPaymentModal(invoice)} className="glass-button-icon p-2 rounded-lg transition-all hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 cursor-pointer" title="Add Payment">
+                        <span className="material-symbols-outlined text-[18px]">payments</span>
+                      </button>
+                      <button className="glass-button-icon p-2 rounded-lg transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 cursor-pointer" title="Send">
+                        <span className="material-symbols-outlined text-[18px]">send</span>
+                      </button>
+                      
+                      {isMostRecent ? (
+                        <>
+                          <button onClick={() => handleDownloadPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-2 rounded-lg transition-all hover:text-indigo-400 hover:border-indigo-400/30 hover:bg-indigo-400/10 cursor-pointer" title="Download PDF">
+                            <span className="material-symbols-outlined text-[18px]">download</span>
+                          </button>
+                          <button onClick={() => handleDelete(invoice.id)} className="glass-button-icon p-2 rounded-lg transition-all hover:text-error hover:border-error/30 hover:bg-error/10 cursor-pointer" title="Delete">
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </>
+                      ) : (
+                        <button onClick={() => handleDownloadPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-2 rounded-lg transition-all hover:text-indigo-400 hover:border-indigo-400/30 hover:bg-indigo-400/10 cursor-pointer" title="Download PDF">
+                          <span className="material-symbols-outlined text-[18px]">download</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
         {/* Pagination */}
-        <div className="p-6 border-t border-primary/10 bg-surface-container/30 flex flex-col gap-4">
+        <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
             <span className="text-sm text-on-surface-variant">
               {totalCount === 0
@@ -681,19 +1054,9 @@ export default function InvoicesPage() {
               >
                 Previous
               </button>
-              {pageNumbers.map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
-                    page === currentPage
-                      ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
-                      : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-[0_0_10px_rgba(125,211,252,0.3)]">
+                {currentPage}
+              </span>
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
@@ -708,90 +1071,27 @@ export default function InvoicesPage() {
 
       {/* PDF Viewer Modal */}
       {viewerPdfUrl && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-8">
-          <div className="absolute inset-0 bg-background/60 backdrop-blur-xl transition-opacity" onClick={closePdfViewer}></div>
-          <div className="bg-surface/80 backdrop-blur-2xl rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] w-full max-w-6xl overflow-hidden relative z-10 flex flex-col h-[90vh] animate-in zoom-in-95 fade-in duration-300 border border-white/10">
-
-            {/* Premium Toolbar */}
-            <div className="px-6 py-4 bg-gradient-to-r from-surface-container/50 to-surface-container/10 flex items-center justify-between border-b border-white/10 relative">
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
-
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
-                  <span className="material-symbols-outlined text-[24px]">picture_as_pdf</span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-headline font-bold text-on-surface tracking-tight leading-tight">Document Preview</h3>
-                  <p className="text-sm text-on-surface-variant font-medium mt-0.5">{viewerPdfUrl.title}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                {(() => {
-                  const activeInvoice = invoices.find(q => q.id === viewerPdfUrl.id);
-                  if (!activeInvoice) return null;
-
-                  return (
-                    <div className="flex items-center gap-2 hidden lg:flex">
-                      <Link href={`/invoices/${activeInvoice.id}/edit`}>
-                        <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Edit">
-                          <span className="material-symbols-outlined text-[20px]">edit</span>
-                        </button>
-                      </Link>
-
-                      <button onClick={() => { closePdfViewer(); handleOpenPaymentModal(activeInvoice); }} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Add Payment">
-                        <span className="material-symbols-outlined text-[20px]">payments</span>
-                      </button>
-                      <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Send">
-                        <span className="material-symbols-outlined text-[20px]">send</span>
-                      </button>
-                      <div className="w-px h-6 bg-white/10 mx-1"></div>
-                    </div>
-                  );
-                })()}
-
-                <a
-                  href={viewerPdfUrl.url}
-                  download={viewerPdfUrl.title}
-                  className="group relative inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:translate-y-0"
-                >
-                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-                  <span className="material-symbols-outlined text-[18px] relative z-10">download</span>
-                  <span className="relative z-10 text-sm hidden sm:inline-block">Download</span>
-                </a>
-                <div className="w-px h-8 bg-white/10 mx-1"></div>
-                <button onClick={closePdfViewer} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-error/10 hover:text-error border border-transparent hover:border-error/20 text-on-surface-variant transition-all cursor-pointer">
-                  <span className="material-symbols-outlined">close</span>
+        <PdfViewerModal
+          url={viewerPdfUrl.url}
+          title={viewerPdfUrl.title}
+          documentId={viewerPdfUrl.id}
+          documentType="invoice"
+          onClose={closePdfViewer}
+          renderActions={(documentId) => {
+            const activeInvoice = invoices.find(q => q.id === documentId);
+            if (!activeInvoice) return null;
+            return (
+              <>
+                <button onClick={() => { closePdfViewer(); handleOpenPaymentModal(activeInvoice as any); }} className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-purple-400/10 hover:text-purple-400 border border-transparent hover:border-purple-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Add Payment">
+                  <span className="material-symbols-outlined text-[20px]">payments</span>
                 </button>
-              </div>
-            </div>
-
-            {/* Content Area with sophisticated framing */}
-            <div className="flex-1 bg-black/40 p-2 sm:p-6 flex items-center justify-center overflow-hidden">
-              {isLoadingPdf ? (
-                <div className="flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in-95 duration-500">
-                  <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
-                    <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-                    <span className="absolute inset-0 flex items-center justify-center material-symbols-outlined text-primary text-2xl animate-pulse">description</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <h3 className="text-lg font-bold text-on-surface tracking-wide text-white">Generating PDF</h3>
-                    <p className="text-sm text-white/70 mt-1">Please wait while we render your document...</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full h-full max-w-[800px] bg-white rounded-xl shadow-2xl overflow-hidden relative border border-white/20">
-                  <iframe
-                    src={viewerPdfUrl.url}
-                    className="w-full h-full border-none"
-                    title="PDF Viewer"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+                <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest/50 hover:bg-emerald-400/10 hover:text-emerald-400 border border-transparent hover:border-emerald-400/20 text-on-surface-variant transition-all cursor-pointer tooltip" title="Send">
+                  <span className="material-symbols-outlined text-[20px]">send</span>
+                </button>
+              </>
+            );
+          }}
+        />
       )}
 
       {/* Add Payment Modal */}
@@ -825,7 +1125,7 @@ export default function InvoicesPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Amount (₹)</label>
                   <input type="number" step="0.01" max={Number((selectedInvoiceForPayment.totals.grandTotal - selectedInvoiceForPayment.amountPaid).toFixed(2))} value={paymentForm.amount} onChange={(e) => setPaymentForm({...paymentForm, amount: parseFloat(e.target.value) || 0})} className="glass-input px-4 py-2.5 rounded-lg text-sm font-bold text-on-surface w-full" />
@@ -937,6 +1237,17 @@ export default function InvoicesPage() {
           </div>
         </div>
       )}
+
+      {/* Footer Decoration */}
+      <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-8">
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+        <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+          BillTea Dashboard • Invoices
+        </p>
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+      </footer>
+      </div>
     </div>
+    </>
   );
 }

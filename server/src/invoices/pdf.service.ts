@@ -461,17 +461,43 @@ export class PdfService {
         <strong>Amount in Words:</strong> ${numberToWordsRupees(invoice.grandTotal)}
       </div>
 
-      ${invoice.termsAndConditions ? `
-      <div class="terms-box">
-        <div class="terms-title">Terms & Conditions:</div>
-        <div class="terms-text">${invoice.termsAndConditions}</div>
-      </div>
-      ` : `
-      <div class="terms-box">
-        <div class="terms-title">Terms & Conditions:</div>
-        <div class="terms-text">Terms of use</div>
-      </div>
-      `}
+      ${(() => {
+        let tncList: string[] = [];
+        const tncRaw = invoice.termsAndConditions;
+        if (Array.isArray(tncRaw)) {
+          tncList = tncRaw;
+        } else if (tncRaw && typeof tncRaw === 'object') {
+          if (Array.isArray((tncRaw as any).terms)) {
+             tncList = (tncRaw as any).terms;
+          } else if (typeof (tncRaw as any).text === 'string') {
+             tncList = (tncRaw as any).text.split('\n').filter((t: string) => t.trim() !== '');
+          } else {
+             tncList = Object.values(tncRaw).filter(v => typeof v === 'string') as string[];
+          }
+        } else if (typeof tncRaw === 'string') {
+          try {
+             const parsed = JSON.parse(tncRaw);
+             if (Array.isArray(parsed)) tncList = parsed;
+             else if (parsed && Array.isArray(parsed.terms)) tncList = parsed.terms;
+             else if (parsed && typeof parsed.text === 'string') tncList = parsed.text.split('\n').filter((t: string) => t.trim() !== '');
+             else if (parsed && typeof parsed === 'object') tncList = Object.values(parsed).filter(v => typeof v === 'string') as string[];
+             else tncList = tncRaw.split('\n').filter(t => t.trim() !== '');
+          } catch (e) {
+             tncList = tncRaw.split('\n').filter(t => t.trim() !== '');
+          }
+        }
+
+        if (tncList && tncList.length > 0) {
+          const formattedTnc = tncList.map(t => `<div style="margin-bottom: 2px;">• ${t}</div>`).join('');
+          return `
+            <div class="terms-box">
+              <div class="terms-title">Terms & Conditions:</div>
+              <div class="terms-text">${formattedTnc}</div>
+            </div>
+          `;
+        }
+        return '';
+      })()}
 
       <div class="footer-signatures">
         <div class="sig-box">
@@ -497,6 +523,9 @@ export class PdfService {
     try {
       const page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction('Array.from(document.images).every(img => img.complete)', { timeout: 4000 }).catch(() => {});
+      await new Promise(r => setTimeout(r, 500)); // wait for tailwind to apply
+      await page.evaluateHandle('document.fonts.ready').catch(() => {});
       
       const pdfBuffer = await page.pdf({
         format: 'A4',

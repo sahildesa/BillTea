@@ -2,10 +2,14 @@ import { Injectable, BadRequestException, NotFoundException, ConflictException }
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { UsageService } from '../subscriptions/usage.service';
 
 @Injectable()
 export class CustomersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private usageService: UsageService,
+  ) {}
 
   /**
    * Create a new customer for a branch.
@@ -41,6 +45,9 @@ export class CustomersService {
           createdById,
         },
       });
+
+      // Increment usage
+      await this.usageService.incrementCustomerUsage(companyId);
 
       return {
         success: true,

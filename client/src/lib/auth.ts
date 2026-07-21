@@ -43,42 +43,56 @@ export function logout(): void {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    window.location.href = '/login';
   }
 }
+
+let refreshPromise: Promise<string | null> | null = null;
 
 /**
  * Refresh the access token using the stored refresh token.
  * Returns the new access token on success, or null if refresh fails.
+ * Prevents race conditions by sharing a single promise for concurrent requests.
  */
 export async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
 
-  try {
-    const res = await fetch(`${API_BASE}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!res.ok) {
-      // Refresh failed — force logout
-      logout();
-      return null;
-    }
-
-    const data = await res.json();
-    if (data.success && data.accessToken && data.refreshToken) {
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('token', data.accessToken);
-      return data.accessToken;
-    }
-
-    return null;
-  } catch {
-    return null;
+  if (refreshPromise) {
+    return refreshPromise;
   }
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!res.ok) {
+        // Refresh failed — force logout
+        logout();
+        return null;
+      }
+
+      const data = await res.json();
+      if (data.success && data.accessToken && data.refreshToken) {
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('token', data.accessToken);
+        return data.accessToken;
+      }
+
+      return null;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 /**
@@ -96,14 +110,20 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  let res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const fetchOptions: RequestInit = {
+    ...options,
+    headers,
+    cache: options.cache || 'no-store'
+  };
+
+  let res = await fetch(`${API_BASE}${path}`, fetchOptions);
 
   // If 401 and we have a refresh token, try to refresh
   if (res.status === 401) {
     const newToken = await refreshAccessToken();
     if (newToken) {
-      headers['Authorization'] = `Bearer ${newToken}`;
-      res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+      fetchOptions.headers = { ...fetchOptions.headers, Authorization: `Bearer ${newToken}` };
+      res = await fetch(`${API_BASE}${path}`, fetchOptions);
     }
   }
 

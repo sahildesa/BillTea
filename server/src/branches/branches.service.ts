@@ -16,11 +16,18 @@ export class BranchesService {
     }
 
     try {
+      if (dto.isMainBranch) {
+        await this.prisma.branch.updateMany({
+          where: { companyId },
+          data: { isMainBranch: false }
+        });
+      }
+
       const branch = await this.prisma.branch.create({
         data: {
           companyId,
           name: dto.name,
-          isMainBranch: false,
+          isMainBranch: dto.isMainBranch || false,
           address: dto.address || '',
           city: dto.city || '',
           state: dto.state || '',
@@ -31,9 +38,10 @@ export class BranchesService {
           accountNumber: dto.accountNumber || '',
           ifscCode: dto.ifscCode || '',
           upiId: dto.upiId || '',
-          signatureType: dto.signatureType || 'TEXT',
           signatureValue: dto.signatureValue || '',
           tax: dto.tax !== undefined ? dto.tax : 0,
+          taxLabel: dto.taxLabel || '',
+          isActive: dto.isActive !== undefined ? dto.isActive : true,
         },
       });
 
@@ -53,14 +61,24 @@ export class BranchesService {
   /**
    * List all active branches for a company.
    */
-  async findAll(companyId: string | null) {
+  async findAll(companyId: string | null, includeInactive: boolean = false) {
     if (!companyId) {
       throw new BadRequestException('No company found.');
     }
 
+    const whereClause: any = { companyId };
+    if (!includeInactive) {
+      whereClause.isActive = true;
+    }
+
     const branches = await this.prisma.branch.findMany({
-      where: { companyId, isActive: true },
+      where: whereClause,
       orderBy: [{ isMainBranch: 'desc' }, { createdAt: 'asc' }],
+      include: {
+        _count: {
+          select: { customers: true, invoices: true }
+        }
+      }
     });
 
     return {
@@ -93,11 +111,20 @@ export class BranchesService {
     if (dto.accountNumber !== undefined) updateData.accountNumber = dto.accountNumber;
     if (dto.ifscCode !== undefined) updateData.ifscCode = dto.ifscCode;
     if (dto.upiId !== undefined) updateData.upiId = dto.upiId;
-    if (dto.signatureType !== undefined) updateData.signatureType = dto.signatureType;
     if (dto.signatureValue !== undefined) updateData.signatureValue = dto.signatureValue;
     if (dto.tax !== undefined) updateData.tax = dto.tax;
+    if (dto.taxLabel !== undefined) updateData.taxLabel = dto.taxLabel;
+    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+    if (dto.isMainBranch !== undefined) updateData.isMainBranch = dto.isMainBranch;
 
     try {
+      if (dto.isMainBranch) {
+        await this.prisma.branch.updateMany({
+          where: { companyId },
+          data: { isMainBranch: false }
+        });
+      }
+
       const updatedBranch = await this.prisma.branch.update({
         where: { id: branchId },
         data: updateData,

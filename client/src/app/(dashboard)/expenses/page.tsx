@@ -35,9 +35,9 @@ export default function ExpensesPage() {
   const { selectedBranchId, isLoadingBranches } = useBranch();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
-  
+
   // Expense Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -63,7 +63,7 @@ export default function ExpensesPage() {
     date: new Date().toISOString().split('T')[0],
   });
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
-  
+
   // Combobox State
   const [categorySearch, setCategorySearch] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -76,14 +76,33 @@ export default function ExpensesPage() {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // ---- Filters ----
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+
+  const activeFilterCount = [filterCategory, filterPaymentMethod, filterDateFrom, filterDateTo].filter(
+    Boolean
+  ).length;
+
+  const clearFilters = () => {
+    setFilterCategory('');
+    setFilterPaymentMethod('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+  };
+
   useEffect(() => {
-    if (selectedBranchId) {
-      fetchExpenses();
-      fetchCategories();
-    } else {
-      setExpenses([]);
-    }
-  }, [selectedBranchId]);
+  if (selectedBranchId) {
+    fetchExpenses();
+    fetchCategories();
+  } else {
+    setExpenses([]);
+    setCategories([]);
+  }
+}, [selectedBranchId]); // dependencies only
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -96,33 +115,39 @@ export default function ExpensesPage() {
   }, []);
 
   const fetchExpenses = async () => {
-    if (!selectedBranchId) return;
-    try {
-      setLoading(true);
-      const res = await apiFetch(`/expenses?branchId=${selectedBranchId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setExpenses(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch expenses', err);
-    } finally {
-      setLoading(false);
+  if (!selectedBranchId) {
+    setExpenses([]);
+    return;
+  }
+  try {
+    const res = await apiFetch(`/expenses?branch=${selectedBranchId}`);
+    if (res.ok) {
+      const data = await res.json();
+      setExpenses(data || []);
     }
-  };
+  } catch (err) {
+    console.error("Failed to fetch expenses:", err);
+    setExpenses([]);
+  }
+};
 
-  const fetchCategories = async () => {
-    if (!selectedBranchId) return;
-    try {
-      const res = await apiFetch(`/expense-categories?branchId=${selectedBranchId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch categories', err);
+const fetchCategories = async () => {
+  if (!selectedBranchId) {
+    setCategories([]);
+    return;
+  }
+  try {
+    const res = await apiFetch(`/categories?branch=${selectedBranchId}`);
+    if (res.ok) {
+      const data = await res.json();
+      setCategories(data || []);
     }
-  };
+  } catch (err) {
+    console.error("Failed to fetch categories:", err);
+    setCategories([]);
+  }
+};
+
 
   const openNewModal = () => {
     setIsEditMode(false);
@@ -189,7 +214,7 @@ export default function ExpensesPage() {
       submitData.append('paymentMethod', formData.paymentMethod);
       submitData.append('note', formData.note);
       submitData.append('date', formData.date);
-      
+
       if (attachmentFile) {
         submitData.append('attachment', attachmentFile);
       }
@@ -247,7 +272,7 @@ export default function ExpensesPage() {
       const res = await apiFetch(`/expense-categories/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editCategoryName })
+        body: JSON.stringify({ name: editCategoryName }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -275,7 +300,7 @@ export default function ExpensesPage() {
     }
   };
 
-  const filteredCategories = categories.filter(c => c.name.toLowerCase().includes(categorySearch.toLowerCase()));
+  const filteredCategories = categories.filter((c) => c.name.toLowerCase().includes(categorySearch.toLowerCase()));
 
   const stats = useMemo(() => {
     const total = expenses.length;
@@ -299,18 +324,41 @@ export default function ExpensesPage() {
     return { total, totalAmount, thisMonthAmount, topCategory };
   }, [expenses]);
 
-  // ---- Table search ----
+  // ---- Table search + filters ----
   const filteredExpenses = useMemo(() => {
-    if (!tableSearchQuery) return expenses;
-    const query = tableSearchQuery.toLowerCase();
-    return expenses.filter((e) => {
-      const categoryMatch = e.category?.name?.toLowerCase().includes(query);
-      const noteMatch = e.note?.toLowerCase().includes(query);
-      const methodMatch = e.paymentMethod?.toLowerCase().includes(query);
-      const amountMatch = e.amount?.toString().includes(query);
-      return categoryMatch || noteMatch || methodMatch || amountMatch;
-    });
-  }, [expenses, tableSearchQuery]);
+    let result = expenses;
+
+    if (tableSearchQuery) {
+      const query = tableSearchQuery.toLowerCase();
+      result = result.filter((e) => {
+        const categoryMatch = e.category?.name?.toLowerCase().includes(query);
+        const noteMatch = e.note?.toLowerCase().includes(query);
+        const methodMatch = e.paymentMethod?.toLowerCase().includes(query);
+        const amountMatch = e.amount?.toString().includes(query);
+        return categoryMatch || noteMatch || methodMatch || amountMatch;
+      });
+    }
+
+    if (filterCategory) {
+      result = result.filter((e) => (e.category?.name || 'Uncategorized') === filterCategory);
+    }
+
+    if (filterPaymentMethod) {
+      result = result.filter((e) => e.paymentMethod === filterPaymentMethod);
+    }
+
+    if (filterDateFrom) {
+      const from = new Date(filterDateFrom).getTime();
+      result = result.filter((e) => new Date(e.date).getTime() >= from);
+    }
+
+    if (filterDateTo) {
+      const to = new Date(filterDateTo).getTime() + 86399999; // include the whole "to" day
+      result = result.filter((e) => new Date(e.date).getTime() <= to);
+    }
+
+    return result;
+  }, [expenses, tableSearchQuery, filterCategory, filterPaymentMethod, filterDateFrom, filterDateTo]);
 
   // ---- Sorting ----
   const handleSort = (key: SortKey) => {
@@ -330,11 +378,16 @@ export default function ExpensesPage() {
 
   const sortValue = (e: Expense, key: SortKey): string | number => {
     switch (key) {
-      case 'date': return new Date(e.date).getTime() || 0;
-      case 'amount': return e.amount || 0;
-      case 'paymentMethod': return e.paymentMethod || '';
-      case 'category': return e.category?.name || '';
-      default: return '';
+      case 'date':
+        return new Date(e.date).getTime() || 0;
+      case 'amount':
+        return e.amount || 0;
+      case 'paymentMethod':
+        return e.paymentMethod || '';
+      case 'category':
+        return e.category?.name || '';
+      default:
+        return '';
     }
   };
 
@@ -361,7 +414,7 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [tableSearchQuery]);
+  }, [tableSearchQuery, filterCategory, filterPaymentMethod, filterDateFrom, filterDateTo]);
 
   const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
   const endIndex = Math.min(currentPage * entriesPerPage, totalCount);
@@ -369,17 +422,6 @@ export default function ExpensesPage() {
   const paginatedExpenses = useMemo(() => {
     return sortedExpenses.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
   }, [sortedExpenses, currentPage, entriesPerPage]);
-
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    if (totalPages <= maxButtons) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxButtons - 1);
-    start = Math.max(1, end - maxButtons + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [totalPages, currentPage]);
 
   const handleEntriesPerPageChange = (n: number) => {
     setEntriesPerPage(n);
@@ -398,265 +440,351 @@ export default function ExpensesPage() {
 
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-theme(spacing.16))] bg-background overflow-hidden relative">
-      <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
-        <div className="max-w-[1600px] mx-auto w-full space-y-8 pb-20">
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-               <h1 className="text-3xl md:text-4xl font-black tracking-tight font-display mb-2">
-              <span className="bg-gradient-to-br from-primary to-tertiary bg-clip-text text-transparent">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide-up {
+          opacity: 0;
+          animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+        .no-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+      `}} />
+      <style jsx global>{`
+  table, thead, tbody, tr, td, th {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+  }
+  table ::selection,
+  tr::selection, tr *::selection,
+  td::selection, td *::selection,
+  th::selection, th *::selection,
+  button::selection, button *::selection,
+  span::selection {
+    background: transparent !important;
+    color: inherit !important;
+  }
+  button, th, select, input, a, tr, td, span, [role='button'] {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    outline: none !important;
+  }
+  button::-moz-focus-inner {
+    border: 0 !important;
+  }
+  th, th:focus, th:active {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+`}</style>
+      <div
+        className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+      {/* Premium Background */}
+      <div className="fixed inset-0 z-0 bg-surface pointer-events-none">
+        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-tertiary/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/5 blur-[100px]"></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-12 pb-16">
+
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(125,211,252,0.15)]">
+            <span className="material-symbols-outlined text-[14px]">account_balance_wallet</span>
+            Financial Overview
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight font-display mb-4">
+            <span className="text-on-surface">Manage </span>
+            <span className="bg-gradient-to-br from-primary via-secondary to-tertiary bg-clip-text text-transparent">
               Expenses
-              </span>
-              </h1>
-              <p className="text-on-surface-variant text-lg">Track and manage your branch expenditures</p>
+            </span>
+          </h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed">
+            Track and manage your branch expenditures.
+          </p>
+        </div>
+        <div className="w-full md:w-auto">
+          <button
+            onClick={openNewModal}
+            disabled={!selectedBranchId}
+            className="w-full md:w-auto group relative h-14 px-8 rounded-2xl bg-surface-container-highest border border-primary/20 text-primary font-bold flex items-center justify-center gap-3 overflow-hidden shadow-[0_0_15px_rgba(125,211,252,0.1)] hover:shadow-[0_0_25px_rgba(125,211,252,0.3)] transition-all hover:-translate-y-0.5 hover:border-primary/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="absolute inset-0 w-full h-full bg-primary/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
+            <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">add</span>
+            <span>Add Expense</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.3s' }}>
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Expenses</p>
+            <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
+          </div>
+          <p className="text-3xl font-bold text-on-surface tracking-tight relative z-10">{stats.total}</p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-red-500/40 hover:shadow-[0_20px_40px_-15px_rgba(239,68,68,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-500/5 rounded-full blur-2xl group-hover:bg-red-500/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Spent</p>
+            <span className="material-symbols-outlined text-red-500 p-2 rounded-lg bg-red-500/10">payments</span>
+          </div>
+          <p className="text-3xl font-bold text-red-500 tracking-tight relative z-10 whitespace-nowrap">
+            ₹ {stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-blue-500/40 hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">This Month</p>
+            <span className="material-symbols-outlined text-blue-500 p-2 rounded-lg bg-blue-500/10">calendar_month</span>
+          </div>
+          <p className="text-3xl font-bold text-blue-500 tracking-tight relative z-10 whitespace-nowrap">
+            ₹ {stats.thisMonthAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-tertiary/40 hover:shadow-[0_20px_40px_-15px_rgba(200,160,240,0.15)] hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
+          <div className="flex justify-between items-start mb-4 relative z-10">
+            <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Top Category</p>
+            <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">category</span>
+          </div>
+          <p className="text-2xl font-bold text-tertiary tracking-tight relative z-10 truncate whitespace-nowrap">
+            {stats.topCategory ? stats.topCategory[0] : '—'}
+          </p>
+        </div>
+      </div>
+
+      {/* Filters Section */}
+      <section className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-visible animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] z-20" style={{ animationDelay: '0.2s' }}>
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-5 flex-wrap">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10 text-[20px]">filter_list</span>
+              <h2 className="text-xl font-bold text-on-surface">Filters</h2>
+              {activeFilterCount > 0 && (
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-on-primary text-[11px] font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
             </div>
-            <button 
-              onClick={openNewModal}
-              disabled={!selectedBranchId}
-              className="group relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:translate-y-0"
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+            <div className="space-y-2 relative">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Category</label>
+              <div className="relative">
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full h-12 px-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium appearance-none cursor-pointer"
+                >
+                  <option value="">All categories</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 relative">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Payment Method</label>
+              <div className="relative">
+                <select
+                  value={filterPaymentMethod}
+                  onChange={(e) => setFilterPaymentMethod(e.target.value)}
+                  className="w-full h-12 px-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium appearance-none cursor-pointer"
+                >
+                  <option value="">All methods</option>
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 relative">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">From Date</label>
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => setFilterDateFrom(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+
+            <div className="space-y-2 relative">
+              <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">To Date</label>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => setFilterDateTo(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-4 relative z-10">
+            <button
+              disabled={activeFilterCount === 0}
+              onClick={clearFilters}
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-on-surface-variant disabled:hover:border-outline-variant/20"
             >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-              <span className="material-symbols-outlined text-[20px] relative z-10">add</span>
-              <span className="relative z-10">Add Expense</span>
+              <span className="material-symbols-outlined text-[18px]">undo</span>
+              Reset Filters
             </button>
           </div>
+        </div>
+      </section>
 
-          {/* Metrics Grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Expenses</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">receipt_long</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">{stats.total}</p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">for this branch</p>
-  </div>
-
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Total Spent</p>
-      <span className="material-symbols-outlined text-red-500 p-2 rounded-lg bg-red-500/10">payments</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">
-      ₹ {stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-    </p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">all time</p>
-  </div>
-
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">This Month</p>
-      <span className="material-symbols-outlined text-primary p-2 rounded-lg bg-primary/10">calendar_month</span>
-    </div>
-    <p className="text-3xl font-bold text-on-surface tracking-tight">
-      ₹ {stats.thisMonthAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-    </p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">spent so far</p>
-  </div>
-
-  <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
-    <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors duration-500"></div>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-on-surface-variant text-sm font-medium uppercase tracking-wider">Top Category</p>
-      <span className="material-symbols-outlined text-tertiary p-2 rounded-lg bg-tertiary/10">category</span>
-    </div>
-    <p className="text-2xl font-bold text-on-surface tracking-tight truncate">
-      {stats.topCategory ? stats.topCategory[0] : '—'}
-    </p>
-    <p className="mt-2 text-sm text-on-surface-variant/60">
-      {stats.topCategory ? `₹ ${stats.topCategory[1].toLocaleString('en-IN', { maximumFractionDigits: 0 })} spent` : 'no data yet'}
-    </p>
-  </div>
-</div>
-
-          {/* Table Container */}
-          <div className="bg-surface rounded-3xl shadow-sm border border-outline-variant/30 overflow-hidden flex flex-col">
-            <div className="p-4 md:p-6 border-b border-outline-variant/30 bg-surface-container-lowest/50 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
-                <div className="flex items-center gap-2 bg-surface-container-low px-4 py-2.5 rounded-xl border border-outline-variant/30 flex-1 md:flex-none">
-                  <span className="material-symbols-outlined text-on-surface-variant/50 text-[20px]">storefront</span>
-                  <span className="text-sm font-semibold text-on-surface">Branch Expenses</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-                  <span>Show</span>
-                  <select
-                    value={entriesPerPage}
-                    onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
-                    className="bg-surface-container-low border border-outline-variant/30 rounded-lg px-2 py-1.5 text-xs focus:ring-0 focus:border-primary cursor-pointer outline-none"
-                  >
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
-                  <span>entries</span>
-                </div>
-              </div>
-              <div className="relative w-full md:w-72 group">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[20px] group-focus-within:text-primary transition-colors">search</span>
-                <input
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary transition-all"
-                  placeholder="Search expenses..."
-                  type="text"
-                  value={tableSearchQuery}
-                  onChange={(e) => setTableSearchQuery(e.target.value)}
-                />
-              </div>
+      {/* Glassmorphic Data Table Container */}
+      <div className="glass-panel rounded-3xl overflow-hidden relative z-10 animate-fade-slide-up shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]" style={{ animationDelay: '0.4s' }}>
+        {/* Glow Accent */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
+        
+        <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
+          <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
+            <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+              <span>Show</span>
+              <select
+                value={entriesPerPage}
+                onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
+                className="bg-surface-container border border-outline-variant/30 rounded-xl py-2 pl-4 pr-10 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm cursor-pointer appearance-none hover:bg-surface-container-high transition-colors font-semibold"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>entries</span>
             </div>
+          </div>
+          <div className="relative w-full md:w-72 group">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[20px] group-focus-within:text-primary transition-colors">search</span>
+            <input
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-outline-variant/30 bg-surface-container text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              placeholder="Search expenses..."
+              type="text"
+              value={tableSearchQuery}
+              onChange={(e) => setTableSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
 
             {/* High-Fidelity Data Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full table-fixed text-left border-collapse whitespace-nowrap">
-                <thead>
-                  <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
-                    <th className={`${sortHeaderClass('date')} w-1/6`} onClick={() => handleSort('date')}>
-                      <div className="flex items-center gap-1">
-                        Date <span className={sortIconClass('date')}>{getSortIcon('date')}</span>
-                      </div>
-                    </th>
-                    <th className={`${sortHeaderClass('amount')} text-left w-1/6`} onClick={() => handleSort('amount')}>
-                      <div className="flex items-center gap-1">
-                        Amount <span className={sortIconClass('amount')}>{getSortIcon('amount')}</span>
-                      </div>
-                    </th>
-                    <th className={`${sortHeaderClass('paymentMethod')} w-1/6`} onClick={() => handleSort('paymentMethod')}>
-                      <div className="flex items-center gap-1">
-                        Payment Method <span className={sortIconClass('paymentMethod')}>{getSortIcon('paymentMethod')}</span>
-                      </div>
-                    </th>
-                    <th className={`${sortHeaderClass('category')} w-[25%]`} onClick={() => handleSort('category')}>
-                      <div className="flex items-center gap-1">
-                        Category & Note <span className={sortIconClass('category')}>{getSortIcon('category')}</span>
-                      </div>
-                    </th>
-                    <th className="px-6 py-4 text-center w-1/6">Attachment</th>
-                    <th className="px-6 py-4 text-right pr-8 w-1/6">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-primary/5 text-sm">
-                  {isLoadingBranches || loading ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-on-surface-variant">
-                        <div className="flex justify-center items-center gap-2">
-                          <span className="material-symbols-outlined animate-spin">refresh</span> Loading expenses...
-                        </div>
-                      </td>
-                    </tr>
-                  ) : paginatedExpenses.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
-                          <span className="material-symbols-outlined text-[32px]">receipt_long</span>
-                        </div>
-                        <h3 className="text-lg font-bold text-on-surface">{tableSearchQuery ? 'No matching expenses found' : 'No expenses yet'}</h3>
-                        <p className="text-sm text-on-surface-variant mt-1">{tableSearchQuery ? 'Try adjusting your search.' : 'Start tracking your branch expenditures.'}</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedExpenses.map((expense) => (
-                      <tr key={expense.id} className="group hover:bg-surface-container-highest/50 transition-all duration-300">
-                        <td className="px-6 py-4">
-                          <div className="text-[14px] font-medium text-on-surface">
-                            {new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-left">
-                          <div className="text-[15px] font-bold text-red-500 tracking-tight">- ₹ {expense.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container text-[12px] font-medium text-on-surface-variant border border-outline-variant/20 w-fit">
-                            {expense.paymentMethod === 'Cash' && <span className="material-symbols-outlined text-[14px] text-green-500">payments</span>}
-                            {expense.paymentMethod === 'UPI' && <span className="material-symbols-outlined text-[14px] text-blue-500">qr_code_scanner</span>}
-                            {expense.paymentMethod === 'Bank Transfer' && <span className="material-symbols-outlined text-[14px] text-purple-500">account_balance</span>}
-                            {expense.paymentMethod === 'Cheque' && <span className="material-symbols-outlined text-[14px] text-orange-500">request_quote</span>}
-                            {expense.paymentMethod}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[14px] font-bold text-on-surface truncate group-hover:text-primary transition-colors">
-                              {expense.category?.name || 'Uncategorized'}
-                            </div>
-                            {expense.note && (
-                              <div className="text-xs text-on-surface-variant/70 truncate mt-0.5" title={expense.note}>
-                                {expense.note}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {expense.attachment ? (
-                            <button 
-                              onClick={() => setViewerAttachment(expense.attachment)}
-                              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-on-primary transition-colors"
-                              title={isPdf(expense.attachment) ? "View PDF" : "View Image"}
-                            >
-                              <span className="material-symbols-outlined text-[18px]">
-                                {isPdf(expense.attachment) ? 'picture_as_pdf' : 'image'}
-                              </span>
-                            </button>
-                          ) : (
-                            <span className="text-[11px] text-on-surface-variant/40 italic">No file</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-right pr-8">
-                          {/* Always visible action icons now */}
-                          <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => openEditModal(expense)} className="w-8 h-8 rounded-full bg-surface-container hover:bg-primary/10 text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors shadow-sm border border-outline-variant/20">
-                              <span className="material-symbols-outlined text-[16px]">edit</span>
-                            </button>
-                            <button onClick={() => handleDelete(expense.id)} className="w-8 h-8 rounded-full bg-surface-container hover:bg-error/10 text-on-surface-variant hover:text-error flex items-center justify-center transition-colors shadow-sm border border-outline-variant/20">
-                              <span className="material-symbols-outlined text-[16px]">delete</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <div className="overflow-x-auto w-full">
+  <table className="min-w-[700px] text-left border-separate border-spacing-0">
+    <thead>
+      <tr className="bg-surface-container-low/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
+        <th
+          className={`${sortHeaderClass('date')} px-2 py-2 sm:px-4 sm:py-3 w-[120px] sm:w-1/6`}
+          onClick={() => handleSort('date')}
+        >
+          <div className="flex items-center gap-1">
+            Date <span className={sortIconClass('date')}>{getSortIcon('date')}</span>
+          </div>
+        </th>
+        <th
+          className={`${sortHeaderClass('amount')} px-2 py-2 sm:px-4 sm:py-3 w-[100px] sm:w-1/6`}
+          onClick={() => handleSort('amount')}
+        >
+          <div className="flex items-center gap-1">
+            Amount <span className={sortIconClass('amount')}>{getSortIcon('amount')}</span>
+          </div>
+        </th>
+        <th
+          className={`${sortHeaderClass('paymentMethod')} px-2 py-2 sm:px-4 sm:py-3 w-[140px] sm:w-1/6`}
+          onClick={() => handleSort('paymentMethod')}
+        >
+          <div className="flex items-center gap-1">
+            Payment Method <span className={sortIconClass('paymentMethod')}>{getSortIcon('paymentMethod')}</span>
+          </div>
+        </th>
+        <th
+          className={`${sortHeaderClass('category')} px-2 py-2 sm:px-4 sm:py-3 w-[200px] sm:w-[25%]`}
+          onClick={() => handleSort('category')}
+        >
+          <div className="flex items-center gap-1">
+            Category & Note <span className={sortIconClass('category')}>{getSortIcon('category')}</span>
+          </div>
+        </th>
+        <th className="px-2 py-2 sm:px-6 sm:py-4 text-center w-[100px] sm:w-1/6">Attachment</th>
+        <th className="px-2 py-2 sm:px-6 sm:py-4 text-right pr-4 sm:pr-8 w-[100px] sm:w-1/6">Actions</th>
+      </tr>
+    </thead>
 
-            {/* Pagination Footer */}
-            <div className="p-6 border-t border-outline-variant/30 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest/50">
-              <p className="text-sm text-on-surface-variant">
-                {totalCount === 0
-                  ? 'Showing 0 entries'
-                  : `Showing ${startIndex} to ${endIndex} of ${totalCount} entries`}
-              </p>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Previous
-                </button>
-                {pageNumbers.map((page) => (
+    <tbody className="divide-y divide-primary/5 text-xs sm:text-sm break-words">
+      {/* keep your loading, empty, and expense rows here unchanged */}
+    </tbody>
+  </table>
+</div>
+
+
+            {/* Pagination */}
+            <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
+                <span className="text-sm text-on-surface-variant">
+                  {totalCount === 0
+                    ? 'Showing 0 entries'
+                    : `Showing ${startIndex} to ${endIndex} of ${totalCount} entries`}
+                </span>
+                <div className="flex items-center gap-1">
                   <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
-                      page === currentPage
-                        ? 'bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(125,211,252,0.1)]'
-                        : 'text-on-surface-variant border-transparent hover:bg-surface-container-highest hover:text-on-surface'
-                    }`}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    {page}
+                    Previous
                   </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Next
-                </button>
+                  <span className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-primary text-on-primary shadow-sm">
+                    {currentPage}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Footer Decoration */}
+          <footer className="relative z-10 w-full opacity-40 text-center flex items-center justify-center gap-4 mt-8">
+            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+            <p className="text-xs font-bold tracking-[0.2em] text-on-surface-variant uppercase">
+              BillTea Dashboard • Expenses
+            </p>
+            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-on-surface-variant to-transparent"></div>
+          </footer>
+
         </div>
       </div>
 
@@ -671,7 +799,7 @@ export default function ExpensesPage() {
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-6 overflow-visible">
               {error && (
                 <div className="mb-6 p-4 rounded-2xl bg-error/10 border border-error/20 flex items-start gap-3">
@@ -695,30 +823,30 @@ export default function ExpensesPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2 relative" ref={dropdownRef}>
                     <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Category *</label>
-                    <input 
-                      type="text" 
-                      name="category" 
-                      required 
-                      value={categorySearch} 
+                    <input
+                      type="text"
+                      name="category"
+                      required
+                      value={categorySearch}
                       onChange={(e) => {
                         setCategorySearch(e.target.value);
                         setFormData({ ...formData, category: e.target.value });
                         setShowCategoryDropdown(true);
                       }}
                       onFocus={() => setShowCategoryDropdown(true)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-semibold" 
-                      placeholder="e.g. Travel, Office" 
+                      className="w-full px-4 py-2.5 rounded-xl border border-outline-variant/30 bg-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-semibold"
+                      placeholder="e.g. Travel, Office"
                       autoComplete="off"
                     />
-                    
+
                     {/* Category Combobox Dropdown */}
                     {showCategoryDropdown && (
                       <div className="absolute top-[100%] left-0 w-full mt-2 bg-surface rounded-xl shadow-lg border border-outline-variant/30 overflow-hidden z-[100] max-h-60 flex flex-col">
                         <div className="overflow-y-auto custom-scrollbar flex-1">
                           {filteredCategories.length > 0 ? (
                             filteredCategories.map(c => (
-                              <div 
-                                key={c.id} 
+                              <div
+                                key={c.id}
                                 onClick={() => {
                                   setCategorySearch(c.name);
                                   setFormData({ ...formData, category: c.name });
@@ -735,7 +863,7 @@ export default function ExpensesPage() {
                             </div>
                           )}
                         </div>
-                        <div 
+                        <div
                           onClick={() => {
                             setShowCategoryDropdown(false);
                             setIsCategoryModalOpen(true);
@@ -815,7 +943,7 @@ export default function ExpensesPage() {
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-surface-container-lowest/30">
               {categoryError && (
                 <div className="mb-4 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3">
@@ -823,8 +951,7 @@ export default function ExpensesPage() {
                   <p className="text-sm text-error font-medium">{categoryError}</p>
                 </div>
               )}
-
-              <table className="w-full text-left border-collapse bg-surface border border-outline-variant/20 rounded-xl overflow-hidden shadow-sm">
+<table className="w-full text-left border-separate border-spacing-0 bg-surface border border-outline-variant/20 rounded-xl overflow-hidden shadow-sm">
                 <thead>
                   <tr className="bg-surface-container-low text-[11px] font-bold text-on-surface-variant uppercase tracking-wider border-b border-outline-variant/20">
                     <th className="px-4 py-3">Category Name</th>
@@ -840,9 +967,9 @@ export default function ExpensesPage() {
                       <tr key={cat.id} className="hover:bg-surface-container-highest/30 transition-colors">
                         <td className="px-4 py-3 font-medium text-on-surface w-1/2">
                           {editingCategoryId === cat.id ? (
-                            <input 
-                              type="text" 
-                              value={editCategoryName} 
+                            <input
+                              type="text"
+                              value={editCategoryName}
                               onChange={e => setEditCategoryName(e.target.value)}
                               className="w-full px-3 py-1.5 rounded-lg border border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
                               autoFocus
@@ -891,7 +1018,7 @@ export default function ExpensesPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={() => setViewerAttachment(null)}></div>
           <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 flex flex-col h-[85vh] animate-in zoom-in-95 duration-200 border border-outline-variant/10">
-            
+
             {/* Toolbar */}
             <div className="px-4 py-3 bg-surface-container flex items-center justify-between border-b border-outline-variant/10">
               <div className="flex items-center gap-3">
@@ -904,10 +1031,10 @@ export default function ExpensesPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <a 
-                  href={getAttachmentUrl(viewerAttachment)!} 
-                  download 
-                  target="_blank" 
+                <a
+                  href={getAttachmentUrl(viewerAttachment)!}
+                  download
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2 bg-primary text-on-primary rounded-xl font-semibold text-sm flex items-center gap-2 hover:shadow-md hover:-translate-y-0.5 transition-all shadow-sm"
                 >
@@ -919,19 +1046,19 @@ export default function ExpensesPage() {
                 </button>
               </div>
             </div>
-            
+
             {/* Content Area */}
             <div className="flex-1 bg-surface-container-lowest p-6 flex items-center justify-center overflow-auto">
               {isPdf(viewerAttachment) ? (
-                <iframe 
-                  src={getAttachmentUrl(viewerAttachment)!} 
+                <iframe
+                  src={getAttachmentUrl(viewerAttachment)!}
                   className="w-full h-full rounded-xl border border-outline-variant/20 shadow-inner bg-white"
                   title="PDF Viewer"
                 />
               ) : (
-                <img 
-                  src={getAttachmentUrl(viewerAttachment)!} 
-                  alt="Attachment" 
+                <img
+                  src={getAttachmentUrl(viewerAttachment)!}
+                  alt="Attachment"
                   className="max-w-full max-h-full object-contain rounded-xl shadow-lg border border-outline-variant/10"
                 />
               )}
@@ -939,7 +1066,6 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

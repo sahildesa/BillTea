@@ -10,6 +10,7 @@ import { InvoiceMapper } from './invoice.mapper';
 import { generateExpiryDate } from './invoice.utils';
 import { INVOICE_CONSTANTS } from './invoice.constants';
 import { PdfService } from './pdf.service';
+import { UsageService } from '../subscriptions/usage.service';
 
 @Injectable()
 export class InvoiceService {
@@ -19,6 +20,7 @@ export class InvoiceService {
     private readonly calculatorService: InvoiceCalculatorService,
     private readonly prisma: PrismaService,
     private readonly pdfService: PdfService,
+    private readonly usageService: UsageService,
   ) {}
 
   private computeStatusForInvoices(invoices: any[]) {
@@ -212,6 +214,10 @@ export class InvoiceService {
     };
 
     const createdInvoice = await this.repository.createInvoice(invoiceData, finalItems, paymentData);
+    
+    // Increment usage
+    await this.usageService.incrementInvoiceUsage(companyId);
+    
     const [computedInvoice] = this.computeStatusForInvoices([createdInvoice]);
     return InvoiceMapper.toDto(computedInvoice);
   }
@@ -507,7 +513,6 @@ export class InvoiceService {
       method: dto.method,
       date: new Date(dto.date),
       note: dto.note || '',
-      recordedById: userId,
     };
 
     const updateData = {

@@ -1,5 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import * as fs from 'fs';
+import * as path from 'path';
 import { SetupCompanyDto } from './dto/setup-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 
@@ -67,6 +69,24 @@ export class CompanyService {
 
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
+      include: {
+        createdBy: {
+          select: { fullName: true }
+        },
+        branches: {
+          where: { isMainBranch: true },
+          select: { city: true, state: true }
+        },
+        _count: {
+          select: {
+            branches: true,
+            customers: true,
+            users: true,
+            products: true,
+          }
+        },
+        subscription: true
+      }
     });
 
     if (!company) {
@@ -89,7 +109,21 @@ export class CompanyService {
 
     const updateData: any = {};
     if (dto.name !== undefined) updateData.name = dto.name;
-    if (dto.logo !== undefined) updateData.logo = dto.logo;
+    if (dto.logo !== undefined) {
+      updateData.logo = dto.logo;
+      
+      const oldCompany = await this.prisma.company.findUnique({ where: { id: companyId }});
+      if (oldCompany?.logo && (oldCompany.logo.startsWith('/uploads') || oldCompany.logo.startsWith('uploads/')) && dto.logo !== oldCompany.logo) {
+         try {
+           const filePath = oldCompany.logo.startsWith('/') ? path.join(process.cwd(), oldCompany.logo) : path.join(process.cwd(), `/${oldCompany.logo}`);
+           if (fs.existsSync(filePath)) {
+             fs.unlinkSync(filePath);
+           }
+         } catch (e) {
+           console.error('Failed to delete old company logo:', e);
+         }
+      }
+    }
     if (dto.identifiers !== undefined) updateData.identifiers = dto.identifiers;
 
     const company = await this.prisma.company.update({

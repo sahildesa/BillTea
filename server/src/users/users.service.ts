@@ -1,5 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -40,6 +42,8 @@ export class UsersService {
         email: dto.email.toLowerCase().trim(),
         password: hashedPassword,
         role: dto.role,
+        profilePicture: dto.profilePicture || '',
+        isActive: dto.isActive !== undefined ? dto.isActive : true,
         companyId,
         createdById: ownerId,
         branches: dto.branches?.length
@@ -75,7 +79,7 @@ export class UsersService {
     }
 
     const users = await this.prisma.user.findMany({
-      where: { companyId },
+      where: { companyId, isActive: true },
       select: {
         id: true,
         fullName: true,
@@ -87,6 +91,15 @@ export class UsersService {
         lastLoginAt: true,
         createdAt: true,
         branches: { select: { id: true, name: true, isMainBranch: true } },
+        _count: {
+          select: {
+            quotationsCreated: true,
+            customersCreated: true,
+            invoicesCreated: true,
+            productsCreated: true,
+            expensesCreated: true,
+          }
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -117,8 +130,26 @@ export class UsersService {
     if (dto.fullName !== undefined) updateData.fullName = dto.fullName;
     if (dto.phoneNumber !== undefined) updateData.phoneNumber = dto.phoneNumber;
     if (dto.email !== undefined) updateData.email = dto.email.toLowerCase().trim();
-    if (dto.role !== undefined && ['MANAGER', 'STAFF'].includes(dto.role)) updateData.role = dto.role;
-    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+    if (dto.password !== undefined) updateData.password = await bcrypt.hash(dto.password, 12);
+    
+    // File upload handler
+    if (dto.profilePicture !== undefined) {
+      updateData.profilePicture = dto.profilePicture;
+    }
+    
+    // Removal handler
+    if (dto.removeProfilePicture === 'true' || dto.removeProfilePicture === true) {
+      if (target.profilePicture && target.profilePicture.startsWith('uploads/')) {
+        const filePath = path.join(process.cwd(), target.profilePicture);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+      updateData.profilePicture = '';
+    }
+
+    if (dto.role !== undefined && ['MANAGER'].includes(dto.role)) updateData.role = dto.role;
+    if (dto.isActive !== undefined) updateData.isActive = typeof dto.isActive === 'string' ? dto.isActive === 'true' : dto.isActive;
 
     // Handle branch connections separately
     if (dto.branches !== undefined) {

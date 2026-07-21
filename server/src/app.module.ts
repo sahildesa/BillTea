@@ -15,6 +15,13 @@ import { ExpensesModule } from './expenses/expenses.module';
 import { ExpenseCategoriesModule } from './expense-categories/expense-categories.module';
 import { QuotationModule } from './quotation/quotation.module';
 import { InvoiceModule } from './invoices/invoice.module';
+import { SubscriptionPlansModule } from './subscription-plans/subscription-plans.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { AdminModule } from './admin/admin.module';
+import { DocumentSettingsModule } from './document-settings/document-settings.module';
+import { WhatsappSettingsModule } from './whatsapp-settings/whatsapp-settings.module';
 
 @Module({
   imports: [
@@ -29,6 +36,7 @@ import { InvoiceModule } from './invoices/invoice.module';
 
     // Core modules
     PrismaModule,
+    AdminModule,
     AuthModule,
     CompanyModule,
     BranchesModule,
@@ -40,6 +48,14 @@ import { InvoiceModule } from './invoices/invoice.module';
     ExpenseCategoriesModule,
     QuotationModule,
     InvoiceModule,
+    DashboardModule,
+
+    // Subscription Management
+    SubscriptionPlansModule,
+    SubscriptionsModule,
+    NotificationsModule,
+    DocumentSettingsModule,
+    WhatsappSettingsModule,
   ],
   controllers: [HealthController],
 })

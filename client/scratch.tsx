@@ -234,7 +234,7 @@ export default function QuotationConfigurationPage() {
                           value={prefix}
                           onChange={(e) => setPrefix(e.target.value)}
                           placeholder="QT-"
-                          className="w-full glass-input rounded-xl pl-12 pr-5 py-4 text-on-surface font-mono transition-all"
+                          className="w-full bg-surface-container border border-primary/40 focus:ring-2 focus:ring-primary/20 rounded-xl pl-12 pr-5 py-4 text-on-surface font-mono outline-none transition-all"
                         />
                         <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-primary/50 text-[20px]">tag</span>
                       </div>
@@ -250,7 +250,7 @@ export default function QuotationConfigurationPage() {
                           type="number"
                           value={startingNumber}
                           onChange={(e) => setStartingNumber(e.target.value)}
-                          className="w-full glass-input rounded-xl pl-12 pr-5 py-4 text-on-surface font-mono transition-all"
+                          className="w-full bg-surface-container border border-primary/40 focus:ring-2 focus:ring-primary/20 rounded-xl pl-12 pr-5 py-4 text-on-surface font-mono outline-none transition-all"
                         />
                         <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-primary/50 text-[20px]">numbers</span>
                       </div>
@@ -281,7 +281,7 @@ export default function QuotationConfigurationPage() {
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-on-surface">Top Message (Header)</label>
                       <textarea
-                        className="w-full glass-input rounded-xl p-5 text-on-surface transition-all resize-none"
+                        className="w-full bg-surface-container border border-primary/40 focus:ring-2 focus:ring-primary/20 rounded-xl p-5 text-on-surface outline-none transition-all resize-none"
                         placeholder="Thank you for your inquiry. Please find our quotation attached below..."
                         rows={3}
                         value={topMessage}
@@ -291,7 +291,7 @@ export default function QuotationConfigurationPage() {
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-on-surface">Bottom Message (Footer)</label>
                       <textarea
-                        className="w-full glass-input rounded-xl p-5 text-on-surface transition-all resize-none"
+                        className="w-full bg-surface-container border border-primary/40 focus:ring-2 focus:ring-primary/20 rounded-xl p-5 text-on-surface outline-none transition-all resize-none"
                         placeholder="We appreciate your business..."
                         rows={3}
                         value={bottomMessage}
@@ -321,7 +321,7 @@ export default function QuotationConfigurationPage() {
                   <div className="space-y-2 relative z-10">
                     <label className="block text-sm font-bold text-on-surface">Terms &amp; Conditions</label>
                     <textarea
-                      className="w-full glass-input rounded-xl p-5 text-on-surface font-mono transition-all leading-relaxed resize-none text-sm"
+                      className="w-full bg-surface-container border border-primary/40 focus:ring-2 focus:ring-primary/20 rounded-xl p-5 text-on-surface font-mono outline-none transition-all leading-relaxed resize-none text-sm"
                       rows={6}
                       value={terms}
                       onChange={(e) => setTerms(e.target.value)}

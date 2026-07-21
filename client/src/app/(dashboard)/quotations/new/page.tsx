@@ -37,7 +37,7 @@ export default function CreateQuotationPage() {
     taxConfiguration: { mode: 'FIXED', customTaxActive: false, label: '', value: 0 },
     notes: '',
     followUpDate: '',
-    termsAndConditions: '1. Goods once sold will not be taken back.\n2. Interest @ 18% p.a. will be charged if payment is delayed.',
+    termsAndConditions: '',
   });
 
   // Customer State
@@ -88,8 +88,24 @@ export default function CreateQuotationPage() {
       fetchQuotationToCopy(copyFromId);
     } else {
       initialLoadDone.current = true; // Not copying, normal flow
+      if (selectedBranchId) fetchDocumentSettings(selectedBranchId);
     }
-  }, [copyFromId]);
+  }, [copyFromId, selectedBranchId]);
+
+  const fetchDocumentSettings = async (branchId: string) => {
+    try {
+      const res = await apiFetch(`/document-settings/${branchId}?type=QUOTATION`);
+      const data = await res.json();
+      if (data && data.settings && data.settings.terms) {
+        setFormData(prev => ({
+          ...prev,
+          termsAndConditions: data.settings.terms
+        }));
+      }
+    } catch (e) {
+      // Ignore
+    }
+  };
 
   const fetchQuotationToCopy = async (id: string) => {
     try {

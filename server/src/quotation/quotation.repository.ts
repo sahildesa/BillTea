@@ -29,7 +29,7 @@ export class QuotationRepository {
   async findLatestQuotationSequence(companyId: string, branchId: string) {
     return this.prisma.quotation.findFirst({
       where: { companyId, branchId },
-      orderBy: { sequenceNumber: 'desc' },
+      orderBy: { createdAt: 'desc' },
       select: { sequenceNumber: true, id: true }
     });
   }

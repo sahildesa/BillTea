@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSubscription } from "../../../../components/SubscriptionProvider";
+import { useBranch } from "../../../../components/BranchProvider";
+import { apiFetch } from "@/lib/auth";
 
 type TemplateKey = "standard" | "friendly" | "overdue";
 
@@ -17,10 +19,8 @@ type SavedSettings = {
   isLinked: boolean;
 };
 
-const STORAGE_KEY = "billtea.whatsapp.settings";
-
-const DEFAULT_INSTANCE_ID = "ins_8f9a2b3c4d5e6f7g8h9i";
-const DEFAULT_ACCESS_TOKEN = "wa_live_8f9a2b3c4d5e6f7g";
+const DEFAULT_INSTANCE_ID = "";
+const DEFAULT_ACCESS_TOKEN = "";
 
 const INVOICE_TEMPLATES: Record<TemplateKey, string> = {
   standard: `Hello {customer_name},
@@ -120,6 +120,8 @@ function PlaceholderChip({
 export default function WhatsAppSettingsPage() {
   const { data: subscriptionData, isLoading: isSubscriptionLoading } =
     useSubscription();
+  const { selectedBranchId } = useBranch();
+  const [loading, setLoading] = useState(true);
 
   const [instanceId, setInstanceId] = useState(DEFAULT_INSTANCE_ID);
   const [accessToken, setAccessToken] = useState(DEFAULT_ACCESS_TOKEN);
@@ -135,36 +137,40 @@ export default function WhatsAppSettingsPage() {
     useState(QUOTATION_TEMPLATE);
   const [isLinked, setIsLinked] = useState(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveMessage, setSaveMessage] = useState({ type: "", text: "" });
   const [nextPlaceholderIndex, setNextPlaceholderIndex] = useState(0);
 
   const invoiceRef = useRef<HTMLTextAreaElement | null>(null);
   const quotationRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (!saved) return;
+    if (!selectedBranchId) return;
 
-      const parsed = JSON.parse(saved) as Partial<SavedSettings>;
-      if (typeof parsed.instanceId === "string") setInstanceId(parsed.instanceId);
-      if (typeof parsed.accessToken === "string") setAccessToken(parsed.accessToken);
-      if (typeof parsed.autoSendInvoice === "boolean")
-        setAutoSendInvoice(parsed.autoSendInvoice);
-      if (typeof parsed.attachPdf === "boolean") setAttachPdf(parsed.attachPdf);
-      if (parsed.selectedTemplate && parsed.selectedTemplate in INVOICE_TEMPLATES) {
-        setSelectedTemplate(parsed.selectedTemplate);
-        setInvoiceTemplate(INVOICE_TEMPLATES[parsed.selectedTemplate]);
-      } else if (typeof parsed.invoiceTemplate === "string") {
-        setInvoiceTemplate(parsed.invoiceTemplate);
+    const fetchSettings = async () => {
+      setLoading(true);
+      try {
+        const res = await apiFetch(`/whatsapp-settings/${selectedBranchId}`);
+        const data = await res.json();
+        if (data && data.settings) {
+          const parsed = data.settings;
+          setInstanceId(parsed.instanceId || "");
+          setAccessToken(parsed.accessToken || "");
+          setAutoSendInvoice(parsed.autoSendInvoice);
+          setAttachPdf(parsed.attachPdf);
+          setSelectedTemplate(parsed.selectedTemplate as TemplateKey || "standard");
+          setInvoiceTemplate(parsed.invoiceTemplate || INVOICE_TEMPLATES.standard);
+          setQuotationTemplate(parsed.quotationTemplate || QUOTATION_TEMPLATE);
+          setIsLinked(parsed.isLinked);
+        }
+      } catch (err) {
+        // failed to fetch, keep defaults
+      } finally {
+        setLoading(false);
       }
-      if (typeof parsed.quotationTemplate === "string") {
-        setQuotationTemplate(parsed.quotationTemplate);
-      }
-      if (typeof parsed.isLinked === "boolean") setIsLinked(parsed.isLinked);
-    } catch {
-      // Ignore malformed saved state and keep defaults.
-    }
-  }, []);
+    };
+
+    fetchSettings();
+  }, [selectedBranchId]);
 
   useEffect(() => {
     setInvoiceTemplate(INVOICE_TEMPLATES[selectedTemplate]);
@@ -242,7 +248,14 @@ export default function WhatsAppSettingsPage() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!selectedBranchId) {
+      setSaveMessage({ type: 'error', text: 'No branch selected' });
+      return;
+    }
+    setSaveStatus("saving");
+    setSaveMessage({ type: '', text: '' });
+
     const payload: SavedSettings = {
       instanceId,
       accessToken,
@@ -254,8 +267,17 @@ export default function WhatsAppSettingsPage() {
       isLinked,
     };
 
-    setSaveStatus("saving");
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    try {
+      const res = await apiFetch(`/whatsapp-settings/${selectedBranchId}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setSaveMessage({ type: 'success', text: 'Settings saved successfully!' });
+    } catch (err) {
+      setSaveMessage({ type: 'error', text: 'Failed to save settings' });
+      setSaveStatus("idle");
+    }
   };
 
   const handleRegenerateCredentials = () => {
@@ -339,6 +361,23 @@ export default function WhatsAppSettingsPage() {
               )}
             </div>
           </div>
+
+          {saveMessage.text && (
+            <div className={`mb-6 p-4 rounded-xl border flex items-center justify-between ${saveMessage.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
+              : 'bg-red-500/10 border-red-500/20 text-red-500'
+              }`}>
+              <div className="flex items-center gap-3">
+                <span className={`material-symbols-outlined p-1 rounded-full ${saveMessage.type === 'success' ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>
+                  {saveMessage.type === 'success' ? 'check_circle' : 'error'}
+                </span>
+                <span className="font-medium text-sm">{saveMessage.text}</span>
+              </div>
+              <button onClick={() => setSaveMessage({ type: '', text: '' })} className="text-current opacity-70 hover:opacity-100 transition-opacity">
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-5 flex flex-col gap-6">

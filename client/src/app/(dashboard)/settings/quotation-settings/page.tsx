@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-
-// Removed hardcoded colors, using global Tailwind theme variables instead
+import React, { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/auth";
+import { useBranch } from "../../../../components/BranchProvider";
 
 // ---- Toggle switch (custom, matches .toggle-checkbox / .toggle-label) ----
 function Toggle({
@@ -17,6 +17,7 @@ function Toggle({
   return (
     <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in mt-1">
       <input
+        type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         className={`absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0.5 transition-all duration-300 ${checked ? 'border-primary' : 'border-outline-variant'}`}
@@ -56,25 +57,77 @@ function Icon({
 }
 
 export default function QuotationConfigurationPage() {
+  const { selectedBranchId } = useBranch();
+  
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState({ type: "", text: "" });
+
   const [hsn, setHsn] = useState(true);
   const [sku, setSku] = useState(false);
 
-  const [personalName, setPersonalName] = useState(false);
-
   const [prefix, setPrefix] = useState("QT-");
-  const [startingNumber, setStartingNumber] = useState("1001");
-  const [topMessage, setTopMessage] = useState(
-    "Thank you for considering Glacier Corp for your enterprise needs. The following estimate is valid for 30 days."
-  );
-  const [bottomMessage, setBottomMessage] = useState(
-    "If you have any questions regarding this quotation, please contact our support team at support@glacier.corp."
-  );
-  const [terms, setTerms] = useState(
-    `1. VALIDITY: This quotation is valid for 30 days from the date of issue.
-2. PAYMENT TERMS: 50% advance along with Purchase Order, 50% prior to delivery.
-3. TAXES: All applicable taxes are exclusive and will be charged extra as per government regulations at the time of billing.
-4. DELIVERY: 4-6 weeks from receipt of firm order and advance payment.`
-  );
+  const [startingNumber, setStartingNumber] = useState("1");
+  const [topMessage, setTopMessage] = useState("");
+  const [bottomMessage, setBottomMessage] = useState("");
+  const [terms, setTerms] = useState("");
+
+  useEffect(() => {
+    if (!selectedBranchId) return;
+
+    const fetchSettings = async () => {
+      setLoading(true);
+      try {
+        const res = await apiFetch(`/document-settings/${selectedBranchId}?type=QUOTATION`);
+        const data = await res.json();
+        if (data && data.settings) {
+          setHsn(data.settings.showHsn);
+          setSku(data.settings.showSku);
+          setPrefix(data.settings.prefix || "QT-");
+          setStartingNumber(data.settings.nextNumber?.toString() || "1");
+          setTopMessage(data.settings.topMessage || "");
+          setBottomMessage(data.settings.bottomMessage || "");
+          setTerms(data.settings.terms || "");
+        }
+      } catch (error) {
+        setSaveMessage({ type: 'error', text: 'Failed to load settings' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, [selectedBranchId]);
+
+  const handleSave = async () => {
+    if (!selectedBranchId) {
+      setSaveMessage({ type: 'error', text: 'No branch selected' });
+      return;
+    }
+    setSaving(true);
+    setSaveMessage({ type: '', text: '' });
+    try {
+      const res = await apiFetch(`/document-settings/${selectedBranchId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          type: "QUOTATION",
+          prefix,
+          nextNumber: parseInt(startingNumber) || 1,
+          topMessage,
+          bottomMessage,
+          terms,
+          showSku: sku,
+          showHsn: hsn
+        }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setSaveMessage({ type: 'success', text: 'Settings saved successfully!' });
+    } catch (error) {
+      setSaveMessage({ type: 'error', text: 'Failed to save settings' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     // FIX 1: use a fixed-height (h-screen) flex frame instead of `minHeight: 100vh` + `overflow-hidden`.
@@ -129,6 +182,24 @@ export default function QuotationConfigurationPage() {
                 messaging for all newly generated quotes.
               </p>
             </div>
+
+            {/* Save message toast */}
+            {saveMessage.text && (
+              <div className={`mb-6 p-4 rounded-xl border flex items-center justify-between ${saveMessage.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
+                : 'bg-red-500/10 border-red-500/20 text-red-500'
+                }`}>
+                <div className="flex items-center gap-3">
+                  <span className={`material-symbols-outlined p-1 rounded-full ${saveMessage.type === 'success' ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>
+                    {saveMessage.type === 'success' ? 'check_circle' : 'error'}
+                  </span>
+                  <span className="font-medium text-sm">{saveMessage.text}</span>
+                </div>
+                <button onClick={() => setSaveMessage({ type: '', text: '' })} className="text-current opacity-70 hover:opacity-100 transition-opacity">
+                  <Icon name="close" className="text-sm" />
+                </button>
+              </div>
+            )}
 
             {/* Bento Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -247,50 +318,21 @@ export default function QuotationConfigurationPage() {
                       onChange={setSku}
                       id="toggle_sku"
                     />
-
-                    <PreferenceRow
-                      title="Display Personal Name"
-                      description="Show the generating agent's name instead of just the company."
-                      checked={personalName}
-                      onChange={setPersonalName}
-                      id="toggle_name"
-                    />
                   </div>
                 </GlassPanel>
 
-                {/* Status Summary Panel */}
-                <GlassPanel className="relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full blur-2xl -mr-10 -mt-10" />
-                  <h3 className="font-semibold text-lg mb-4 relative z-10 text-on-surface">
-                    Configuration Status
-                  </h3>
-                  <div className="space-y-4 relative z-10">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-surface-container/50 border border-outline-variant/30">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
-                        <span className="text-sm text-on-surface">
-                          Auto-Sync Enabled
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-xs leading-relaxed text-on-surface-variant/70">
-                      Changes made here are applied instantly to all newly
-                      generated draft quotations. Existing finalized quotes
-                      remain unaffected.
-                    </p>
-                  </div>
-                </GlassPanel>
               </div>
             </div>
 
             {/* Action Bar */}
             <div className="pt-6 flex justify-end gap-4 mt-8 border-t border-primary/10">
-              <button className="px-6 py-3 rounded-lg font-medium text-sm transition-colors text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50">
-                Discard Changes
-              </button>
-              <button className="px-8 py-3 rounded-lg font-medium text-sm transition-all relative overflow-hidden group glass-button-primary btn-login-glow">
+              <button 
+                disabled={saving || loading}
+                onClick={handleSave} 
+                className="px-8 py-3 rounded-lg font-medium text-sm transition-all relative overflow-hidden group glass-button-primary btn-login-glow"
+              >
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                Save Configuration
+                {saving ? "Saving..." : "Save Configuration"}
               </button>
             </div>
           </div>

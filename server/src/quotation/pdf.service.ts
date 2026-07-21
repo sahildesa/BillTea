@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { DocumentType } from '@prisma/client';
 import * as puppeteer from 'puppeteer';
 import { Quotation, QuotationItem, Company, Branch, Customer } from '@prisma/client';
 
@@ -58,7 +60,7 @@ function numberToWordsRupees(amount: number): string {
 
 @Injectable()
 export class PdfService {
-  constructor() {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async generateQuotationPdf(
     quotation: any, 
@@ -82,6 +84,29 @@ export class PdfService {
         if (tObj) tagline = tObj.value;
       }
     }
+
+    // Fetch settings
+    let settings = await this.prisma.documentSettings.findUnique({
+      where: { branchId_type: { branchId: branch.id, type: DocumentType.QUOTATION } }
+    });
+
+    if (!settings) {
+      settings = await this.prisma.documentSettings.create({
+        data: {
+          branchId: branch.id,
+          type: DocumentType.QUOTATION,
+          prefix: 'QT-',
+          nextNumber: 1,
+          topMessage: 'Thank you for considering our company.\nWe are pleased to submit our quotation\nas per your requirements.',
+          bottomMessage: 'Thank you for your business.\nWe look forward to being a part of\nyour beautiful journey.',
+          terms: '1. VALIDITY: This quotation is valid for 30 days from the date of issue.\n2. PAYMENT TERMS: 50% advance along with Purchase Order, 50% prior to delivery.',
+        }
+      });
+    }
+
+    const showSkuHsnCol = settings.showSku || settings.showHsn;
+    const prodWidth = showSkuHsnCol ? 'w-[19%]' : 'w-[29%]';
+    const imgWidth = showSkuHsnCol ? 'w-[14%]' : 'w-[19%]';
 
     // items table html
     let itemsHtml = '';
@@ -126,10 +151,12 @@ export class PdfService {
               <div class="font-bold text-[13px] text-[#192C27] tracking-[0.05em] uppercase leading-tight mb-1 mt-1">${itemName}</div>
               <div class="text-[#74777c] font-medium text-[11px] uppercase pb-1">${desc}</div>
             </td>
+            ${showSkuHsnCol ? `
             <td class="py-2 px-2 border-x border-[#e2e2e2]">
-              <div class="text-[14px]">${sku}</div>
-              <div class="text-[#74777c] text-[12px]">HSN: ${hsn}</div>
+              ${settings.showSku ? `<div class="text-[14px]">${sku}</div>` : ''}
+              ${settings.showHsn ? `<div class="text-[#74777c] text-[12px] ${!settings.showSku ? 'font-bold text-[14px] mt-1' : ''}">${settings.showSku ? 'HSN: ' : ''}${hsn}</div>` : ''}
             </td>
+            ` : ''}
             <td class="py-2 px-2 border-x border-[#e2e2e2] text-[14px]">${item.quantity}</td>
             <td class="py-2 px-2 border-x border-[#e2e2e2] text-[14px]">${item.editedPrice.toLocaleString('en-IN')}</td>
             <td class="py-2 px-2 border-x border-[#e2e2e2]">
@@ -148,6 +175,14 @@ export class PdfService {
         `;
       });
     }
+
+    // Use settings.terms instead of quotation.termsAndConditions if available, wait, 
+    // terms should be fetched from the quotation itself if it was overridden.
+    // The requirement says: "Pre-populate the Terms & Conditions text area by fetching the DocumentSettings API when the page mounts."
+    // So the quotation will already have the correct terms. But we still need topMessage and bottomMessage.
+    
+    const topMessageHtml = settings.topMessage ? settings.topMessage.split('\\n').map((m: string) => `<div>${m}</div>`).join('') : '';
+    const bottomMessageHtml = settings.bottomMessage ? settings.bottomMessage.split('\\n').map((m: string) => `<div>${m}</div>`).join('') : '';
 
     let tncList: string[] = [];
     const tncRaw = quotation.termsAndConditions;
@@ -248,11 +283,9 @@ export class PdfService {
                 <div class="w-8 h-[1.5px] bg-[#9D7E6C]"></div>
               </div>
               
-              <p class="text-[12px] leading-[1.7] text-[#43474b] max-w-[260px] opacity-90">
-                Thank you for considering ${company.name}.<br/>
-                We are pleased to submit our quotation<br/>
-                as per your requirements.
-              </p>
+              <div class="text-[12px] leading-[1.7] text-[#43474b] max-w-[260px] opacity-90">
+                ${topMessageHtml}
+              </div>
             </div>
           </div>
         </div>
@@ -324,14 +357,16 @@ export class PdfService {
             <thead>
               <tr class="bg-[#1B1C1D] text-[#9D7E6C] text-[10px] uppercase font-bold tracking-[0.1em]">
                 <th class="py-[16px] px-2 font-bold w-[5%]">#</th>
-                <th class="py-[16px] px-2 font-bold w-[19%]">PRODUCT</th>
-                <th class="py-[16px] px-2 font-bold w-[15%]">SKU / HSN NUMBER</th>
+                <th class="py-[16px] px-2 font-bold ${prodWidth}">PRODUCT</th>
+                ${settings.showSku && settings.showHsn ? `<th class="py-[16px] px-2 font-bold w-[15%]">SKU / HSN NUMBER</th>` : ''}
+                ${settings.showSku && !settings.showHsn ? `<th class="py-[16px] px-2 font-bold w-[15%]">SKU NUMBER</th>` : ''}
+                ${!settings.showSku && settings.showHsn ? `<th class="py-[16px] px-2 font-bold w-[15%]">HSN NUMBER</th>` : ''}
                 <th class="py-[16px] px-2 font-bold w-[5%]">QTY</th>
                 <th class="py-[16px] px-2 font-bold w-[12%]">UNIT PRICE (₹)</th>
                 <th class="py-[16px] px-2 font-bold w-[10%]">DISCOUNT %</th>
                 <th class="py-[16px] px-2 font-bold w-[8%]">TAX %</th>
                 <th class="py-[16px] px-2 font-bold w-[12%]">TOTAL (₹)</th>
-                <th class="py-[16px] px-2 font-bold w-[14%]">PRODUCT IMG</th>
+                <th class="py-[16px] px-2 font-bold ${imgWidth}">PRODUCT IMG</th>
               </tr>
             </thead>
             <tbody class="text-[13px] text-[#1a1c1c] align-middle">
@@ -413,11 +448,9 @@ export class PdfService {
           </div>
 
           <div class="text-center w-[40%] pb-[14px]">
-             <p class="font-serif text-[15px] text-[#1a1c1c] leading-[1.6]">
-               Thank you for your business.<br/>
-               We look forward to being a part of<br/>
-               your beautiful journey.
-             </p>
+             <div class="font-serif text-[15px] text-[#1a1c1c] leading-[1.6]">
+               ${bottomMessageHtml}
+             </div>
              <div class="w-8 h-[1.5px] bg-[#9D7E6C] mx-auto mt-4"></div>
           </div>
 

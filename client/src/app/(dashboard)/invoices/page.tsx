@@ -59,6 +59,10 @@ export default function InvoicesPage() {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const toggleDropdown = (name: string) => {
+    setActiveDropdown(prev => prev === name ? null : name);
+  };
 
   const stats = React.useMemo(() => {
     const total = invoices.length;
@@ -446,10 +450,17 @@ export default function InvoicesPage() {
     }`;
 
   return (
-    <div
-      className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-    >
+    <>
+      {activeDropdown && (
+        <div 
+          className="fixed inset-0 z-40 cursor-default" 
+          onClick={() => setActiveDropdown(null)} 
+        />
+      )}
+      <div
+        className="flex-1 overflow-y-auto p-4 md:p-8 z-0 relative overflow-x-hidden selection:bg-primary/30 [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
       <style jsx global>{`
         table, thead, tbody, tr, td, th {
           -webkit-user-select: none !important;
@@ -535,7 +546,7 @@ export default function InvoicesPage() {
       )}
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-slide-up" style={{ animationDelay: '0.2s' }}>
         <div className="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:border-primary/40 hover:shadow-[0_20px_40px_-15px_rgba(125,211,252,0.15)] hover:-translate-y-1 transition-all duration-300">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500"></div>
           <div className="flex justify-between items-start mb-4 relative z-10">
@@ -629,37 +640,77 @@ export default function InvoicesPage() {
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Customer</label>
-              <div className="relative">
-                <select 
-                  className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
-                  value={selectedCustomerId}
-                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+              <div className="relative w-full" style={{ zIndex: activeDropdown === 'customerFilter' ? 50 : 10 }}>
+                <button
+                  type="button"
+                  className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium flex items-center justify-between cursor-pointer"
+                  onClick={() => toggleDropdown('customerFilter')}
                 >
-                  <option value="ALL">All Customers</option>
-                  {uniqueCustomers.map(customer => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.customerName} {customer.companyName ? `(${customer.companyName})` : ''}
-                    </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                  <span className="truncate">
+                    {selectedCustomerId === 'ALL' ? 'All Customers' : 
+                      uniqueCustomers.find(c => c.id === selectedCustomerId)?.customerName || 'Select Customer'}
+                  </span>
+                  <span className={`material-symbols-outlined text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'customerFilter' ? 'rotate-180' : ''}`}>expand_more</span>
+                </button>
+                
+                {activeDropdown === 'customerFilter' && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 max-h-60 overflow-y-auto custom-scrollbar">
+                    <div 
+                      onClick={() => { setSelectedCustomerId('ALL'); setActiveDropdown(null); }} 
+                      className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedCustomerId === 'ALL' ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      All Customers
+                    </div>
+                    {uniqueCustomers.map(customer => (
+                      <div 
+                        key={customer.id}
+                        onClick={() => { setSelectedCustomerId(customer.id); setActiveDropdown(null); }} 
+                        className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedCustomerId === customer.id ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                      >
+                        {customer.customerName} {customer.companyName ? `(${customer.companyName})` : ''}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Payment Status</label>
-              <div className="relative">
-                <select 
-                  className="w-full h-12 pl-4 pr-10 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-medium"
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
+              <div className="relative w-full" style={{ zIndex: activeDropdown === 'statusFilter' ? 50 : 10 }}>
+                <button
+                  type="button"
+                  className="w-full h-12 px-4 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium flex items-center justify-between cursor-pointer"
+                  onClick={() => toggleDropdown('statusFilter')}
                 >
-                  <option value="ALL">All Status</option>
-                  <option value="PAID">Paid</option>
-                  <option value="UNPAID">Pending</option>
-                  <option value="PARTIAL">Partial</option>
-                  <option value="OVERDUE">Overdue</option>
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                  <span>
+                    {selectedStatus === 'ALL' ? 'All Status' :
+                     selectedStatus === 'PAID' ? 'Paid' :
+                     selectedStatus === 'UNPAID' ? 'Pending' :
+                     selectedStatus === 'PARTIAL' ? 'Partial' :
+                     selectedStatus === 'OVERDUE' ? 'Overdue' : 'Select Status'}
+                  </span>
+                  <span className={`material-symbols-outlined text-on-surface-variant text-[18px] transition-transform duration-200 ${activeDropdown === 'statusFilter' ? 'rotate-180' : ''}`}>expand_more</span>
+                </button>
+                
+                {activeDropdown === 'statusFilter' && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-surface-container-highest rounded-xl border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                    {[
+                      { value: 'ALL', label: 'All Status' },
+                      { value: 'PAID', label: 'Paid' },
+                      { value: 'UNPAID', label: 'Pending' },
+                      { value: 'PARTIAL', label: 'Partial' },
+                      { value: 'OVERDUE', label: 'Overdue' }
+                    ].map(status => (
+                      <div 
+                        key={status.value}
+                        onClick={() => { setSelectedStatus(status.value); setActiveDropdown(null); }} 
+                        className={`px-4 py-3 text-sm cursor-pointer transition-colors ${selectedStatus === status.value ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                      >
+                        {status.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -682,22 +733,45 @@ export default function InvoicesPage() {
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
         
         {/* Table Controls */}
-        <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-lowest">
-          <div className="flex items-center gap-3 text-sm font-medium text-on-surface-variant">
-            <span>Show</span>
-            <div className="relative">
-              <select
-                value={entriesPerPage}
-                onChange={(e) => handleEntriesPerPageChange(Number(e.target.value))}
-                className="bg-surface-container border border-outline-variant/30 rounded-xl py-2 pl-4 pr-10 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm cursor-pointer appearance-none hover:bg-surface-container-high transition-colors font-semibold"
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+        <div className="p-4 md:p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-surface-container-lowest">
+          <div className="flex items-center justify-between sm:justify-start gap-3 text-sm font-medium text-on-surface-variant w-full sm:w-auto relative" style={{ zIndex: activeDropdown === 'entries' ? 50 : 10 }}>
+            <div className="flex items-center gap-2">
+              <span>Show</span>
+              <div className="relative">
+                <button
+                  type="button"
+                  className="glass-input text-sm pl-3 pr-9 py-1.5 rounded-lg text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary/50 cursor-pointer bg-surface-container-highest flex items-center justify-between min-w-[70px]"
+                  onClick={() => toggleDropdown('entries')}
+                >
+                  <span>{entriesPerPage}</span>
+                  <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px] transition-transform duration-200 ${activeDropdown === 'entries' ? 'rotate-180' : ''}`}>expand_more</span>
+                </button>
+                
+                {activeDropdown === 'entries' && (
+                  <div className="absolute top-full left-0 mt-1 z-[60] bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150 min-w-[70px]">
+                    <div 
+                      onClick={() => { handleEntriesPerPageChange(10); setActiveDropdown(null); }} 
+                      className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 10 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      10
+                    </div>
+                    <div 
+                      onClick={() => { handleEntriesPerPageChange(25); setActiveDropdown(null); }} 
+                      className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 25 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      25
+                    </div>
+                    <div 
+                      onClick={() => { handleEntriesPerPageChange(50); setActiveDropdown(null); }} 
+                      className={`px-3 py-2 text-sm cursor-pointer transition-colors ${entriesPerPage === 50 ? 'bg-primary/20 text-primary font-semibold' : 'text-on-surface hover:bg-primary/10'}`}
+                    >
+                      50
+                    </div>
+                  </div>
+                )}
+              </div>
+              <span>entries</span>
             </div>
-            <span>entries</span>
           </div>
           <div className="relative w-full sm:w-auto">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
@@ -712,7 +786,7 @@ export default function InvoicesPage() {
         </div>
 
         {/* The Table */}
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
             <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low/50 border-b border-primary/10">
               <tr>
@@ -871,6 +945,99 @@ export default function InvoicesPage() {
           </table>
         </div>
 
+        {/* Mobile Card List View */}
+        <div className="md:hidden divide-y divide-primary/5">
+          {isLoadingBranches || loading ? (
+            <div className="p-6 text-center text-on-surface-variant">
+              <div className="flex justify-center items-center gap-2">
+                <span className="material-symbols-outlined animate-spin">refresh</span> Loading invoices...
+              </div>
+            </div>
+          ) : paginatedInvoices.length === 0 ? (
+            <div className="px-6 py-16 text-center">
+              <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-4">
+                <span className="material-symbols-outlined text-3xl text-on-surface-variant opacity-60">receipt_long</span>
+              </div>
+              <h3 className="text-xl text-on-surface font-bold mb-2">{hasActiveFilters ? 'No matching invoices found' : 'No invoices yet'}</h3>
+              <p className="text-on-surface-variant text-sm">{hasActiveFilters ? 'Try adjusting your search or filters.' : 'Create your first invoice for this branch.'}</p>
+            </div>
+          ) : (
+            paginatedInvoices.map((invoice) => {
+              const isMostRecent = invoice.id === mostRecentInvoiceId;
+              return (
+                <div key={invoice.id} className="p-5 flex flex-col gap-4 hover:bg-primary/5 transition-colors duration-200">
+                  {/* Header Row */}
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-primary text-base">{invoice.invoiceNumber}</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${getStatusColor(invoice.status)}`}>
+                      {invoice.status}
+                    </span>
+                  </div>
+
+                  {/* Body: Customer & Amount */}
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-surface-container-highest border border-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                        {invoice.customer?.customerName?.substring(0, 2).toUpperCase() || 'NA'}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-on-surface font-semibold text-sm truncate">{invoice.customer?.customerName || 'Unknown'}</span>
+                        <span className="text-[11px] text-on-surface-variant/70 truncate">{invoice.customer?.companyName}</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[11px] text-on-surface-variant/70">Total Amount</div>
+                      <div className="font-bold text-on-surface text-sm">
+                        ₹ {invoice.totals?.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Date & Actions */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-primary/5">
+                    <div className="text-xs text-on-surface-variant">
+                      Date: {new Date(invoice.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
+                    
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 self-end flex-wrap">
+                      <button onClick={() => handleViewPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-2 rounded-lg transition-all hover:text-blue-400 hover:bg-blue-400/10 cursor-pointer" title="View">
+                        <span className="material-symbols-outlined text-[18px]">visibility</span>
+                      </button>
+                      <Link href={`/invoices/${invoice.id}/edit`}>
+                        <button className="glass-button-icon p-2 rounded-lg transition-all hover:text-primary hover:border-primary/30 hover:bg-primary/10 cursor-pointer" title="Edit">
+                          <span className="material-symbols-outlined text-[18px]">edit</span>
+                        </button>
+                      </Link>
+                      <button onClick={() => handleOpenPaymentModal(invoice)} className="glass-button-icon p-2 rounded-lg transition-all hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/10 cursor-pointer" title="Add Payment">
+                        <span className="material-symbols-outlined text-[18px]">payments</span>
+                      </button>
+                      <button className="glass-button-icon p-2 rounded-lg transition-all hover:text-emerald-400 hover:border-emerald-400/30 hover:bg-emerald-400/10 cursor-pointer" title="Send">
+                        <span className="material-symbols-outlined text-[18px]">send</span>
+                      </button>
+                      
+                      {isMostRecent ? (
+                        <>
+                          <button onClick={() => handleDownloadPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-2 rounded-lg transition-all hover:text-indigo-400 hover:border-indigo-400/30 hover:bg-indigo-400/10 cursor-pointer" title="Download PDF">
+                            <span className="material-symbols-outlined text-[18px]">download</span>
+                          </button>
+                          <button onClick={() => handleDelete(invoice.id)} className="glass-button-icon p-2 rounded-lg transition-all hover:text-error hover:border-error/30 hover:bg-error/10 cursor-pointer" title="Delete">
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </>
+                      ) : (
+                        <button onClick={() => handleDownloadPdf(invoice.id, invoice.invoiceNumber)} className="glass-button-icon p-2 rounded-lg transition-all hover:text-indigo-400 hover:border-indigo-400/30 hover:bg-indigo-400/10 cursor-pointer" title="Download PDF">
+                          <span className="material-symbols-outlined text-[18px]">download</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
         {/* Pagination */}
         <div className="p-6 border-t border-outline-variant/20 bg-surface-container-lowest flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
@@ -958,7 +1125,7 @@ export default function InvoicesPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 block">Amount (₹)</label>
                   <input type="number" step="0.01" max={Number((selectedInvoiceForPayment.totals.grandTotal - selectedInvoiceForPayment.amountPaid).toFixed(2))} value={paymentForm.amount} onChange={(e) => setPaymentForm({...paymentForm, amount: parseFloat(e.target.value) || 0})} className="glass-input px-4 py-2.5 rounded-lg text-sm font-bold text-on-surface w-full" />
@@ -1081,5 +1248,6 @@ export default function InvoicesPage() {
       </footer>
       </div>
     </div>
+    </>
   );
 }

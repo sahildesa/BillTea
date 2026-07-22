@@ -168,12 +168,12 @@ export default function SettingsScreen() {
 
             {/* User Management */}
             <SettingsItem
-              label="User Management"
+              label="Staff Management"
               subLabel="Team roles, permissions"
               iconName="group-add"
               iconColor={colors.primary}
               borderColor="rgba(125, 211, 252, 0.15)"
-              onPress={() => router.push(('/settings/user-management' as any))}
+              onPress={() => router.push(('/settings/staff-management' as any))}
             />
           </View>
 

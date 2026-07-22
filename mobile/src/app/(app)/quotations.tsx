@@ -4,13 +4,16 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { router } from "expo-router";
 import {
   Eye,
   PencilLine,
@@ -21,6 +24,8 @@ import {
   Trash2,
   MessageSquare,
   Phone,
+  FileText,
+  X,
 } from "lucide-react-native";
 
 import { AppHeader } from "../../components/ui/AppHeader";
@@ -29,6 +34,11 @@ import { ActionIconButton } from "../../components/billing/ActionIconButton";
 import { SegmentedControl } from "../../components/ui/SegmentedControl";
 import { useTheme } from "../../hooks/useTheme";
 import { apiClient } from "@/api/client";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import { ENV } from "@/config/env";
+import { getStorageItemAsync } from "@/utils/storage";
+import { TOKEN_KEYS } from "@/constants/keys";
 
 const { width } = Dimensions.get("window");
 
@@ -49,6 +59,8 @@ interface Quotation {
   quotationDate: string;
   expiryDate: string;
   customer: Customer | null;
+  notes?: string;
+  followUpDate?: string;
   totals: {
     subtotal: number;
     discountAmount: number;
@@ -291,14 +303,16 @@ export default function QuotationsScreen() {
               const res = await apiClient.delete(`/quotations/${id}`);
               if (res.status === 200 && res.data?.success) {
                 setQuotations((current) => current.filter((q) => q.id !== id));
+                Alert.alert("Success", "Quotation deleted successfully.");
               } else {
                 Alert.alert(
                   "Delete Failed",
                   res.data?.message || "Failed to delete quotation."
                 );
               }
-            } catch (err) {
-              Alert.alert("Delete Failed", "Error deleting quotation.");
+            } catch (err: any) {
+              const errMsg = err.response?.data?.message || err.message || "Error deleting quotation.";
+              Alert.alert("Delete Failed", Array.isArray(errMsg) ? errMsg.join("\n") : errMsg);
             }
           },
         },
@@ -349,11 +363,6 @@ export default function QuotationsScreen() {
               const res = await apiClient.delete(`/expenses/${id}`);
               if (res.status === 200 && res.data?.success) {
                 setExpenses((current) => current.filter((e) => e.id !== id));
-              } else {
-                Alert.alert(
-                  "Delete Failed",
-                  res.data?.message || "Failed to delete expense."
-                );
               }
             } catch (err) {
               Alert.alert("Delete Failed", "Error deleting expense.");
@@ -362,6 +371,145 @@ export default function QuotationsScreen() {
         },
       ]
     );
+  };
+
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadQuotationPdf = async (id: string, quotationNumber: string) => {
+    if (downloadingId) return;
+    try {
+      setDownloadingId(id);
+      const token = await getStorageItemAsync(TOKEN_KEYS.ACCESS);
+      const pdfUrl = `${ENV.API_URL}/quotations/${id}/pdf?t=${Date.now()}`;
+      const filename = `Quotation-${quotationNumber || id}.pdf`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+
+      const downloadRes = await FileSystem.downloadAsync(pdfUrl, fileUri, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Bypass-Tunnel-Reminder": "true",
+        },
+      });
+
+      if (downloadRes.status === 200) {
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(downloadRes.uri, {
+            mimeType: "application/pdf",
+            dialogTitle: `Download ${filename}`,
+            UTI: "com.adobe.pdf",
+          });
+        } else {
+          Alert.alert("Downloaded", `File saved to ${downloadRes.uri}`);
+        }
+      } else {
+        Alert.alert("Error", "Failed to download PDF. Please try again.");
+      }
+    } catch (err: any) {
+      console.error("Error downloading quotation PDF:", err);
+      Alert.alert("Error", err.message || "Failed to download PDF. Please try again.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadInvoicePdf = async (id: string, invoiceNumber: string) => {
+    if (downloadingId) return;
+    try {
+      setDownloadingId(id);
+      const token = await getStorageItemAsync(TOKEN_KEYS.ACCESS);
+      const pdfUrl = `${ENV.API_URL}/invoices/${id}/pdf?t=${Date.now()}`;
+      const filename = `Invoice-${invoiceNumber || id}.pdf`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+
+      const downloadRes = await FileSystem.downloadAsync(pdfUrl, fileUri, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Bypass-Tunnel-Reminder": "true",
+        },
+      });
+
+      if (downloadRes.status === 200) {
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(downloadRes.uri, {
+            mimeType: "application/pdf",
+            dialogTitle: `Download ${filename}`,
+            UTI: "com.adobe.pdf",
+          });
+        } else {
+          Alert.alert("Downloaded", `File saved to ${downloadRes.uri}`);
+        }
+      } else {
+        Alert.alert("Error", "Failed to download PDF. Please try again.");
+      }
+    } catch (err: any) {
+      console.error("Error downloading invoice PDF:", err);
+      Alert.alert("Error", err.message || "Failed to download PDF. Please try again.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  // --- Notes & Reminder Modal State & Handlers ---
+  const [notesModalData, setNotesModalData] = useState<{
+    id: string;
+    notes: string;
+    followUpDate: string;
+  } | null>(null);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+  const handleOpenNotesModal = (item: Quotation) => {
+    let formattedDate = "";
+    if (item.followUpDate) {
+      try {
+        formattedDate = new Date(item.followUpDate).toISOString().split("T")[0];
+      } catch (e) {
+        formattedDate = "";
+      }
+    }
+    setNotesModalData({
+      id: item.id,
+      notes: item.notes || "",
+      followUpDate: formattedDate,
+    });
+  };
+
+  const handleSaveNotes = async () => {
+    if (!notesModalData) return;
+    setIsSavingNotes(true);
+    try {
+      const res = await apiClient.put(`/quotations/${notesModalData.id}`, {
+        notes: notesModalData.notes,
+        followUpDate: notesModalData.followUpDate
+          ? new Date(notesModalData.followUpDate).toISOString()
+          : null,
+      });
+      if (res.status === 200 || res.data) {
+        setQuotations((prev) =>
+          prev.map((q) =>
+            q.id === notesModalData.id
+              ? {
+                  ...q,
+                  notes: notesModalData.notes,
+                  followUpDate: notesModalData.followUpDate
+                    ? new Date(notesModalData.followUpDate).toISOString()
+                    : undefined,
+                }
+              : q
+          )
+        );
+        setNotesModalData(null);
+        Alert.alert("Success", "Notes & Reminder updated successfully!");
+      } else {
+        Alert.alert("Error", res.data?.message || "Failed to save notes.");
+      }
+    } catch (err: any) {
+      console.error("Error saving notes:", err);
+      Alert.alert("Error", err.response?.data?.message || err.message || "Failed to save notes.");
+    } finally {
+      setIsSavingNotes(false);
+    }
   };
 
   const handleSearchIconPress = () => {
@@ -442,25 +590,33 @@ export default function QuotationsScreen() {
 
         {/* Actions Row */}
         <View style={[styles.actionsRow, { justifyContent: "space-between" }]}>
-          <ActionIconButton icon={Eye} onPress={() => handleComingSoon("View")} />
           <ActionIconButton
             icon={PencilLine}
-            onPress={() => handleComingSoon("Edit")}
+            onPress={() =>
+              router.push({
+                pathname: "/(app)/create-quotation",
+                params: { id: item.id },
+              })
+            }
             color="#fbbf24"
           />
-          <ActionIconButton icon={Copy} onPress={() => handleComingSoon("Copy")} />
           <ActionIconButton
-            icon={MessageCircle}
-            onPress={() => handleComingSoon("Message")}
+            icon={Copy}
+            onPress={() =>
+              router.push({
+                pathname: "/(app)/create-quotation",
+                params: { copyFromId: item.id },
+              })
+            }
+          />
+          <ActionIconButton
+            icon={FileText}
+            onPress={() => handleOpenNotesModal(item)}
             color="#34D399"
           />
           <ActionIconButton
-            icon={Download}
-            onPress={() => handleComingSoon("Download")}
-          />
-          <ActionIconButton
             icon={Send}
-            onPress={() => handleComingSoon("Send")}
+            onPress={() => handleDownloadQuotationPdf(item.id, item.quotationNumber)}
             color="#7dd3fc"
           />
           <ActionIconButton
@@ -560,12 +716,8 @@ export default function QuotationsScreen() {
             color="#34D399"
           />
           <ActionIconButton
-            icon={Download}
-            onPress={() => handleComingSoon("Download")}
-          />
-          <ActionIconButton
             icon={Send}
-            onPress={() => handleComingSoon("Send")}
+            onPress={() => handleDownloadInvoicePdf(item.id, item.invoiceNumber)}
             color="#7dd3fc"
           />
           <ActionIconButton
@@ -743,6 +895,96 @@ export default function QuotationsScreen() {
           )
         }
       />
+
+      {/* Notes & Reminder Modal */}
+      <Modal
+        visible={!!notesModalData}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setNotesModalData(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: isDark ? "#0f172a" : colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            {/* Modal Header */}
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <FileText size={20} color={colors.primary} />
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Notes & Reminder</Text>
+              </View>
+              <TouchableOpacity onPress={() => setNotesModalData(null)} style={styles.closeBtn}>
+                <X size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Follow-up Date Field */}
+            <View style={styles.modalInputGroup}>
+              <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>Follow-up Date (YYYY-MM-DD)</Text>
+              <TextInput
+                value={notesModalData?.followUpDate || ""}
+                onChangeText={(text) =>
+                  setNotesModalData((prev) => (prev ? { ...prev, followUpDate: text } : null))
+                }
+                placeholder="YYYY-MM-DD (e.g. 2026-08-15)"
+                placeholderTextColor={colors.textSecondary + "70"}
+                style={[
+                  styles.modalInput,
+                  { color: colors.text, borderColor: colors.border, backgroundColor: colors.surfaceVariant },
+                ]}
+              />
+            </View>
+
+            {/* Notes Field */}
+            <View style={styles.modalInputGroup}>
+              <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>Notes</Text>
+              <TextInput
+                value={notesModalData?.notes || ""}
+                onChangeText={(text) =>
+                  setNotesModalData((prev) => (prev ? { ...prev, notes: text } : null))
+                }
+                placeholder="Enter notes for this quotation..."
+                placeholderTextColor={colors.textSecondary + "70"}
+                multiline
+                numberOfLines={4}
+                style={[
+                  styles.modalTextArea,
+                  { color: colors.text, borderColor: colors.border, backgroundColor: colors.surfaceVariant },
+                ]}
+              />
+            </View>
+
+            {/* Modal Footer Buttons */}
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                onPress={() => setNotesModalData(null)}
+                disabled={isSavingNotes}
+                style={[styles.modalCancelBtn, { borderColor: colors.border }]}
+              >
+                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSaveNotes}
+                disabled={isSavingNotes}
+                style={[styles.modalSaveBtn, { backgroundColor: colors.primary }]}
+              >
+                {isSavingNotes ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Save Notes</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -938,5 +1180,93 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    width: "100%",
+    maxWidth: 400,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  modalInputGroup: {
+    marginBottom: 14,
+  },
+  modalLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  modalInput: {
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    fontSize: 14,
+  },
+  modalTextArea: {
+    height: 100,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    textAlignVertical: "top",
+  },
+  modalFooter: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 10,
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  modalSaveBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalSaveText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
   },
 });

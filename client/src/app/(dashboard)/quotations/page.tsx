@@ -517,7 +517,7 @@ export default function QuotationsPage() {
 
           {/* Filters Section */}
           <section
-            className="glass-panel rounded-3xl p-6 transition-transform duration-300 hover:-translate-y-1 animate-fade-slide-up relative overflow-visible shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]"
+            className="glass-panel rounded-3xl p-6 transition-transform duration-300 hover:-translate-y-1 animate-fade-slide-up relative z-20 overflow-visible shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)]"
             style={{ animationDelay: '0.15s' }}
           >
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>

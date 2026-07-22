@@ -160,6 +160,10 @@ model Branch {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
+  themeConfig       Json?
+  documentSettings  DocumentSettings[]
+  whatsappSettings  WhatsappSettings?
+
   @@unique([companyId, name])
   @@map("branches")
 }
@@ -320,7 +324,7 @@ model Quotation {
   items       QuotationItem[]
   attachments QuotationAttachment[]
 
-  @@unique([branchId, sequenceNumber])
+  @@unique([branchId, quotationNumber])
   @@map("quotations")
 }
 
@@ -420,7 +424,7 @@ model Invoice {
   attachments InvoiceAttachment[]
   payments    InvoicePayment[]
 
-  @@unique([branchId, sequenceNumber])
+  @@unique([branchId, invoiceNumber])
   @@map("invoices")
 }
 
@@ -598,4 +602,43 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@map("notifications")
+}
+
+enum DocumentType {
+  QUOTATION
+  INVOICE
+}
+
+model DocumentSettings {
+  id             String       @id @default(uuid())
+  branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  type           DocumentType
+  prefix         String
+  nextNumber     Int          @default(1)
+  topMessage     String       @db.Text
+  bottomMessage  String       @db.Text
+  terms          String       @db.Text
+  showSku        Boolean      @default(false)
+  showHsn        Boolean      @default(true)
+  paymentMethod  String?      @db.Text 
+
+  @@unique([branchId, type])
+  @@map("document_settings")
+}
+
+model WhatsappSettings {
+  id                String  @id @default(uuid())
+  branchId          String  @unique
+  branch            Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  instanceId        String
+  accessToken       String
+  autoSendInvoice   Boolean @default(true)
+  attachPdf         Boolean @default(true)
+  selectedTemplate  String  @default("standard")
+  invoiceTemplate   String  @db.Text
+  quotationTemplate String  @db.Text
+  isLinked          Boolean @default(true)
+
+  @@map("whatsapp_settings")
 }

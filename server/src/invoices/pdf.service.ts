@@ -352,8 +352,6 @@ export class PdfService {
 
       <div class="header-grid">
         <div class="header-left">
-          <!-- Placeholder logo mimicking the image layout -->
-          <div style="width: 80px; height: 50px; background: #eee; display: flex; align-items:center; justify-content:center; border: 1px solid #ddd; font-size:10px; color:#999;">Logo</div>
           <div class="company-info">
             <h1 class="company-name">${company.name}</h1>
             <p>${branch.address}, ${branch.city}, ${branch.state} ${branch.pincode}</p>
@@ -523,6 +521,9 @@ export class PdfService {
     try {
       const page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction('Array.from(document.images).every(img => img.complete)', { timeout: 4000 }).catch(() => {});
+      await new Promise(r => setTimeout(r, 500)); // wait for tailwind to apply
+      await page.evaluateHandle('document.fonts.ready').catch(() => {});
       
       const pdfBuffer = await page.pdf({
         format: 'A4',

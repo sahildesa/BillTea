@@ -173,7 +173,7 @@ export class QuotationService {
     };
 
     const createdQuotation = await this.repository.createQuotation(quotationData, finalItems);
-    
+
     // Increment usage
     await this.usageService.incrementQuotationUsage(companyId);
     

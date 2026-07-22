@@ -12,7 +12,7 @@ import {
   Dimensions,
   ActivityIndicator
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   ArrowLeft, 
@@ -46,8 +46,11 @@ interface LineItem {
 export default function CreateQuotationScreen() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { id, copyFromId } = useLocalSearchParams<{ id?: string; copyFromId?: string }>();
+  const targetQuotationId = id || copyFromId;
 
   // --- STATE DEFINITIONS ---
+  const [isLoadingQuotation, setIsLoadingQuotation] = useState(false);
   
   // Backend Active State
   const [branches, setBranches] = useState<any[]>([]);
@@ -126,6 +129,89 @@ export default function CreateQuotationScreen() {
     }
     loadBranches();
   }, []);
+
+  // Fetch Quotation details for Edit Mode or Copy Mode
+  useEffect(() => {
+    if (!targetQuotationId) return;
+
+    async function fetchQuotation() {
+      setIsLoadingQuotation(true);
+      try {
+        const res = await apiClient.get(`/quotations/${targetQuotationId}`);
+        if (res.status === 200 && res.data) {
+          const q = res.data;
+          
+          // Prefill branch
+          if (q.branchId) {
+            setSelectedBranchId(q.branchId);
+          }
+
+          // Prefill customer details
+          if (q.customer) {
+            setSelectedCustomerId(q.customer.id || '');
+            setSelectedClient(q.customer.companyName || q.customer.customerName || '');
+            setContactName(q.customer.customerName || '');
+            setMobile(q.customer.mobileNumber || '');
+            setEmail(q.customer.email || '');
+          }
+
+          // Prefill address
+          if (q.billingAddress) {
+            setBillingAddress(q.billingAddress.street || q.billingAddress.address || (typeof q.billingAddress === 'string' ? q.billingAddress : ''));
+          }
+          setShippingIsDifferent(!q.shippingSameAsBilling);
+
+          // Prefill configuration (discounts and taxes)
+          if (q.discountConfiguration) {
+            setDiscountType(q.discountConfiguration.type === 'PERCENTAGE' ? 'PERCENTAGE' : 'FIXED');
+            setDiscountValue(String(q.discountConfiguration.value ?? 0));
+          }
+          if (q.taxConfiguration) {
+            setTaxLogic(q.taxConfiguration.mode === 'FIXED' ? 'FIXED_SLAB' : 'PER_PRODUCT');
+            setTaxPercentage(String(q.taxConfiguration.value ?? 8));
+          }
+
+          // Prefill items
+          if (Array.isArray(q.items)) {
+            const mappedItems = q.items.map((item: any) => ({
+              id: item.id || `item-${Math.random()}`,
+              productId: item.productId || undefined,
+              productName: item.productSnapshot?.name || item.description || '',
+              description: item.description || '',
+              unitPrice: item.price || 0,
+              quantity: item.quantity || 1,
+              image: item.image || undefined,
+            }));
+            setLineItems(mappedItems);
+          }
+
+          // Prefill dates only when editing (id is present).
+          // When copying, keep quotationDate as TODAY and validUntil as +30 days.
+          if (id) {
+            if (q.quotationDate) {
+              setQuotationDate(formatDateString(new Date(q.quotationDate)));
+            }
+            if (q.expiryDate) {
+              setValidUntil(formatDateString(new Date(q.expiryDate)));
+            }
+          }
+
+          // Prefill notes & terms
+          setNotes(q.notes || '');
+          if (q.termsAndConditions) {
+            setTerms(q.termsAndConditions.editedSnapshot || q.termsAndConditions.defaultSnapshot || q.termsAndConditions || '');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch quotation details:', err);
+        Alert.alert('Error', 'Could not load quotation details.');
+      } finally {
+        setIsLoadingQuotation(false);
+      }
+    }
+
+    fetchQuotation();
+  }, [targetQuotationId]);
 
   // --- SEARCH HANDLERS ---
   
@@ -338,24 +424,36 @@ export default function CreateQuotationScreen() {
         }))
       };
 
-      const res = await apiClient.post('/quotations', payload);
-      if (res.status === 201) {
+      const res = id 
+        ? await apiClient.put(`/quotations/${id}`, payload)
+        : await apiClient.post('/quotations', payload);
+
+      if (res.status === 200 || res.status === 201) {
         Alert.alert(
           "Success",
-          "Quotation created successfully!",
+          id ? "Quotation updated successfully!" : "Quotation created successfully!",
           [{ text: "OK", onPress: () => router.replace('/(app)/quotations') }]
         );
       } else {
-        Alert.alert("Error", res.data?.message || "Failed to create quotation.");
+        Alert.alert("Error", res.data?.message || `Failed to ${id ? 'update' : 'create'} quotation.`);
       }
     } catch (err: any) {
-      console.error('Error creating quotation:', err);
+      console.error(`Error ${id ? 'updating' : 'creating'} quotation:`, err);
       const errMsg = err.response?.data?.message || err.message || "An unknown error occurred.";
       Alert.alert("Error", Array.isArray(errMsg) ? errMsg.join('\n') : errMsg);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoadingQuotation) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ color: colors.textSecondary, marginTop: 12, fontSize: 14 }}>Loading quotation details...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -388,7 +486,7 @@ export default function CreateQuotationScreen() {
           >
             <ArrowLeft color={colors.primary} size={18} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.primary }]}>New Quotation</Text>
+          <Text style={[styles.headerTitle, { color: colors.primary }]}>{id ? 'Edit Quotation' : 'New Quotation'}</Text>
           <TouchableOpacity 
             style={[styles.headerBtn, { backgroundColor: colors.primary + '12', borderColor: colors.primary + '33' }]}
             activeOpacity={0.7}
@@ -854,7 +952,7 @@ export default function CreateQuotationScreen() {
               ) : (
                 <>
                   <Send color={isDark ? '#001f2e' : '#ffffff'} size={18} style={{ marginRight: 8 }} />
-                  <Text style={[styles.createBtnText, { color: isDark ? '#001f2e' : '#ffffff' }]}>Create Quotation</Text>
+                  <Text style={[styles.createBtnText, { color: isDark ? '#001f2e' : '#ffffff' }]}>{id ? 'Update Quotation' : 'Create Quotation'}</Text>
                 </>
               )}
             </LinearGradient>

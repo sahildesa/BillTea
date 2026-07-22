@@ -170,8 +170,8 @@ export class PdfService {
                             <h1 class="text-2xl font-black text-slate-900 tracking-tight mb-2 uppercase">${company.name || ''}</h1>
                             <p class="text-[9px] text-slate-500 leading-relaxed">
                                 ${branch.address || ''}, ${branch.city || ''} ${branch.pincode || ''}<br />
-                                <span class="font-medium text-slate-700">P:</span> ${branch.phone || ''} &nbsp;|&nbsp;
-                                <span class="font-medium text-slate-700">E:</span> ${branch.email || ''}<br />
+                                <span class="material-symbols-outlined text-[9px] align-text-bottom text-slate-400 mr-0.5">call</span> ${branch.phone || ''} &nbsp;&nbsp;|&nbsp;&nbsp;
+                                <span class="material-symbols-outlined text-[9px] align-text-bottom text-slate-400 mr-0.5">mail</span> ${branch.email || ''}<br />
                                 ${(branch as any).gstIn ? `<span class="font-medium text-slate-700">GSTIN: ${(branch as any).gstIn}</span>` : ''}
                             </p>
                         </div>

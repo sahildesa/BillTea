@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as puppeteer from 'puppeteer';
 import { Company, Branch } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 function numberToWordsRupees(amount: number): string {
   const words = [
@@ -58,7 +59,7 @@ function numberToWordsRupees(amount: number): string {
 
 @Injectable()
 export class PdfService {
-  constructor() {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async generateInvoicePdf(
     invoice: any, 
@@ -69,9 +70,27 @@ export class PdfService {
     const iDate = new Date(invoice.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
     const dDate = new Date(invoice.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
     
+    // Fetch document settings for invoices
+    const fetchedSettings = await this.prisma.documentSettings.findUnique({
+      where: { branchId_type: { branchId: branch.id, type: 'INVOICE' } }
+    });
+    
+    const settings = fetchedSettings || {
+      showSku: false,
+      showHsn: true,
+      topMessage: "",
+      bottomMessage: "We appreciate your business! If you have any questions about this invoice, please contact us.",
+    } as any;
+
     // items table html
     let itemsHtml = '';
     let totalQty = 0;
+    
+    const showSkuHsnCol = settings.showSku || settings.showHsn;
+    let skuHsnHeader = '';
+    if (settings.showSku && settings.showHsn) skuHsnHeader = 'SKU / HSN';
+    else if (settings.showSku) skuHsnHeader = 'SKU';
+    else if (settings.showHsn) skuHsnHeader = 'HSN';
     
     if (invoice.items && invoice.items.length > 0) {
       invoice.items.forEach((item: any, index: number) => {
@@ -97,10 +116,16 @@ export class PdfService {
                   <p class="font-bold text-slate-900 text-[10px] leading-tight mb-0.5">${itemName}</p>
                   <p class="text-[8px] text-slate-500">${desc}</p>
               </td>
+              ${showSkuHsnCol ? `
               <td class="py-3 px-1.5 text-center align-top text-[8.5px]">
-                  <span class="text-slate-400">SKU:</span> <span class="font-semibold text-slate-700">${sku}</span><br />
-                  <span class="text-slate-400">HSN:</span> <span class="font-semibold text-slate-700">${hsn}</span>
+                  ${settings.showSku && settings.showHsn ? `
+                      <span class="text-slate-400">SKU:</span> <span class="font-semibold text-slate-700">${sku}</span><br />
+                      <span class="text-slate-400">HSN:</span> <span class="font-semibold text-slate-700">${hsn}</span>
+                  ` : `
+                      <span class="font-semibold text-slate-700 text-[10px]">${settings.showSku ? sku : hsn}</span>
+                  `}
               </td>
+              ` : ''}
               <td class="py-3 px-1.5 text-center align-top font-semibold text-slate-800">${item.quantity}</td>
               <td class="py-3 px-1.5 text-right align-top font-medium">${Number(item.editedPrice || 0).toFixed(2)}</td>
               <td class="py-3 px-1.5 text-center align-top">${discountPercent}</td>
@@ -110,7 +135,7 @@ export class PdfService {
         `;
       });
     } else {
-      itemsHtml += `<tr><td colspan="7" class="py-6 text-center text-slate-500">No items in invoice</td></tr>`;
+      itemsHtml += `<tr><td colspan="${showSkuHsnCol ? 7 : 6}" class="py-6 text-center text-slate-500">No items in invoice</td></tr>`;
     }
 
     const htmlContent = `
@@ -164,7 +189,7 @@ export class PdfService {
 
                     <!-- Greeting -->
                     <div class="text-[10px] text-slate-600 italic mb-6 border-l-2 border-slate-300 pl-3">
-                        Dear <span class="font-bold text-slate-800">${customer.customerName || invoice.customerSnapshot?.customerName || 'Customer'}</span>, thank you for choosing us.
+                        ${settings.topMessage ? settings.topMessage : `Dear <span class="font-bold text-slate-800">${customer.customerName || invoice.customerSnapshot?.customerName || 'Customer'}</span>, thank you for choosing us.`}
                     </div>
 
                     <!-- Billed To / Shipped To -->
@@ -200,7 +225,7 @@ export class PdfService {
                             <thead>
                                 <tr class="border-b-2 border-slate-800 text-slate-900">
                                     <th class="py-2 px-1.5 text-left font-bold w-[35%] uppercase">Product</th>
-                                    <th class="py-2 px-1.5 text-center font-bold uppercase">SKU / HSN</th>
+                                    ${showSkuHsnCol ? `<th class="py-2 px-1.5 text-center font-bold uppercase">${skuHsnHeader}</th>` : ''}
                                     <th class="py-2 px-1.5 text-center font-bold uppercase">Qty</th>
                                     <th class="py-2 px-1.5 text-right font-bold uppercase">Price(₹)</th>
                                     <th class="py-2 px-1.5 text-center font-bold uppercase">Disc.%</th>
@@ -233,6 +258,8 @@ export class PdfService {
                                     <tr><td class="py-1.5 px-3 text-slate-500">Subtotal</td><td class="py-1.5 px-3 text-right font-medium text-slate-800">₹${Number(invoice.subtotal || 0).toFixed(2)}</td></tr>
                                     <tr><td class="py-1.5 px-3 text-slate-500">Discount</td><td class="py-1.5 px-3 text-right font-medium text-emerald-600">-₹${Number(invoice.discountAmount || 0).toFixed(2)}</td></tr>
                                     <tr><td class="py-1.5 px-3 text-slate-500">Total Tax</td><td class="py-1.5 px-3 text-right font-medium text-slate-800">₹${Number(invoice.taxAmount || 0).toFixed(2)}</td></tr>
+                                    <tr><td class="py-1.5 px-3 text-slate-500">Grand Total</td><td class="py-1.5 px-3 text-right font-medium text-slate-800">₹${Number(invoice.grandTotal || 0).toFixed(2)}</td></tr>
+                                    <tr><td class="py-1.5 px-3 text-slate-500">Paid Amount</td><td class="py-1.5 px-3 text-right font-medium text-emerald-600">₹${(Number(invoice.grandTotal || 0) - Number(invoice.amountDue || 0)).toFixed(2)}</td></tr>
                                     <tr class="bg-slate-900 text-white rounded-lg overflow-hidden">
                                         <td class="py-3 px-3 font-bold rounded-l-md uppercase tracking-widest text-[9px]">Total Due</td>
                                         <td class="py-3 px-3 text-right font-bold text-[13px] rounded-r-md">₹${Number(invoice.amountDue || 0).toFixed(2)}</td>
@@ -286,6 +313,7 @@ export class PdfService {
                                 </div>
                             </div>
 
+                            ${Number(invoice.amountDue || 0) > 0 ? `
                             <!-- Column 2: Bank Details -->
                             <div class="flex flex-col">
                                 <p class="font-bold text-slate-900 text-[9px] uppercase tracking-wider mb-2">Bank Details</p>
@@ -309,6 +337,7 @@ export class PdfService {
                                 </div>
                                 <p class="text-[8px] text-slate-500 font-bold uppercase tracking-widest text-center">Scan to Pay</p>
                             </div>
+                            ` : ''}
 
                         </div>
                     </div>
@@ -317,7 +346,7 @@ export class PdfService {
                 <!-- Footer Strip -->
                 <div class="bg-slate-50 border-t border-slate-200">
                     <div class="text-center py-3.5">
-                        <p class="text-[9px] font-medium text-slate-500">We appreciate your business! If you have any questions about this invoice, please contact us.</p>
+                        <p class="text-[9px] font-medium text-slate-500">${settings.bottomMessage || 'We appreciate your business! If you have any questions about this invoice, please contact us.'}</p>
                     </div>
                     <div class="bg-slate-900 text-white py-3 flex justify-center items-center gap-2 text-[8px] uppercase tracking-wider">
                         <span class="font-bold tracking-widest text-white">BillTea by Indux Technology</span>

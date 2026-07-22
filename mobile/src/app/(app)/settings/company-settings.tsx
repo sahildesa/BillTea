@@ -80,16 +80,19 @@ export default function CompanySettingsScreen() {
       </View>
 
       {/* Content ScrollView */}
-      <ScrollView 
-        contentContainerStyle={[
-          styles.scrollContent, 
-          { 
-            paddingTop: insets.top + 76, 
-            paddingBottom: insets.bottom + 140 
-          }
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
+   const HEADER_HEIGHT = 56;
+
+<ScrollView
+  contentContainerStyle={[
+    styles.scrollContent,
+    {
+      paddingTop: insets.top + HEADER_HEIGHT,
+      paddingBottom: insets.bottom + 140,
+    },
+  ]}
+  showsVerticalScrollIndicator={false}
+>
+
         
         {/* Company Profile Section */}
         <GlassPanel style={styles.profileCard}>

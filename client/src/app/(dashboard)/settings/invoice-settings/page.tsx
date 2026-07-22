@@ -29,7 +29,7 @@ export default function InvoiceSettingsPage() {
 
   const handleSave = () => {
     setSaving(true);
-    
+
     console.log('Saving invoice settings:', {
       prefix,
       nextSequence,
@@ -184,36 +184,24 @@ export default function InvoiceSettingsPage() {
 
               <div className="space-y-1">
                 <ToggleRow
-                  label="HSN/SAC Code"
+                  label="HSN Number"
                   description="Show tax classification codes"
                   checked={showHSN}
                   onChange={setShowHSN}
                 />
                 <ToggleRow
-                  label="Product SKU"
+                  label="SKU Number"
                   description="Include item serials/SKUs"
                   checked={showSKU}
                   onChange={setShowSKU}
-                />
-                <ToggleRow
-                  label="Payment Method"
-                  description="Show bank details block"
-                  checked={showPaymentMethod}
-                  onChange={setShowPaymentMethod}
-                />
-                <ToggleRow
-                  label="Salesperson Name"
-                  description="Display account manager"
-                  checked={showSalesperson}
-                  onChange={setShowSalesperson}
                 />
               </div>
 
               <div className="mt-2 p-4 bg-surface-container-low rounded-lg border border-outline-variant/30 flex gap-3 items-start">
                 <span className="material-symbols-outlined text-secondary-fixed text-lg">info</span>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
-                  Changes to these display settings will only affect invoices generated after
-                  saving. Historical invoices retain their original format.
+                  Changes to these display settings will only affect quotations generated after
+                  saving. Historical quotations retain their original format.
                 </p>
               </div>
             </section>

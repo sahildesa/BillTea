@@ -99,35 +99,27 @@ export default function SettingsScreen() {
       </View>
 
       <SafeAreaView style={styles.safeArea}>
-<<<<<<< HEAD
         {/* Custom Header Bar */}
         <View
-  style={[
-    styles.header,
-    {
-      backgroundColor: isDark
-        ? 'rgba(15,21,36,0.65)'
-        : 'rgba(255,255,255,0.95)',
-      borderBottomColor: isDark
-        ? 'rgba(125,211,252,0.12)'
-        : 'rgba(0,0,0,0.08)',
-    },
-  ]}
->
-  {Platform.OS === 'ios' && (
-    <BlurView
-      intensity={35}
-      tint={isDark ? 'dark' : 'light'}
-      style={StyleSheet.absoluteFill}
-    />
-  )}
-=======
-        {/* Header Bar */}
-        <View style={styles.header}>
+          style={[
+            styles.header,
+            {
+              backgroundColor: isDark
+                ? 'rgba(15,21,36,0.65)'
+                : 'rgba(255,255,255,0.95)',
+              borderBottomColor: isDark
+                ? 'rgba(125,211,252,0.12)'
+                : 'rgba(0,0,0,0.08)',
+            },
+          ]}
+        >
           {Platform.OS === 'ios' && (
-            <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
+            <BlurView
+              intensity={35}
+              tint={isDark ? 'dark' : 'light'}
+              style={StyleSheet.absoluteFill}
+            />
           )}
->>>>>>> 628ca68 (Describe the changes you made)
           <View style={styles.headerContent}>
             {/* Left Action Button */}
             <Pressable
@@ -137,20 +129,13 @@ export default function SettingsScreen() {
                 pressed && styles.headerButtonPressed,
               ]}
             >
-<<<<<<< HEAD
-             <Home size={24} color={colors.primary} />
-            </Pressable>
-
-            <Text style={[styles.headerTitle, { color:colors.primary }]}>BillTea</Text>
-=======
-              <Home size={22} color={colors.textSecondary} />
+              <Home size={24} color={colors.primary} />
             </Pressable>
 
             {/* Centered Title */}
             <View style={styles.titleContainer} pointerEvents="none">
-              <Text style={[styles.headerTitle, { color: colors.text }]}>BillTea</Text>
+              <Text style={[styles.headerTitle, { color: colors.primary }]}>BillTea</Text>
             </View>
->>>>>>> 628ca68 (Describe the changes you made)
 
             {/* Right Action: Theme Switcher */}
             <View style={[styles.themeToggle, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
@@ -410,21 +395,12 @@ const styles = StyleSheet.create({
     width: 500,
     height: 500,
   },
-<<<<<<< HEAD
- header: {
-  width: '100%',
-  borderBottomWidth: 1,
-  zIndex: 10,
-},
-=======
   glowCircle: { width: '100%', height: '100%', borderRadius: 250 },
   header: {
     width: '100%',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(125, 211, 252, 0.1)',
-    backgroundColor: 'rgba(15, 21, 36, 0.6)',
+    zIndex: 10,
   },
->>>>>>> 628ca68 (Describe the changes you made)
   headerContent: {
     width: '100%',
     height: 56,
@@ -444,7 +420,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#7DD3FC',
     letterSpacing: 2,
     textTransform: 'uppercase',
     textAlign: 'center',
@@ -520,7 +495,6 @@ const styles = StyleSheet.create({
   sectionContainer: { marginTop: 20, width: '100%' },
   sectionHeader: {
     fontSize: 12,
-    color: '#A0B4C4',
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 2,
@@ -549,7 +523,6 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF6B6B',
     letterSpacing: 0.5,
   },
 

@@ -1,39 +1,32 @@
 {
+  "extends": "expo/tsconfig.react-native",
 
- "extends": "expo/tsconfig.react-native",
   
-
-
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
     "strict": true,
-     "target": "esnext",
+    "target": "esnext",
     "module": "esnext",
-    "jsx": "react-jsx",      
+    "jsx": "react-jsx",
     "jsxImportSource": "react",
     "allowJs": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
     "skipLibCheck": true,
-     "resolveJsonModule": true,
+    "resolveJsonModule": true,
     "isolatedModules": true,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@/assets/*": [
-        "./assets/*"
-      ]
+      "@/*": ["./src/*"],
+      "@/assets/*": ["./assets/*"]
     }
   },
   "include": [
     "src",
-    "mobile/src"
+    "mobile/src",
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
   ],
-   
   "exclude": ["node_modules"]
 }

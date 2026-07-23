@@ -169,7 +169,7 @@ export class PdfService {
                         <div class="max-w-[60%]">
                             <h1 class="text-2xl font-black text-slate-900 tracking-tight mb-2 uppercase">${company.name || ''}</h1>
                             <p class="text-[9px] text-slate-500 leading-relaxed">
-                                ${branch.address || ''}, ${branch.city || ''} ${branch.pincode || ''}<br />
+                                <span class="material-symbols-outlined text-[9px] align-text-bottom text-slate-400 mr-0.5">location_on</span> ${branch.address || ''}, ${branch.city || ''} ${branch.pincode || ''}<br />
                                 <span class="material-symbols-outlined text-[9px] align-text-bottom text-slate-400 mr-0.5">call</span> ${branch.phone || ''} &nbsp;&nbsp;|&nbsp;&nbsp;
                                 <span class="material-symbols-outlined text-[9px] align-text-bottom text-slate-400 mr-0.5">mail</span> ${branch.email || ''}<br />
                                 ${(branch as any).gstIn ? `<span class="font-medium text-slate-700">GSTIN: ${(branch as any).gstIn}</span>` : ''}
@@ -197,24 +197,28 @@ export class PdfService {
                         <!-- Billed To -->
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
                             <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-2">Billed To</p>
-                            <p class="font-bold text-slate-900 text-[11px] mb-0.5">${customer.companyName || invoice.customerSnapshot?.companyName || customer.customerName || invoice.customerSnapshot?.customerName || ''}</p>
+                            <p class="text-[11px] mb-0.5">
+                                <span class="font-bold text-slate-900">${customer.customerName || invoice.customerSnapshot?.customerName || ''}</span>${(customer.companyName || invoice.customerSnapshot?.companyName) ? ` <span class="font-normal text-slate-300 mx-1">|</span> <span class="font-normal text-slate-400">${customer.companyName || invoice.customerSnapshot?.companyName}</span>` : ''}
+                            </p>
                             ${(customer.gstIn || invoice.customerSnapshot?.gstIn) ? `<p class="text-[9px] font-medium text-slate-700 mb-1.5">GSTIN: ${customer.gstIn || invoice.customerSnapshot?.gstIn}</p>` : ''}
                             <p class="text-[9px] text-slate-500 leading-relaxed">
-                                <span class="font-medium text-slate-600">Attn:</span> ${customer.customerName || invoice.customerSnapshot?.customerName || ''}<br />
-                                ${customer.address || invoice.customerSnapshot?.address || ''}<br />
-                                <span class="font-medium text-slate-600">Ph:</span> ${customer.mobileNumber || invoice.customerSnapshot?.mobileNumber || ''}
+                                ${(invoice.billingAddress?.address || customer.address || invoice.customerSnapshot?.address) ? `<span class="material-symbols-outlined text-[9px] align-text-bottom text-slate-400 mr-0.5">location_on</span> ${invoice.billingAddress?.address || customer.address || invoice.customerSnapshot?.address}<br />` : ''}
+                                ${(customer.mobileNumber || invoice.customerSnapshot?.mobileNumber) ? `<span class="material-symbols-outlined text-[9px] align-text-bottom text-slate-400 mr-0.5">call</span> ${customer.mobileNumber || invoice.customerSnapshot?.mobileNumber} <br />` : ''}
+                                ${(customer.email || invoice.customerSnapshot?.email) ? `<span class="material-symbols-outlined text-[9px] align-text-bottom text-slate-400 mr-0.5">mail</span> ${customer.email || invoice.customerSnapshot?.email}` : ''}
                             </p>
                         </div>
 
                         <!-- Shipped To -->
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
                             <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-2">Shipped To</p>
-                            <p class="font-bold text-slate-900 text-[11px] mb-0.5">${customer.companyName || invoice.customerSnapshot?.companyName || customer.customerName || invoice.customerSnapshot?.customerName || ''}</p>
+                            <p class="text-[11px] mb-0.5">
+                                <span class="font-bold text-slate-900">${customer.customerName || invoice.customerSnapshot?.customerName || ''}</span>${(customer.companyName || invoice.customerSnapshot?.companyName) ? ` <span class="font-normal text-slate-300 mx-1">|</span> <span class="font-normal text-slate-400">${customer.companyName || invoice.customerSnapshot?.companyName}</span>` : ''}
+                            </p>
                             ${(customer.gstIn || invoice.customerSnapshot?.gstIn) ? `<p class="text-[9px] font-medium text-slate-700 mb-1.5">GSTIN: ${customer.gstIn || invoice.customerSnapshot?.gstIn}</p>` : ''}
                             <p class="text-[9px] text-slate-500 leading-relaxed">
-                                <span class="font-medium text-slate-600">Attn:</span> ${customer.customerName || invoice.customerSnapshot?.customerName || ''}<br />
-                                ${customer.address || invoice.customerSnapshot?.address || ''}<br />
-                                <span class="font-medium text-slate-600">Ph:</span> ${customer.mobileNumber || invoice.customerSnapshot?.mobileNumber || ''}
+                                ${(invoice.shippingAddress?.address || customer.address || invoice.customerSnapshot?.address) ? `<span class="material-symbols-outlined text-[9px] align-text-bottom text-slate-400 mr-0.5">location_on</span> ${invoice.shippingAddress?.address || customer.address || invoice.customerSnapshot?.address}<br />` : ''}
+                                ${(customer.mobileNumber || invoice.customerSnapshot?.mobileNumber) ? `<span class="material-symbols-outlined text-[9px] align-text-bottom text-slate-400 mr-0.5">call</span> ${customer.mobileNumber || invoice.customerSnapshot?.mobileNumber} <br />` : ''}
+                                ${(customer.email || invoice.customerSnapshot?.email) ? `<span class="material-symbols-outlined text-[9px] align-text-bottom text-slate-400 mr-0.5">mail</span> ${customer.email || invoice.customerSnapshot?.email}` : ''}
                             </p>
                         </div>
                     </div>
@@ -271,10 +275,10 @@ export class PdfService {
 
                     <!-- Footer Info (Bank, Terms, QR, Sign) -->
                     <div class="mt-auto pt-6 border-t border-slate-200">
-                        <div class="grid grid-cols-[2fr_1.5fr_auto] gap-8 items-stretch justify-between">
+                        <div class="flex justify-between items-stretch gap-8 w-full">
 
                             <!-- Column 1: Terms & Conditions and Sign -->
-                            <div class="flex flex-col justify-between">
+                            <div class="flex-1 flex flex-col justify-between min-w-0">
                                 <div class="mb-8">
                                     <p class="font-bold text-slate-900 text-[9px] uppercase tracking-wider mb-2">Terms & Conditions</p>
                                     <div class="text-[8px] text-slate-500 font-medium leading-relaxed space-y-0.5 pr-4">
@@ -287,7 +291,7 @@ export class PdfService {
                                                 if (Array.isArray((tncRaw as any).terms)) {
                                                     tncList = (tncRaw as any).terms;
                                                 } else if (typeof (tncRaw as any).text === 'string') {
-                                                    tncList = (tncRaw as any).text.split('\\n').filter((t: string) => t.trim() !== '');
+                                                    tncList = (tncRaw as any).text.split(/\n|\\n/).filter((t: string) => t.trim() !== '');
                                                 } else {
                                                     tncList = Object.values(tncRaw).filter(v => typeof v === 'string');
                                                 }
@@ -296,11 +300,11 @@ export class PdfService {
                                                     const parsed = JSON.parse(tncRaw);
                                                     if (Array.isArray(parsed)) tncList = parsed;
                                                     else if (parsed && Array.isArray(parsed.terms)) tncList = parsed.terms;
-                                                    else if (parsed && typeof parsed.text === 'string') tncList = parsed.text.split('\\n').filter((t: string) => t.trim() !== '');
+                                                    else if (parsed && typeof parsed.text === 'string') tncList = parsed.text.split(/\n|\\n/).filter((t: string) => t.trim() !== '');
                                                     else if (parsed && typeof parsed === 'object') tncList = Object.values(parsed).filter(v => typeof v === 'string');
-                                                    else tncList = tncRaw.split('\\n').filter(t => t.trim() !== '');
+                                                    else tncList = tncRaw.split(/\n|\\n/).filter(t => t.trim() !== '');
                                                 } catch (e) {
-                                                    tncList = tncRaw.split('\\n').filter(t => t.trim() !== '');
+                                                    tncList = tncRaw.split(/\n|\\n/).filter(t => t.trim() !== '');
                                                 }
                                             }
                                             return tncList.map((t: string) => `<p>• ${t}</p>`).join('');
@@ -315,9 +319,9 @@ export class PdfService {
 
                             ${Number(invoice.amountDue || 0) > 0 ? `
                             <!-- Column 2: Bank Details -->
-                            <div class="flex flex-col">
+                            <div class="w-64 flex flex-col shrink-0">
                                 <p class="font-bold text-slate-900 text-[9px] uppercase tracking-wider mb-2">Bank Details</p>
-                                <div class="bg-slate-50 border border-slate-100 rounded-lg p-3 w-full">
+                                <div class="bg-slate-50 border border-slate-100 rounded-lg p-3 w-full h-full">
                                     <div class="grid grid-cols-[60px_1fr] gap-x-2 gap-y-2 text-[8px]">
                                         <span class="text-slate-500 font-medium">Bank Name:</span> <span class="text-slate-900 font-bold">HDFC Bank</span>
                                         <span class="text-slate-500 font-medium">A/C Name:</span> <span class="text-slate-900 font-bold">Papillon</span>

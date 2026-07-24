@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useCallback } from 'react';
 import {
   Animated,
   Easing,
@@ -11,8 +11,9 @@ import {
   TouchableOpacity,
   UIManager,
   View,
+  BackHandler,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
@@ -24,7 +25,6 @@ import {
   Headphones,
   Mail,
   Plus,
-  Sparkles,
   Users,
 } from 'lucide-react-native';
 
@@ -104,9 +104,7 @@ function FAQAccordion({
   const { colors } = useTheme();
 
   const [expanded, setExpanded] = useState(false);
-
   const rotate = useRef(new Animated.Value(0)).current;
-  const [billingType, setBillingType] = useState<'monthly' | 'yearly'>('monthly');
 
   const toggle = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -180,17 +178,29 @@ function FAQAccordion({
 
 export default function PlanSubscriptionScreen() {
   const router = useRouter();
-
   const { colors } = useTheme();
 
-  const [billing, setBilling] =
-    useState<BillingType>('monthly');
-
+  const [billing, setBilling] = useState<BillingType>('monthly');
   const translateX = useRef(new Animated.Value(0)).current;
 
   const monthlyPrice = useMemo(() => '₹299', []);
-
   const yearlyPrice = useMemo(() => '₹2,870', []);
+
+  // Unified navigation function to reliably return to settings
+  const goBack = useCallback(() => {
+    router.push('/settings');
+  }, [router]);
+
+  // Intercept Android hardware/gesture back buttons while this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        goBack();
+        return true; // Prevents default stack behavior (going straight to dashboard)
+      });
+      return () => subscription.remove();
+    }, [goBack])
+  );
 
   const switchBilling = (type: BillingType) => {
     if (type === billing) return;
@@ -235,15 +245,15 @@ export default function PlanSubscriptionScreen() {
           ]}
         >
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={goBack}
             style={[
               styles.backButton,
               {
-                backgroundColor:
-                colors.glassBackground,
+                backgroundColor: colors.glassBackground,
                 borderColor: colors.primary,
               },
             ]}
+            activeOpacity={0.7}
           >
             <ArrowLeft
               size={22}
@@ -270,13 +280,11 @@ export default function PlanSubscriptionScreen() {
           contentContainerStyle={styles.scrollContent}
         >
           {/* Current Plan */}
-
           <View
             style={[
               styles.glassCard,
               {
-                backgroundColor:
-                colors.glassBackground,
+                backgroundColor: colors.glassBackground,
                 borderColor: colors.primary,
                 shadowColor: colors.shadow,
               },
@@ -310,8 +318,7 @@ export default function PlanSubscriptionScreen() {
                   style={[
                     styles.planDuration,
                     {
-                      color:
-                        colors.textSecondary,
+                      color: colors.textSecondary,
                     },
                   ]}
                 >
@@ -323,8 +330,7 @@ export default function PlanSubscriptionScreen() {
                 style={[
                   styles.activeBadge,
                   {
-                    backgroundColor:
-                      colors.primary,
+                    backgroundColor: colors.primary,
                   },
                 ]}
               >
@@ -353,15 +359,12 @@ export default function PlanSubscriptionScreen() {
               style={[
                 styles.primaryButton,
                 {
-                  backgroundColor:
-                    colors.primary,
+                  backgroundColor: colors.primary,
                 },
               ]}
             >
               <Text
-                style={
-                  styles.primaryButtonText
-                }
+                style={styles.primaryButtonText}
               >
                 Current Plan
               </Text>
@@ -384,26 +387,21 @@ export default function PlanSubscriptionScreen() {
               style={[
                 styles.sectionSubtitle,
                 {
-                  color:
-                    colors.textSecondary,
+                  color: colors.textSecondary,
                 },
               ]}
             >
-              Choose the perfect plan for your
-              business.
+              Choose the perfect plan for your business.
             </Text>
           </View>
 
           {/* Billing Toggle */}
-
           <View
             style={[
               styles.segmentWrapper,
               {
-                backgroundColor:
-                  colors.surfaceVariant,
-                borderColor:
-                  colors.glassBorder,
+                backgroundColor: colors.surfaceVariant,
+                borderColor: colors.glassBorder,
               },
             ]}
           >
@@ -411,17 +409,14 @@ export default function PlanSubscriptionScreen() {
               style={[
                 styles.segmentIndicator,
                 {
-                  backgroundColor:
-                    colors.primary,
+                  backgroundColor: colors.primary,
                   left: indicatorLeft,
                 },
               ]}
             />
 
             <Pressable
-              onPress={() =>
-                switchBilling('monthly')
-              }
+              onPress={() => switchBilling('monthly')}
               style={styles.segmentItem}
             >
               <Text
@@ -429,8 +424,7 @@ export default function PlanSubscriptionScreen() {
                   styles.segmentText,
                   {
                     color:
-                      billing ===
-                      'monthly'
+                      billing === 'monthly'
                         ? '#fff'
                         : colors.text,
                   },
@@ -441,9 +435,7 @@ export default function PlanSubscriptionScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() =>
-                switchBilling('yearly')
-              }
+              onPress={() => switchBilling('yearly')}
               style={styles.segmentItem}
             >
               <Text
@@ -451,8 +443,7 @@ export default function PlanSubscriptionScreen() {
                   styles.segmentText,
                   {
                     color:
-                      billing ===
-                      'yearly'
+                      billing === 'yearly'
                         ? '#fff'
                         : colors.text,
                   },
@@ -462,8 +453,8 @@ export default function PlanSubscriptionScreen() {
               </Text>
             </Pressable>
           </View>
-                    {/* Professional Plan */}
 
+          {/* Professional Plan */}
           <View
             style={[
               styles.premiumCard,
@@ -474,7 +465,6 @@ export default function PlanSubscriptionScreen() {
               },
             ]}
           >
-
             <View style={styles.planHeader}>
               <View>
                 <Text
@@ -544,8 +534,7 @@ export default function PlanSubscriptionScreen() {
               style={[
                 styles.primaryButton,
                 {
-                  backgroundColor:
-                    colors.primary,
+                  backgroundColor: colors.primary,
                 },
               ]}
             >
@@ -558,15 +547,12 @@ export default function PlanSubscriptionScreen() {
           </View>
 
           {/* Enterprise */}
-
           <View
             style={[
               styles.glassCard,
               {
-                backgroundColor:
-                  colors.glassBackground,
-                borderColor:
-                  colors.primary,
+                backgroundColor: colors.glassBackground,
+                borderColor: colors.primary,
                 shadowColor: colors.shadow,
               },
             ]}
@@ -599,8 +585,7 @@ export default function PlanSubscriptionScreen() {
                   style={[
                     styles.planDuration,
                     {
-                      color:
-                        colors.textSecondary,
+                      color: colors.textSecondary,
                     },
                   ]}
                 >
@@ -612,8 +597,7 @@ export default function PlanSubscriptionScreen() {
                 style={[
                   styles.enterpriseIcon,
                   {
-                    backgroundColor:
-                      colors.surfaceVariant,
+                    backgroundColor: colors.surfaceVariant,
                   },
                 ]}
               >
@@ -636,8 +620,7 @@ export default function PlanSubscriptionScreen() {
               style={[
                 styles.secondaryButton,
                 {
-                  borderColor:
-                    colors.primary,
+                  borderColor: colors.primary,
                 },
               ]}
             >
@@ -655,7 +638,6 @@ export default function PlanSubscriptionScreen() {
           </View>
 
           {/* Add-ons */}
-
           <Text
             style={[
               styles.blockTitle,
@@ -671,10 +653,8 @@ export default function PlanSubscriptionScreen() {
             style={[
               styles.addonCard,
               {
-                backgroundColor:
-                  colors.glassBackground,
-                borderColor:
-                  colors.glassBorder,
+                backgroundColor: colors.glassBackground,
+                borderColor: colors.glassBorder,
               },
             ]}
           >
@@ -683,8 +663,7 @@ export default function PlanSubscriptionScreen() {
                 style={[
                   styles.addonIcon,
                   {
-                    backgroundColor:
-                      colors.surfaceVariant,
+                    backgroundColor: colors.surfaceVariant,
                   },
                 ]}
               >
@@ -710,8 +689,7 @@ export default function PlanSubscriptionScreen() {
                   style={[
                     styles.addonPrice,
                     {
-                      color:
-                        colors.textSecondary,
+                      color: colors.textSecondary,
                     },
                   ]}
                 >
@@ -724,8 +702,7 @@ export default function PlanSubscriptionScreen() {
               style={[
                 styles.plusButton,
                 {
-                  backgroundColor:
-                    colors.primary,
+                  backgroundColor: colors.primary,
                 },
               ]}
             >
@@ -740,10 +717,8 @@ export default function PlanSubscriptionScreen() {
             style={[
               styles.addonCard,
               {
-                backgroundColor:
-                  colors.glassBackground,
-                borderColor:
-                  colors.glassBorder,
+                backgroundColor: colors.glassBackground,
+                borderColor: colors.glassBorder,
               },
             ]}
           >
@@ -752,8 +727,7 @@ export default function PlanSubscriptionScreen() {
                 style={[
                   styles.addonIcon,
                   {
-                    backgroundColor:
-                      colors.surfaceVariant,
+                    backgroundColor: colors.surfaceVariant,
                   },
                 ]}
               >
@@ -779,8 +753,7 @@ export default function PlanSubscriptionScreen() {
                   style={[
                     styles.addonPrice,
                     {
-                      color:
-                        colors.textSecondary,
+                      color: colors.textSecondary,
                     },
                   ]}
                 >
@@ -793,8 +766,7 @@ export default function PlanSubscriptionScreen() {
               style={[
                 styles.plusButton,
                 {
-                  backgroundColor:
-                    colors.primary,
+                  backgroundColor: colors.primary,
                 },
               ]}
             >
@@ -806,7 +778,6 @@ export default function PlanSubscriptionScreen() {
           </View>
 
           {/* FAQ */}
-
           <Text
             style={[
               styles.blockTitle,
@@ -819,22 +790,19 @@ export default function PlanSubscriptionScreen() {
           </Text>
 
           {FAQS.map((item, index) => (
-           <FAQAccordion
-            key={index}
-            item={item}
-          />
+            <FAQAccordion
+              key={index}
+              item={item}
+            />
           ))}
 
           {/* Help */}
-
           <View
             style={[
               styles.helpCard,
               {
-                backgroundColor:
-                  colors.glassBackground,
-                borderColor:
-                  colors.glassBorder,
+                backgroundColor: colors.glassBackground,
+                borderColor: colors.glassBorder,
               },
             ]}
           >
@@ -842,8 +810,7 @@ export default function PlanSubscriptionScreen() {
               style={[
                 styles.helpIcon,
                 {
-                  backgroundColor:
-                    colors.surfaceVariant,
+                  backgroundColor: colors.surfaceVariant,
                 },
               ]}
             >
@@ -868,23 +835,19 @@ export default function PlanSubscriptionScreen() {
               style={[
                 styles.helpSubtitle,
                 {
-                  color:
-                    colors.textSecondary,
+                  color: colors.textSecondary,
                 },
               ]}
             >
-              Our team is always ready to
-              assist you.
+              Our team is always ready to assist you.
             </Text>
 
             <View
               style={[
                 styles.mailRow,
                 {
-                  borderColor:
-                    colors.glassBorder,
-                  backgroundColor:
-                    colors.surfaceVariant,
+                  borderColor: colors.glassBorder,
+                  backgroundColor: colors.surfaceVariant,
                 },
               ]}
             >
@@ -912,14 +875,12 @@ export default function PlanSubscriptionScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
+  container: {
     flex: 1,
   },
-
   safeArea: {
     flex: 1,
   },
-
   header: {
     height: 58,
     flexDirection: 'row',
@@ -928,7 +889,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomWidth: 1,
   },
-
   backButton: {
     width: 44,
     height: 44,
@@ -937,40 +897,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   headerTitle: {
     fontSize: 19,
     fontWeight: '700',
   },
-
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
   },
-
   sectionSpacing: {
     marginTop: 30,
     marginBottom: 24,
   },
-
   sectionTitle: {
     fontSize: 28,
     fontWeight: '700',
     marginBottom: 8,
   },
-
   sectionSubtitle: {
     fontSize: 15,
     lineHeight: 22,
   },
-
   blockTitle: {
     fontSize: 24,
     fontWeight: '700',
     marginTop: 32,
     marginBottom: 18,
   },
-
   glassCard: {
     borderRadius: 26,
     borderWidth: 1,
@@ -984,7 +937,6 @@ const styles = StyleSheet.create({
     elevation: 6,
     marginBottom: 18,
   },
-
   premiumCard: {
     borderRadius: 28,
     borderWidth: 2,
@@ -999,26 +951,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
   },
-
-  popularBadge: {
-    position: 'absolute',
-    right: 18,
-    top: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-
-  popularBadgeText: {
-    color: '#000',
-    fontWeight: '700',
-    fontSize: 11,
-    marginLeft: 6,
-  },
-
   activeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1027,42 +959,35 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignSelf: 'flex-start',
   },
-
   activeText: {
     color: '#fff',
     marginLeft: 6,
     fontWeight: '700',
     fontSize: 12,
   },
-
   spaceBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-
   planHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-
   planTitle: {
     fontSize: 24,
     fontWeight: '700',
   },
-
   planPrice: {
     fontSize: 42,
     fontWeight: '800',
     marginTop: 10,
   },
-
   planDuration: {
     fontSize: 15,
     marginTop: 4,
   },
-
   crownContainer: {
     width: 52,
     height: 52,
@@ -1070,7 +995,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   enterpriseIcon: {
     width: 52,
     height: 52,
@@ -1078,18 +1002,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   featuresContainer: {
     marginTop: 22,
     marginBottom: 10,
   },
-
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
   },
-
   checkCircle: {
     width: 22,
     height: 22,
@@ -1098,13 +1019,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-
   featureText: {
     fontSize: 15,
     flex: 1,
     lineHeight: 22,
   },
-
   primaryButton: {
     height: 54,
     borderRadius: 18,
@@ -1112,13 +1031,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 18,
   },
-
   primaryButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
   },
-
   secondaryButton: {
     height: 54,
     borderRadius: 18,
@@ -1127,12 +1044,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
-
   secondaryButtonText: {
     fontWeight: '700',
     fontSize: 16,
   },
-
   segmentWrapper: {
     height: 58,
     borderRadius: 18,
@@ -1142,7 +1057,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 28,
   },
-
   segmentIndicator: {
     position: 'absolute',
     width: '50%',
@@ -1150,19 +1064,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderRadius: 18,
   },
-
   segmentItem: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },
-
   segmentText: {
     fontSize: 15,
     fontWeight: '700',
   },
-
   addonCard: {
     borderRadius: 22,
     borderWidth: 1,
@@ -1172,13 +1083,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
   addonLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-
   addonIcon: {
     width: 52,
     height: 52,
@@ -1187,17 +1096,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-
   addonTitle: {
     fontSize: 18,
     fontWeight: '700',
   },
-
   addonPrice: {
     marginTop: 5,
     fontSize: 14,
   },
-
   plusButton: {
     width: 46,
     height: 46,
@@ -1205,33 +1111,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   faqCard: {
     borderRadius: 18,
     borderWidth: 1,
     padding: 18,
     marginBottom: 14,
   },
-
   faqHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
   faqQuestion: {
     fontSize: 16,
     fontWeight: '700',
     flex: 1,
     paddingRight: 12,
   },
-
   faqAnswer: {
     marginTop: 14,
     fontSize: 14,
     lineHeight: 22,
   },
-
   helpCard: {
     borderRadius: 26,
     borderWidth: 1,
@@ -1240,7 +1141,6 @@ const styles = StyleSheet.create({
     marginTop: 28,
     marginBottom: 30,
   },
-
   helpIcon: {
     width: 62,
     height: 62,
@@ -1249,12 +1149,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 18,
   },
-
   helpTitle: {
     fontSize: 22,
     fontWeight: '700',
   },
-
   helpSubtitle: {
     fontSize: 14,
     textAlign: 'center',
@@ -1262,7 +1160,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 22,
   },
-
   mailRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1271,7 +1168,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-
   mailText: {
     fontSize: 15,
     fontWeight: '600',

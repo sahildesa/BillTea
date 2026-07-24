@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Save, User } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 export default function QuotationSettingsScreen() {
   const router = useRouter();
@@ -31,6 +32,22 @@ export default function QuotationSettingsScreen() {
 
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Explicitly push to /settings to ensure it never pops back to dashboard
+  const goBack = useCallback(() => {
+    router.push('/settings');
+  }, [router]);
+
+  // Intercept physical hardware back button and swipe gestures on mobile
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        goBack();
+        return true;
+      });
+      return () => subscription.remove();
+    }, [goBack])
+  );
 
   const clearMessages = () => {
     setErrorMessage('');
@@ -83,7 +100,7 @@ export default function QuotationSettingsScreen() {
       >
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={goBack}
             hitSlop={12}
             style={styles.headerIconButton}
           >

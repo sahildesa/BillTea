@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -6,9 +6,10 @@ import {
   ScrollView, 
   TouchableOpacity, 
   Image, 
-  Platform 
+  Platform,
+  BackHandler,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   ArrowLeft, 
@@ -26,9 +27,32 @@ import { GlassPanel } from '../../../components/ui/GlassPanel';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 
+// FIX: moved out of the JSX tree. A `const` statement can't live directly
+// inside a component's returned markup — it needs to sit in the function body.
+const HEADER_HEIGHT = 56;
+
 export default function CompanySettingsScreen() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+
+  // Single source of truth for "back" so the on-screen button and the
+  // phone's hardware/gesture back button always land in the same place.
+  const goBack = useCallback(() => {
+    router.push('/settings');
+  }, []);
+
+  // Intercept the Android hardware/gesture back button while this screen
+  // is focused, since it otherwise pops the native stack (which may skip
+  // straight past /settings to the dashboard) instead of using our route.
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        goBack();
+        return true; // prevent default behavior (going to dashboard)
+      });
+      return () => subscription.remove();
+    }, [goBack])
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -69,8 +93,14 @@ export default function CompanySettingsScreen() {
         
         <View style={styles.headerContent}>
           <TouchableOpacity 
-            onPress={() => router.back()} 
-            style={[styles.backButton, { backgroundColor: colors.primary + '1A', borderColor: colors.primary + '33' }]}
+            onPress={goBack}
+            style={[
+              styles.backButton,
+              {
+                backgroundColor: colors.primary + '1A',
+                borderColor: colors.primary + '33',
+              },
+            ]}
             activeOpacity={0.7}
           >
             <ArrowLeft color={colors.primary} size={18} />
@@ -80,19 +110,16 @@ export default function CompanySettingsScreen() {
       </View>
 
       {/* Content ScrollView */}
-   const HEADER_HEIGHT = 56;
-
-<ScrollView
-  contentContainerStyle={[
-    styles.scrollContent,
-    {
-      paddingTop: insets.top + HEADER_HEIGHT,
-      paddingBottom: insets.bottom + 140,
-    },
-  ]}
-  showsVerticalScrollIndicator={false}
->
-
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: insets.top + HEADER_HEIGHT,
+            paddingBottom: insets.bottom + 140,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         
         {/* Company Profile Section */}
         <GlassPanel style={styles.profileCard}>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,12 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useFocusEffect } from 'expo-router';
+import { BackHandler } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../../hooks/useTheme';
 import {
+  ArrowLeft,
   MapPin,
   Edit2,
   Trash2,
@@ -28,7 +30,10 @@ import {
 } from 'lucide-react-native';
 import { GlassPanel } from '../../../components/ui/GlassPanel';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppHeader } from '../../../components/ui/AppHeader';
+import { BlurView } from 'expo-blur';
+
+// Header height for the custom translucent header, mirrors CompanySettingsScreen
+const HEADER_HEIGHT = 56;
 
 const INITIAL_USERS = [
   {
@@ -180,8 +185,27 @@ export default function UserManagementScreen() {
   };
   // ── End added state/handlers ──
 
+  // Single source of truth for "back" so the on-screen button and the
+  // phone's hardware/gesture back button always land in the same place.
+  const goBack = useCallback(() => {
+    router.push('/settings');
+  }, []);
+
+  // Intercept the Android hardware/gesture back button while this screen
+  // is focused, since it otherwise pops the native stack (which may skip
+  // straight past /settings to the dashboard) instead of using our route.
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        goBack();
+        return true; // prevent default behavior (going to dashboard)
+      });
+      return () => subscription.remove();
+    }, [goBack])
+  );
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Background Gradient */}
@@ -192,12 +216,58 @@ export default function UserManagementScreen() {
         end={{ x: 1, y: 1 }}
       />
 
-      {/* Global Header */}
-      <AppHeader title="Staff Management" />
+      {/* Ambient Glows */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={styles.glowCircle1}>
+          <LinearGradient
+            colors={[colors.primary + '14', 'transparent']}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+        </View>
+        <View style={styles.glowCircle2}>
+          <LinearGradient
+            colors={[colors.tertiary + '14', 'transparent']}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+        </View>
+      </View>
+
+      {/* Custom Header */}
+      <View style={[styles.header, { paddingTop: insets.top, borderBottomColor: colors.glassBorder }]}>
+        <BlurView intensity={70} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glassBackground }]} />
+
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            onPress={goBack}
+            style={[
+              styles.backButton,
+              {
+                backgroundColor: colors.primary + '1A',
+                borderColor: colors.primary + '33',
+              },
+            ]}
+            activeOpacity={0.7}
+          >
+            <ArrowLeft color={colors.primary} size={18} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Staff Management</Text>
+        </View>
+      </View>
 
       {/* Content */}
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingTop: 24, paddingBottom: insets.bottom + 100 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: insets.top + HEADER_HEIGHT + 24,
+            paddingBottom: insets.bottom + 100,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.actionBar, isSmallScreen && styles.actionBarSmall]}>
@@ -492,6 +562,52 @@ export default function UserManagementScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  glowCircle1: {
+    position: 'absolute',
+    top: -120,
+    left: -120,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    overflow: 'hidden',
+  },
+  glowCircle2: {
+    position: 'absolute',
+    top: '40%',
+    right: -100,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    overflow: 'hidden',
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 40,
+    borderBottomWidth: 1,
+  },
+  headerContent: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
   scrollContent: {
     paddingHorizontal: 16,

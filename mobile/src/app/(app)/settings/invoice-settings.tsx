@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,9 @@ import {
   StatusBar,
   Animated,
   Pressable,
+  BackHandler,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -193,6 +194,22 @@ export default function InvoiceSettingsScreen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Single source of truth back handler explicitly pointing to /settings
+  const goBack = useCallback(() => {
+    router.push('/settings');
+  }, [router]);
+
+  // Intercept the Android hardware/gesture back button
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        goBack();
+        return true;
+      });
+      return () => subscription.remove();
+    }, [goBack])
+  );
+
   // Initialize form with stored settings
   useEffect(() => {
     initSettings();
@@ -214,7 +231,6 @@ export default function InvoiceSettingsScreen() {
 
   const handleGenerateTC = () => {
     setIsGenerating(true);
-    // Simulate premium AI T&C generation
     setTimeout(() => {
       const generatedTerms = 
 `1. Payment Terms: Payment is due within 15 days of invoice date unless otherwise specified.
@@ -252,7 +268,7 @@ export default function InvoiceSettingsScreen() {
       });
 
       Alert.alert('Success', 'Invoice settings saved successfully!', [
-        { text: 'OK', onPress: () => router.back() },
+        { text: 'OK', onPress: () => goBack() },
       ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to save settings. Please try again.');
@@ -296,9 +312,10 @@ export default function InvoiceSettingsScreen() {
         {/* Header Bar */}
         <View style={[styles.header, { borderBottomColor: colors.glassBorder }]}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={goBack}
             style={[styles.backButton, { backgroundColor: colors.glassBackground }]}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.7}
           >
             <ArrowLeft size={22} color={colors.primary} />
           </TouchableOpacity>
@@ -557,36 +574,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 8,
   },
-  textInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-  },
-  textareaInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-  },
-  startingNumberInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-  },
   prefixHash: {
     fontSize: 16,
     fontWeight: '500',
     marginRight: 8,
-  },
-  startingNumberInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 15,
   },
   switchRow: {
     flexDirection: 'row',
@@ -619,11 +610,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  legalLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   generateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -651,7 +637,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   saveBtnText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.5,

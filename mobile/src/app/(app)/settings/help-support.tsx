@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
+  BackHandler,
   Linking,
   Platform,
   Pressable,
@@ -12,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 const OFFICE_LOCATION = {
   title: 'Indux Tech HQ',
@@ -98,6 +99,22 @@ export default function HelpSupportScreen() {
   const [openedFaq, setOpenedFaq] = useState<string | null>(null);
   const [showAllFaqs, setShowAllFaqs] = useState(false);
 
+  // Unified navigation function to reliably return to settings
+  const goBack = useCallback(() => {
+    router.push('/settings');
+  }, []);
+
+  // Intercept Android hardware/gesture back buttons while this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        goBack();
+        return true; // Prevents default stack behavior (going straight to dashboard)
+      });
+      return () => subscription.remove();
+    }, [goBack])
+  );
+
   const filteredFaqs = useMemo(() => {
     const query = searchText.trim().toLowerCase();
     const list = showAllFaqs ? faqItems : faqItems.slice(0, 4);
@@ -146,7 +163,7 @@ export default function HelpSupportScreen() {
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={goBack}
           hitSlop={12}
           style={({ pressed }) => [
             styles.backButton,
